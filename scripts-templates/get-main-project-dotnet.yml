@@ -1,0 +1,49 @@
+parameters:
+  - name: solutionPattern
+    type: string
+    default: '$(BuildParameters.Solution)'
+
+steps:
+  - task: PowerShell@2
+    inputs:
+      pwsh: true
+      targetType: 'inline'
+      script: |
+        $path = '${{ parameters.solutionPattern }}';
+
+        # Find solution file.
+        $solution = (Get-Item $path);
+        if ($null -eq $solution) {
+          write-error "Solution file not found: $path";
+        }
+        else {
+          # Get first project in the solution. That is the main project.
+          $content = (Get-Content $solution);
+          $pattern = '(?m)Project\(.*\)\s?=\s?"(?<ProjectName>.*)",\s?"(?<ProjectPath>.*)",\s?.*"';
+          $projects = $content | Select-String $pattern -AllMatches;
+
+          if ($projects -and $projects.Matches.Count -gt 0) {
+            $projectPath = $projects.Matches[0].Groups['ProjectPath'].Value;
+            $projectFile = Join-Path $solution.Directory $projectPath;
+            $file = (Get-Item $projectFile);
+
+            if ($null -eq $file) {
+              write-error 'Project file not found: $projectFile';
+            }
+            else {
+              write-output $($file.FullName);
+              write-output "##vso[task.setvariable variable=MainProject.FullName]$($file.FullName)";
+            }
+          }
+
+          # Find the nuget config file:
+          $nugetConfigPath = Join-Path $solution.Directory 'nuget.config';
+          if (Test-Path $nugetConfigPath) {
+            $nugetConfig = (Get-Item $nugetConfigPath);
+            write-output "##vso[task.setvariable variable=Solution.NugetConfig]$($nugetConfig.FullName)";
+          } else {
+            write-warning "Nuget config file not found in $($solution.Directory)";
+            write-output "##vso[task.setvariable variable=Solution.NugetConfig]";
+          }
+        }
+    displayName: Get main project from Solution

@@ -1,0 +1,57 @@
+parameters:
+  - name: supportedFrameworks
+    type: string
+    default: '$(SupportedFrameworks)'
+
+steps:
+  - task: PowerShell@2
+    inputs:
+      pwsh: true
+      targetType: 'inline'
+      script: |
+        $files = Get-ChildItem -Recurse -Filter *.??proj;
+        
+        # Get supported frameworks.
+        $supportedFrameworks = "${{ parameters.supportedFrameworks }}".Split(';') | ForEach-Object { $_.Trim() };
+        write-output "Supported frameworks: $supportedFrameworks";
+        # Get installed frameworks.            
+        $installedSdks = &dotnet --list-sdks;
+        $installedFrameworks = New-Object System.Collections.Generic.HashSet[string];
+        foreach ($sdk in $installedSdks) {
+          if ($sdk -match '^(?<version>\d+\.\d+)') {
+            $installedFrameworks.Add($matches['version']) | Out-Null;
+          }
+        }
+        write-output "Installed frameworks: $installedFrameworks";
+        write-output '';
+
+        # Calculate necessary frameworks.
+        if ($files.Count -eq 0) {
+          write-error 'No project files found in the specified directory';
+        } else {
+          $files | ForEach-Object {
+            $file = $_;
+            write-output "Processing file: $file";
+  
+            # Load the XML content of the project file
+            $xml = [xml](Get-Content -Path $file.FullName);
+  
+            # Calculate target frameworks
+            $frameworks = "$($xml.Project.PropertyGroup.TargetFrameworks)"?.Trim().Split(";");
+            if (-not $frameworks) {
+              $frameworks = @("$($xml.Project.PropertyGroup.TargetFramework)"?.Trim());
+            }
+            write-output "Target frameworks: $frameworks";
+            $frameworks | ForEach-Object {
+              $version = [regex]::match($_, '(\d+\.\d+)').Value;
+              if ($version) {
+                write-output "##vso[task.setvariable variable=BuildParameters.TargetFramework_$version]$_";
+                if ($installedFrameworks -notcontains $version) {
+                  write-output "##vso[task.setvariable variable=BuildParameters.TargetFramework_Install_$version]$_";
+                }
+              }
+            }
+            write-output '';
+          }
+        }
+    displayName: Calculate target frameworks

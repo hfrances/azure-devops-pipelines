@@ -1,0 +1,71 @@
+parameters:
+  - name: workingDirectory
+    type: string
+    default: '$(Build.SourcesDirectory)'
+  - name: solutionPattern
+    type: string
+    default: '$(BuildParameters.Solution)'
+  - name: forceVersion
+    type: string
+    default: '$(ForceVersion)'
+
+steps:
+  - task: PowerShell@2
+    inputs:
+      pwsh: true
+      targetType: 'inline'
+      script: |
+        $solutionPath = "${{ parameters.solutionPattern }}";
+        $versionOriginal = "$(MainProject.Version)";
+        $version = "$(BuildParameters.ReleaseVersion)";
+        $assemblyVersion = "$(BuildParameters.ReleaseAssemblyVersion)";
+        $versionForce = "${{ parameters.forceVersion }}"
+
+        if ($version) {
+          $solution = (Get-Item $solutionPath);
+          $solutionContent = (Get-Content $solution);
+          $pattern = '(?m)Project\(.*\)\s?=\s?"(?<ProjectName>.*)",\s?"(?<ProjectPath>.*)",\s?.*"';
+          $projects = $solutionContent | Select-String $pattern -AllMatches;
+  
+          foreach ($project in $projects.Matches) {
+            $projectPath = $project.Groups['ProjectPath'].Value;
+            $projectFile = Join-Path $solution.Directory $projectPath;
+
+            if (Test-Path $projectFile -PathType Leaf) {
+              $file = (Get-Item $projectFile);
+              $xml = [Xml] (Get-Content $file.FullName);
+              
+              # Iterar sobre cada PropertyGroup y actualizar Version y AssemblyVersion si existen (solo debería encontrar uno, pero es por si hay varios PropertyGroups)
+              foreach ($propertyGroup in $xml.Project.PropertyGroup) {
+                if ($propertyGroup.Version) {
+                  $xmlVersion = $propertyGroup.Version;
+                  $xmlAssemblyVersion = $propertyGroup.AssemblyVersion;
+                  
+                  if (($true -eq $versionForce) -or ($xmlVersion -eq $versionOriginal)) {
+                    Write-Output "Processing file: $($file.FullName)"
+                    if ($xmlVersion) {
+                      $propertyGroup.Version = $version;
+                      Write-Output "Update to version: $version";
+                    }
+                    if ($xmlAssemblyVersion) {
+                      $propertyGroup.AssemblyVersion = $assemblyVersion;
+                      Write-Output "Update to assembly version: $assemblyVersion";
+                    }
+                    $xml.Save($file.FullName); 
+                    Write-Output '';
+                  }
+                }
+              }
+            } 
+            else {
+              Write-Warning "Project file does not exist: $projectFile"
+              Write-Output '';
+            }
+          }
+        }
+        else {
+          Write-Warning "No version.";
+        }
+      workingDirectory: '${{ parameters.workingDirectory }}'
+    displayName: 'Apply release version to all projects'
+    condition: succeeded()

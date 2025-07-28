@@ -1,0 +1,17 @@
+steps:
+  - task: PowerShell@2
+    inputs:
+      pwsh: true
+      targetType: 'inline'
+      script: |
+        $var = (gci env:*).GetEnumerator() | Sort-Object Name
+        $out = ""
+        Foreach ($v in $var) {$out = $out + "`t{0,-28} = {1,-28}`n" -f $v.Name, $v.Value}
+      
+        $fileName = Join-Path "$env:BUILD_ARTIFACTSTAGINGDIRECTORY" "drop/variable-list-$env:SYSTEM_PHASENAME.md"
+        write-output "dump variables on $fileName"
+        set-content $fileName $out
+
+        write-output "##vso[task.addattachment type=Distributedtask.Core.Summary;name=Environment Variables ($env:SYSTEM_JOBDISPLAYNAME);]$fileName"
+    displayName: 'Export variable list'
+    condition: succeededOrFailed()

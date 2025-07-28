@@ -1,0 +1,299 @@
+########################################
+### Template Type: aspnet-template   ###
+### Template Version: 3.1.0          ###
+### Author: hfrances                 ###
+### Date: 28/07/2025                 ###
+########################################
+
+parameters:
+  # Indica si se debe publicar el paquete en Universal Packages.
+  # - auto: Se publica si la rama es master o main.
+  # - true: Se publica siempre.
+  # - false: No se publica.
+  - name: Deploy
+    type: string
+    values:
+      - auto
+      - true
+      - false
+    default: false
+  # Indica si se debe ejecutar SonarQube para análisis de código.
+  # - disabled: No se ejecuta SonarQube.
+  # - auto: Se ejecuta SonarQube si la rama es master, main o staging.
+  # - true: Se ejecuta SonarQube siempre.
+  - name: Analyze
+    type: string
+    values:
+      - disabled
+      - auto
+      - true
+      - false
+    default: disabled
+  # Indica si se deben ejecutar pruebas unitarias y generar informes de cobertura.
+  # - disabled: No se ejecutan pruebas unitarias.
+  # - auto: Se ejecutan pruebas unitarias si hay proyecto de test.
+  - name: Test
+    type: string
+    values:
+      - disabled
+      - auto
+    default: auto
+  # Patrón de búsqueda del proyecto principal. Por defecto, busca el primer proyecto en la solución.
+  - name: Solution
+    type: string
+    default: '*.sln'
+  # Indica si debe reemplazar la versión siempre o si debe hacerlo solamente cuando coincide con el proyecto principal.
+  - name: ForceVersion
+    type: boolean
+    default: false
+  # Indica si los binarios deben publicarse en el Universal Packages.
+  # - true: Publicar en el Universal Packages. 
+  #         Requiere variable 'Deploy' con valor 'true' o 'auto' y que la rama sea master o main.
+  # - false: No publicar en el Universal Packages.
+  - name: SupportsUniversalPackages
+    displayName: "Supports universal packages"
+    type: boolean
+    default: false
+  # Indica si el proyecto soporta contenedores Docker.
+  # - true: Soporta contenedores Docker. 
+  #         Requiere variable 'ContainerRegistry' con el nombre del registro de contenedores (previamente configurado en los conectores) y 'ContainerName' con el nombre del contenedor.
+  #         Requiere variable 'Deploy' con valor 'true' o 'auto'. Funciona con cualquier rama.
+  # - false: No soporta contenedores Docker.
+  - name: SupportsContainers
+    displayName: "Supports container"
+    type: boolean
+    default: true
+
+variables:
+  - name: BuildParameters.RestoreBuildProjects
+    value: "**/${{ parameters.Solution }}"
+  - name: BuildParameters.Solution
+    value: ${{ parameters.Solution }}
+  - name: BuildParameters.TestProjects
+    value: |-
+      **/*Test.csproj
+      **/*Tests.csproj
+      !**/*Test.*.csproj
+      !**/*Tests.*.csproj
+  - name: BuildParameters.ProjectKey
+    value: $(Build.DefinitionName)
+  - name: BuildParameters.ProjectName
+    value: $(BuildParameters.ProjectKey)
+  - name: BuildParameters.OutputDirectory
+    value: '' # '' | '<dir>' | $[variables['System.PhaseName']]
+  - name: BuildParameters.OutputFile
+    value: ''
+  - name: BuildConfiguration
+    value: 'Release'
+  - name: Deploy
+    value: ${{ parameters.Deploy }}
+  - name: PublishEnabled
+    value: $[or(eq(variables.Deploy, 'true'), and(eq(variables.Deploy, 'auto'), in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/main')))]
+  - name: PublishDocker
+    value: true # TODO: Review condition
+  - name: Analyze
+    value: ${{ parameters.Analyze }}
+  - name: SonarQubeEnabled
+    value: $[or(eq(variables.Analyze, 'true'), and(eq(variables.Analyze, 'auto'), in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/main', 'refs/heads/staging')))]
+  - name: Test
+    value: ${{ parameters.Test }}
+  - name: SupportedFrameworks
+    value: "8.0;7.0;6.0;5.0;3.1"
+  - name: ForceVersion
+    value: ${{ parameters.ForceVersion }}
+
+jobs:
+  - job: Build
+    steps:
+      - template: ../scripts-templates/create-drop-folder.yml@azure-pipelines-repo
+
+      - template: ../scripts-templates/get-main-project-dotnet.yml@azure-pipelines-repo
+        parameters:
+          solutionPattern: '$(BuildParameters.Solution)'
+
+      - template: ../scripts-templates/get-project-properties-dotnet.yml@azure-pipelines-repo
+
+      - template: ../scripts-templates/calculate-target-frameworks-dotnet.yml@azure-pipelines-repo
+        parameters:
+          supportedFrameworks: '$(SupportedFrameworks)'
+
+      - template: ../scripts-templates/calculate-release-version-dotnet.yml@azure-pipelines-repo
+        parameters:
+          projectVersion: '$(MainProject.Version)'
+
+      - template: ../scripts-templates/apply-release-version-dotnet.yml@azure-pipelines-repo
+        parameters:
+          workingDirectory: '$(Build.SourcesDirectory)'
+          solutionPattern: '$(BuildParameters.Solution)'
+          forceVersion: '$(ForceVersion)'
+
+      - template: ../scripts-templates/set-output-filename.yml@azure-pipelines-repo
+        parameters:
+          workingDirectory: '$(Build.SourcesDirectory)'
+
+      - template: ../scripts-templates/export-variable-list.yml@azure-pipelines-repo
+
+      - task: FileTransform@2
+        inputs:
+          folderPath: '$(System.DefaultWorkingDirectory)'
+          enableXmlTransform: false
+          xmlTransformationRules: '' # disabled (previous versions)
+          jsonTargetFiles: '**/appsettings.json'
+        condition: and(succeeded(), ne(variables['FileTransformEnabled'], 'false'))
+        continueOnError: true
+
+      - ${{ each framework in split(variables.SupportedFrameworks, ';') }}:
+        - task: UseDotNet@2
+          inputs:
+            packageType: 'sdk'
+            version: '${{ framework }}.x'
+            includePreviewVersions: false
+          displayName: 'UseDotNet ${{ framework }}'
+          condition: and(succeeded(), ne(variables['BuildParameters.TargetFramework_${{framework}}'], ''))
+
+      - task: DotNetCoreCLI@2
+        displayName: Restore
+        inputs:
+          command: 'restore'
+          projects: '$(BuildParameters.Solution)'
+          feedsToUse: 'config'
+          nugetConfigPath: '$(Solution.NugetConfig)'
+          ${{ if ne(variables.ExternalFeed, '') }} : 
+            externalFeedCredentials: '$(ExternalFeed)'
+
+      - ${{ if ne(parameters.Analyze, 'disabled') }} :
+        - task: SonarCloudPrepare@3
+          inputs:
+            SonarQube: 'SonarCloud'
+            organization: 'hfrances-github'
+            scannerMode: 'dotnet'
+            projectKey: '$(BuildParameters.ProjectKey)'
+            projectName: '$(BuildParameters.ProjectName)'
+            projectVersion: '$(MainProject.Version)'
+            extraProperties: |
+              sonar.exclusions=**/obj/**,**/*.dll
+              sonar.cs.opencover.reportsPaths=**/*.[Oo]pencover.xml,**/[Oo]pencover.xml
+              sonar.cs.cobertura.reportsPaths=**/*.[Cc]obertura.xml,**/[Cc]obertura.xml
+              sonar.cs.vscoveragexml.reportsPaths=**/*.[Cc]overagexml,**/*[Cc]overagexml
+              sonar.cs.dotcover.reportsPaths=**/*.html
+              sonar.cs.vstest.reportsPaths=$(Agent.TempDirectory)/*.trx
+          condition: eq(variables.SonarQubeEnabled, 'true')
+     
+      - task: DotNetCoreCLI@2
+        displayName: Build
+        inputs:
+          projects: '$(BuildParameters.RestoreBuildProjects)'
+          arguments: '--configuration $(BuildConfiguration)'
+     
+      - ${{ if ne(parameters.Test, 'disabled') }} :
+        - task: DotNetCoreCLI@2
+          displayName: 'Test + Coverage'
+          inputs:
+            command: test
+            projects: '$(BuildParameters.TestProjects)'
+            arguments: '--configuration $(BuildConfiguration) /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:Exclude=".*\.Test[s]?\..*" /p:CoverletOutput="$(Build.SourcesDirectory)/TestResults/"'
+     
+      - ${{ if ne(parameters.Test, 'disabled') }} :
+        - template: ../scripts-templates/check-test-projects-dotnet.yml@azure-pipelines-repo
+          parameters:
+            testResultsDirectory: '$(Build.SourcesDirectory)/TestResults'
+
+      - ${{ if ne(parameters.Test, 'disabled') }} :
+        - task: reportgenerator@4
+          inputs:
+            reports: '**/*.[Oo]pencover.xml;**/[Oo]pencover.xml'
+            targetdir: '$(Build.SourcesDirectory)/TestResults/'
+          continueOnError: true
+          condition: eq(variables.HasTests, 'true')
+          displayName: 'Coverage: Parse format'
+     
+      - ${{ if ne(parameters.Test, 'disabled') }} :
+        - template: ../scripts-templates/collect-coverage-files.yml@azure-pipelines-repo
+          condition: eq(variables.HasTests, 'true')
+          displayName: 'Coverage: Collect files'
+     
+      - ${{ if ne(parameters.Test, 'disabled') }} :
+        - task: PublishCodeCoverageResults@2
+          inputs:
+            codeCoverageTool: 'Cobertura'
+            summaryFileLocation: '$(CoverageResults)'
+          continueOnError: true
+          condition: eq(variables.HasTests, 'true')
+          displayName: 'Coverage: Publish report'
+     
+      - ${{ if ne(parameters.Analyze, 'disabled') }} :
+        - task: SonarCloudAnalyze@3
+          condition: eq(variables.SonarQubeEnabled, 'true')
+        - task: SonarCloudPublish@3
+          inputs:
+            pollingTimeoutSec: '300'
+          condition: eq(variables.SonarQubeEnabled, 'true')
+
+      - ${{ each framework in split(variables.SupportedFrameworks, ';') }}:
+        - task: DotNetCoreCLI@2
+          displayName: Publish ${{ framework }}
+          inputs:
+            command: 'publish'
+            publishWebProjects: false
+            projects: '$(BuildParameters.RestoreBuildProjects)'
+            arguments: '--configuration $(BuildConfiguration) --framework $(BuildParameters.TargetFramework_${{framework}}) --output $(BuildParameters.OutputDirectory)/$(BuildParameters.TargetFramework_${{ framework }})'
+            modifyOutputPath: false
+            zipAfterPublish: false
+          condition: and(succeeded(), ne(variables['BuildParameters.TargetFramework_${{framework}}'], ''))
+
+      - task: DeleteFiles@1
+        inputs:
+          SourceFolder: '$(Build.ArtifactStagingDirectory)/output/'
+          Contents: 'CodeCoverage'
+        displayName: Delete CoverageCode folder
+
+      - task: ArchiveFiles@2
+        name: ZipArtifactsDev
+        inputs:
+          rootFolderOrFile: '$(Build.ArtifactStagingDirectory)/output'
+          includeRootFolder: false
+          archiveType: 'tar'
+          tarCompression: 'gz'
+          archiveFile: '$(Build.ArtifactStagingDirectory)/build/$(BuildParameters.OutputFile)'
+          replaceExistingArchive: true
+        displayName: Package output files
+
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifact: drop'
+        inputs:
+          pathtoPublish: '$(Build.ArtifactStagingDirectory)/drop'
+        condition: succeededOrFailed()
+     
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish Artifact: build'
+        inputs:
+          artifactName: 'build'
+          targetPath: '$(Build.ArtifactStagingDirectory)/build/$(BuildParameters.OutputFile)'
+
+      - ${{ if parameters.SupportsUniversalPackages }} :
+        - task: UniversalPackages@0
+          displayName: Universal Publish
+          inputs:
+            command: publish
+            publishDirectory: '$(Build.ArtifactStagingDirectory)/output'
+            vstsFeedPublish: 'universal-packages'
+            vstsFeedPackagePublish: '$(MainProject.PackageName)'
+            packagePublishDescription: '$(MainProject.Description)'
+            versionOption: custom
+            versionPublish: '$(BuildParameters.DockerVersion)' #$(MainProject.Version)
+          continueOnError: false
+          condition: eq(variables.PublishEnabled, 'true')
+        
+      - ${{ if parameters.SupportsContainers }} :
+        - task: Docker@2
+          displayName: 'Docker: Build and Push'
+          inputs:
+            command: 'buildAndPush'
+            containerRegistry: '$(ContainerRegistry)'
+            repository: '$(ContainerName)'
+            Dockerfile: '**/Dockerfile'
+            buildContext: '$(Build.ArtifactStagingDirectory)/output'
+            tags: |
+              $(BuildParameters.DockerVersion)
+              $(BuildParameters.DockerAlias)
+          condition: and(succeeded(), ne(variables.ContainerRegistry, ''), ne(variables.ContainerName, ''), eq(variables.PublishDocker, 'true'))

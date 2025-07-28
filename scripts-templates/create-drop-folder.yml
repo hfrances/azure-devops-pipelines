@@ -1,0 +1,11 @@
+steps:
+  - task: PowerShell@2
+    inputs:
+      pwsh: true
+      targetType: 'inline'
+      script: |
+        $path = '$(Build.ArtifactStagingDirectory)/drop';
+        if (!(Test-Path $path)) {
+          New-Item -itemType Directory -Path '$(Build.ArtifactStagingDirectory)' -Name 'drop';
+        }
+    displayName: Create 'drop' folder

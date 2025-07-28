@@ -1,0 +1,30 @@
+steps:
+  - task: PowerShell@2
+    inputs:
+      pwsh: true
+      targetType: 'inline'
+      script: |
+        $file = (Get-Item '$(MainProject.FullName)');
+
+        if ($null -eq $file) {
+          write-error 'Project file not found: $(MainProject.FullName)';
+        }
+        else {
+          # Get package name
+          $packageName = $file.BaseName?.ToLower();
+          write-output "Package name: $packageName";
+          write-output "##vso[task.setvariable variable=MainProject.PackageName]$packageName";
+
+          $xml = [Xml] (Get-Content $file);
+
+          # Set version
+          $version = "$($xml.Project.PropertyGroup.Version)"?.Trim();
+          write-output "Version: $version";
+          write-output "##vso[task.setvariable variable=MainProject.Version]$version";
+            
+          # Set description
+          $description = "$($xml.Project.PropertyGroup.Description)"?.Trim();
+          write-output "Description: $description";
+          write-output "##vso[task.setvariable variable=MainProject.Description]$description";
+        }
+    displayName: Get main project properties

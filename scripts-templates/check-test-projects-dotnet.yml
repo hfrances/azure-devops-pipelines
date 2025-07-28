@@ -1,0 +1,22 @@
+parameters:
+  - name: testResultsDirectory
+    type: string
+    default: '$(Build.SourcesDirectory)/TestResults/'
+
+steps:
+  - task: PowerShell@2
+    inputs:
+      pwsh: true
+      targetType: 'inline'
+      script: |
+        $testResultsDirectory = "${{ parameters.testResultsDirectory }}";
+        if (Test-Path $testResultsDirectory) {
+          $files = Get-ChildItem $testResultsDirectory -File;
+          $hasTests = $files.Count -gt 0;
+        } else {
+          Write-Output "Directory $testResultsDirectory does not exist.";
+          $hasTests = $false;
+        }
+        Write-Output "HasTests: $hasTests";
+        Write-Output "##vso[task.setvariable variable=HasTests]$hasTests";
+    displayName: 'Coverage: Check if there are test projects'

@@ -1,0 +1,242 @@
+########################################
+### Template Type: libnet-template   ###
+### Template Version: 3.1.0          ###
+### Author: hfrances                 ###
+### Date: 28/07/2025                 ###
+########################################
+
+parameters:
+  # Indica si se debe publicar el paquete en NuGet.
+  # - auto: Se publica si la rama es master, main, staging o alpha.
+  # - true: Se publica siempre.
+  # - false: No se publica.
+  - name: Deploy
+    type: string
+    values:
+      - auto
+      - true
+      - false
+    default: false
+  # Indica si se debe ejecutar SonarQube para análisis de código.
+  # - disabled: No se ejecuta SonarQube.
+  # - auto: Se ejecuta SonarQube si la rama es master, main, staging o alpha.
+  # - true: Se ejecuta SonarQube siempre.
+  - name: Analyze
+    type: string
+    values:
+      - disabled
+      - auto
+      - true
+      - false
+    default: auto
+  # Indica si se deben ejecutar pruebas unitarias y generar informes de cobertura.
+  # - disabled: No se ejecutan pruebas unitarias.
+  # - auto: Se ejecutan pruebas unitarias si hay proyecto de test.
+  - name: Test
+    type: string
+    values:
+      - disabled
+      - auto
+    default: auto
+  # Patrón de búsqueda del proyecto principal. Por defecto, busca el primer proyecto en la solución.
+  - name: Solution
+    type: string
+    default: '*.sln'
+  # Indica si debe reemplazar la versión siempre o si debe hacerlo solamente cuando coincide con el proyecto principal.
+  - name: ForceVersion
+    type: boolean
+    default: true
+  # Indica si debe empaquetarse y publicarse en NuGet.
+  # - true: Se empaqueta y publica en NuGet.
+  #         Requiere variable 'Deploy' con valor 'true' o 'auto' y que la rama sea master, main, staging o alpha.
+  # - false: No se empaqueta ni publica en NuGet.
+  - name: SupportsNuget
+    displayName: "Supports NuGet packages"
+    type: boolean
+    default: true
+
+variables:
+  - name: BuildParameters.RestoreBuildProjects
+    value: "**/${{ parameters.Solution }}"
+  - name: BuildParameters.Solution
+    value: ${{ parameters.Solution }}
+  - name: BuildParameters.TestProjects
+    value: |-
+      **/*Test.csproj
+      **/*Tests.csproj
+      !**/*Test.*.csproj
+      !**/*Tests.*.csproj
+  - name: BuildParameters.ProjectKey
+    value: $(Build.DefinitionName)
+  - name: BuildParameters.ProjectName
+    value: $(BuildParameters.ProjectKey)
+  - name: BuildParameters.OutputFile
+    value: ''
+  - name: BuildConfiguration
+    value: 'Release'
+  - name: Deploy
+    value: ${{ parameters.Deploy }}
+  - name: PublishEnabled
+    value: $[or(eq(variables.Deploy, 'true'), and(eq(variables.Deploy, 'auto'), in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/main', 'refs/heads/staging', 'refs/heads/alpha')))]
+  - name: Analyze
+    value: ${{ parameters.Analyze }}
+  - name: SonarQubeEnabled
+    value: $[or(eq(variables.Analyze, 'true'), and(eq(variables.Analyze, 'auto'), in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/main', 'refs/heads/staging', 'refs/heads/alpha')))]
+  - name: SupportedFrameworks
+    value: "9.0;8.0;7.0;6.0;5.0;3.1"
+  - name: ForceVersion
+    value: ${{ parameters.ForceVersion }}
+
+jobs:
+  - job: Build
+    steps:
+      - template: ../scripts-templates/create-drop-folder.yml@azure-pipelines-repo
+
+      - template: ../scripts-templates/get-main-project-dotnet.yml@azure-pipelines-repo
+        parameters:
+          solutionPattern: '$(BuildParameters.Solution)'
+
+      - template: ../scripts-templates/get-project-properties-dotnet.yml@azure-pipelines-repo
+
+      - template: ../scripts-templates/calculate-target-frameworks-dotnet.yml@azure-pipelines-repo
+        parameters:
+          supportedFrameworks: '$(SupportedFrameworks)'
+
+      - template: ../scripts-templates/calculate-release-version-dotnet.yml@azure-pipelines-repo
+        parameters:
+          projectVersion: '$(MainProject.Version)'
+
+      - template: ../scripts-templates/apply-release-version-dotnet.yml@azure-pipelines-repo
+        parameters:
+          workingDirectory: '$(Build.SourcesDirectory)'
+          solutionPattern: '$(BuildParameters.Solution)'
+          forceVersion: '$(ForceVersion)'
+     
+      - template: ../scripts-templates/set-output-filename.yml@azure-pipelines-repo
+        parameters:
+          workingDirectory: '$(Build.SourcesDirectory)'
+
+      - template: ../scripts-templates/export-variable-list.yml@azure-pipelines-repo
+
+      - task: FileTransform@2
+        inputs:
+          folderPath: '$(System.DefaultWorkingDirectory)'
+          enableXmlTransform: false
+          xmlTransformationRules: '' # disabled (previous versions)
+          jsonTargetFiles: '**/appsettings.json'
+        condition: and(succeeded(), eq(variables['FileTransformEnabled'], 'true'))
+        continueOnError: true
+
+      # Do no use "TargetFramework_Install_" because overrides other dotnet versions.
+      - ${{ each framework in split(variables.SupportedFrameworks, ';') }}:
+        - task: UseDotNet@2
+          inputs:
+            packageType: 'sdk'
+            version: '${{ framework }}.x'
+            includePreviewVersions: false
+          displayName: 'UseDotNet ${{ framework }}'
+          condition: and(succeeded(), ne(variables['BuildParameters.TargetFramework_${{framework}}'], ''))
+
+      - task: DotNetCoreCLI@2
+        displayName: Restore
+        inputs:
+          command: 'restore'
+          projects: '$(BuildParameters.Solution)'
+     
+      - ${{ if ne(parameters.Analyze, 'disabled') }} :
+        - task: SonarCloudPrepare@3
+          inputs:
+            SonarCloud: 'SonarCloud'
+            organization: 'hfrances-github'
+            scannerMode: 'dotnet'
+            projectKey: '$(BuildParameters.ProjectKey)'
+            projectName: '$(BuildParameters.ProjectName)'
+            projectVersion: '$(MainProject.Version)'
+            extraProperties: |
+              sonar.exclusions=**/obj/**,**/*.dll
+              sonar.cs.opencover.reportsPaths=**/*.opencover.xml
+              sonar.cs.cobertura.reportsPaths=**/*.cobertura.xml
+              sonar.cs.vscoveragexml.reportsPaths=**/*.coveragexml
+              sonar.cs.dotcover.reportsPaths=**/*.html
+              sonar.cs.vstest.reportsPaths=$(Agent.TempDirectory)/*.trx
+          condition: eq(variables.SonarQubeEnabled, 'true')
+     
+      - task: DotNetCoreCLI@2
+        displayName: Build
+        inputs:
+          projects: '$(BuildParameters.RestoreBuildProjects)'
+          arguments: '--configuration $(BuildConfiguration)'
+
+      - ${{ if ne(parameters.Test, 'disabled') }} :
+        - task: DotNetCoreCLI@2
+          displayName: 'Test + Coverage'
+          inputs:
+            command: test
+            projects: '$(BuildParameters.TestProjects)'
+            arguments: '--configuration $(BuildConfiguration) /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:Exclude=".*\.Test[s]?\..*" /p:CoverletOutput="$(Build.SourcesDirectory)/TestResults/"'
+
+      - ${{ if ne(parameters.Test, 'disabled') }} :
+        - template: ../scripts-templates/check-test-projects-dotnet.yml@azure-pipelines-repo
+          parameters:
+            testResultsDirectory: '$(Build.SourcesDirectory)/TestResults/'
+
+      - ${{ if ne(parameters.Test, 'disabled') }} :
+        - task: reportgenerator@4
+          inputs:
+            reports: '**/*.[Oo]pencover.xml;**/[Oo]pencover.xml;*.[Oo]pencover.xml;[Oo]pencover.xml'
+            targetdir: '$(Build.SourcesDirectory)/TestResults/'
+          continueOnError: true
+          condition: eq(variables.HasTests, 'true')
+          displayName: 'Coverage: Parse format'
+     
+      - ${{ if ne(parameters.Test, 'disabled') }} :
+        - template: ../scripts-templates/collect-coverage-files.yml@azure-pipelines-repo
+     
+      - ${{ if ne(parameters.Test, 'disabled') }} :
+        - task: PublishCodeCoverageResults@2
+          inputs:
+            codeCoverageTool: 'Cobertura'
+            summaryFileLocation: '$(CoverageResults)'
+          continueOnError: true
+          condition: eq(variables.HasTests, 'true')
+          displayName: 'Coverage: Publish report'
+     
+      - ${{ if ne(parameters.Analyze, 'disabled') }} :
+        - task: SonarCloudAnalyze@3
+          condition: eq(variables.SonarQubeEnabled, 'true')
+        - task: SonarCloudPublish@3
+          inputs:
+            pollingTimeoutSec: '300'
+          condition: eq(variables.SonarQubeEnabled, 'true')
+
+      - task: DotNetCoreCLI@2
+        inputs:
+          command: 'pack'
+          packagesToPack: '**/*.??proj;!examples/**/*.??proj;!**/*.Test.??proj;!**/*.Test.*.??proj'
+          packDirectory: '$(Build.ArtifactStagingDirectory)/build'
+          nobuild: true
+          versioningScheme: 'off' #byEnvVar
+          versionEnvVar: '$(BuildParameters.ReleaseVersion)'
+        displayName: 'NuGet: Pack'
+
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifact: drop'
+        inputs:
+          pathtoPublish: '$(Build.ArtifactStagingDirectory)/drop'
+        condition: succeededOrFailed()
+     
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish Artifact: build'
+        inputs:
+          targetPath: '$(Build.ArtifactStagingDirectory)/build'
+          artifact: 'build'
+     
+      - task: NuGetCommand@2
+        inputs:
+          command: 'push'
+          packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+          nuGetFeedType: 'external'
+          publishFeedCredentials: 'nuget.org'
+        displayName: 'NuGet: Push'
+        continueOnError: false
+        condition: eq(variables.PublishEnabled, 'true')
