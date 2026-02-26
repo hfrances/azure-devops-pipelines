@@ -42,29 +42,29 @@ steps:
                   $xmlAssemblyVersion = $propertyGroup.AssemblyVersion;
                   
                   if (($true -eq $versionForce) -or ($xmlVersion -eq $versionOriginal)) {
-                    Write-Output "Processing file: $($file.FullName)"
+                    write-output "Processing file: $($file.FullName)"
                     if ($xmlVersion) {
                       $propertyGroup.Version = $version;
-                      Write-Output "Update to version: $version";
+                      write-output "Update to version: $version";
                     }
                     if ($xmlAssemblyVersion) {
                       $propertyGroup.AssemblyVersion = $assemblyVersion;
-                      Write-Output "Update to assembly version: $assemblyVersion";
+                      write-output "Update to assembly version: $assemblyVersion";
                     }
                     $xml.Save($file.FullName); 
-                    Write-Output '';
+                    write-output '';
                   }
                 }
               }
             } 
             else {
-              Write-Warning "Project file does not exist: $projectFile"
-              Write-Output '';
+              write-warning "Project file does not exist: $projectFile"
+              write-output '';
             }
           }
         }
         else {
-          Write-Warning "No version.";
+          write-warning "No version.";
         }
       workingDirectory: '${{ parameters.workingDirectory }}'
     displayName: 'Apply release version to all projects'

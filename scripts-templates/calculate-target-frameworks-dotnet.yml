@@ -2,6 +2,15 @@ parameters:
   - name: supportedFrameworks
     type: string
     default: '$(SupportedFrameworks)'
+  - name: solutionPattern
+    type: string
+    default: '$(BuildParameters.Solution)'
+  - name: testProjects
+    type: string
+    default: '$(BuildParameters.TestProjects)'
+  - name: testEnabled
+    type: boolean
+    default: true
 
 steps:
   - task: PowerShell@2
@@ -9,11 +18,66 @@ steps:
       pwsh: true
       targetType: 'inline'
       script: |
-        $files = Get-ChildItem -Recurse -Filter *.??proj;
+        # Get the solution pattern to identify project files
+        $solutionPattern = "${{ parameters.solutionPattern }}";
+        $testProjectsPattern = "${{ parameters.testProjects }}";
+        $testEnabled = [System.Convert]::ToBoolean("${{ parameters.testEnabled }}");
+        
+        write-output "Solution pattern:";
+        write-output "$solutionPattern";
+        write-output '';
+        write-output "Test projects pattern:";
+        write-output "$testProjectsPattern";
+        write-output '';
+        write-output "Test enabled: $testEnabled";
+        write-output '';
+        
+        # Find all project files from the solution
+        $projFiles = @();
+        
+        # Get projects from solution file if it exists
+        $solutionFiles = Get-ChildItem -Recurse -Filter $solutionPattern -ErrorAction SilentlyContinue;
+        if ($solutionFiles.Count -gt 0) {
+          foreach ($slnFile in $solutionFiles) {
+            $slnContent = Get-Content -Path $slnFile.FullName -Raw;
+            # Extract project references from .sln file (pattern: Project(...) = ..., ...)
+            $projectMatches = [regex]::Matches($slnContent, 'Project\([^)]*\)\s*=\s*[^,]*,\s*"([^"]*\.(?:csproj|vbproj|fsproj))"');
+            foreach ($match in $projectMatches) {
+              $projPath = Join-Path -Path $slnFile.Directory.FullName -ChildPath $match.Groups[1].Value;
+              $projPath = [System.IO.Path]::GetFullPath($projPath);
+              if (Test-Path -Path $projPath) {
+                $projFiles += Get-Item -Path $projPath;
+              }
+            }
+          }
+        }
+        
+        # If no solution file found or no projects in solution, fall back to searching for all projects
+        if ($projFiles.Count -eq 0) {
+          write-warning "No projects found in solution files. Searching for all project files...";
+          $projFiles = @(Get-ChildItem -Recurse -Filter *.??proj);
+        }
+        
+        # Add test projects if test is enabled
+        $files = @($projFiles);
+        if ($testEnabled) {
+          $testPatterns = $testProjectsPattern.Split([System.Environment]::NewLine) | ForEach-Object { $_.Trim() } | Where-Object { $_ };
+          foreach ($pattern in $testPatterns) {
+            # Skip exclusion patterns (those starting with !)
+            if (-not $pattern.StartsWith('!')) {
+              $testFiles = @(Get-ChildItem -Recurse -Filter $pattern -ErrorAction SilentlyContinue);
+              $files += $testFiles;
+            }
+          }
+        }
+        
+        # Remove duplicates
+        $files = @($files | Sort-Object -Unique -Property FullName);
         
         # Get supported frameworks.
         $supportedFrameworks = "${{ parameters.supportedFrameworks }}".Split(';') | ForEach-Object { $_.Trim() };
         write-output "Supported frameworks: $supportedFrameworks";
+        
         # Get installed frameworks.            
         $installedSdks = &dotnet --list-sdks;
         $installedFrameworks = New-Object System.Collections.Generic.HashSet[string];
@@ -26,6 +90,8 @@ steps:
         write-output '';
 
         # Calculate necessary frameworks.
+        $allRequiredFrameworks = New-Object System.Collections.Generic.HashSet[string];
+        $frameworksToInstall = New-Object System.Collections.Generic.HashSet[string];
         if ($files.Count -eq 0) {
           write-error 'No project files found in the specified directory';
         } else {
@@ -46,12 +112,43 @@ steps:
               $version = [regex]::match($_, '(\d+\.\d+)').Value;
               if ($version) {
                 write-output "##vso[task.setvariable variable=BuildParameters.TargetFramework_$version]$_";
-                if ($installedFrameworks -notcontains $version) {
-                  write-output "##vso[task.setvariable variable=BuildParameters.TargetFramework_Install_$version]$_";
-                }
+                $allRequiredFrameworks.Add($version) | Out-Null;
               }
             }
             write-output '';
           }
+        }
+
+        # Install frameworks that are actually required (not a range, just the union of required frameworks)
+        if ($allRequiredFrameworks.Count -gt 0) {
+          # Filter required frameworks to only those in supportedFrameworks and sort them
+          $supportedRequired = @($allRequiredFrameworks | Where-Object { $supportedFrameworks -contains $_ } | Sort-Object { [double]$_ });
+          
+          if ($supportedRequired.Count -gt 0) {
+            write-output "Required frameworks (supported only): $($supportedRequired -join ', ')";
+            write-output '';
+            
+            # Install only the frameworks that are actually required (not filling gaps)
+            foreach ($framework in $supportedRequired) {
+              if ($installedFrameworks -notcontains $framework) {
+                $frameworksToInstall.Add($framework) | Out-Null;
+              }
+            }
+          } else {
+            write-warning "No supported frameworks found in project requirements";
+          }
+        }
+
+        # Display pending frameworks to install (only those in supportedFrameworks, sorted)
+        $pendingSupported = @($frameworksToInstall | Sort-Object { [double]$_ });
+        if ($pendingSupported.Count -gt 0) {
+          write-output "Pending to install frameworks: $($pendingSupported -join ', ')";
+        } else {
+          write-output "Pending to install frameworks: None";
+        }
+        
+        # Set variables for framework installation (in ascending order to avoid conflicts)
+        foreach ($framework in $pendingSupported) {
+          write-output "##vso[task.setvariable variable=BuildParameters.TargetFramework_Install_$framework]net$framework";
         }
     displayName: Calculate target frameworks

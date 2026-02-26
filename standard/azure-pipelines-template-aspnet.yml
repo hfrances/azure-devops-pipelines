@@ -71,10 +71,10 @@ variables:
     value: ${{ parameters.Solution }}
   - name: BuildParameters.TestProjects
     value: |-
-      **/*Test.csproj
-      **/*Tests.csproj
-      !**/*Test.*.csproj
-      !**/*Tests.*.csproj
+      **/*Test.??proj
+      **/*Tests.??proj
+      !**/*Test.*.??proj
+      !**/*Tests.*.??proj
   - name: BuildParameters.ProjectKey
     value: $(Build.DefinitionName)
   - name: BuildParameters.ProjectName
@@ -95,12 +95,16 @@ variables:
     value: ${{ parameters.Analyze }}
   - name: SonarQubeEnabled
     value: $[or(eq(variables.Analyze, 'true'), and(eq(variables.Analyze, 'auto'), in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/main', 'refs/heads/staging')))]
-  - name: Test
-    value: ${{ parameters.Test }}
+  - name: TestEnabled
+    value: $[ne('${{ parameters.Test }}', 'disabled')]
   - name: SupportedFrameworks
-    value: "8.0;7.0;6.0;5.0;3.1"
+    value: "10.0;9.0;8.0;7.0;6.0;5.0;3.1"
   - name: ForceVersion
     value: ${{ parameters.ForceVersion }}
+  - name: SonarCloudOrganization
+    value: $[iif(ne(variables['SonarCloudOrganization'], ''), variables['SonarCloudOrganization'], '')]
+  - name: ExternalFeedValue
+    value: $[iif(ne(variables['ExternalFeed'], ''), variables['ExternalFeed'], '')]
 
 jobs:
   - job: Build
@@ -116,6 +120,9 @@ jobs:
       - template: ../scripts-templates/calculate-target-frameworks-dotnet.yml@azure-pipelines-repo
         parameters:
           supportedFrameworks: '$(SupportedFrameworks)'
+          solutionPattern: '$(BuildParameters.Solution)'
+          testProjects: '$(BuildParameters.TestProjects)'
+          testEnabled: ${{ eq(variables.TestEnabled, 'True') }}
 
       - template: ../scripts-templates/calculate-release-version-dotnet.yml@azure-pipelines-repo
         parameters:
@@ -142,6 +149,7 @@ jobs:
         condition: and(succeeded(), ne(variables['FileTransformEnabled'], 'false'))
         continueOnError: true
 
+      # Do no use "TargetFramework_Install_" because overrides other dotnet versions.
       - ${{ each framework in split(variables.SupportedFrameworks, ';') }}:
         - task: UseDotNet@2
           inputs:
@@ -156,10 +164,9 @@ jobs:
         inputs:
           command: 'restore'
           projects: '$(BuildParameters.Solution)'
-          feedsToUse: 'config'
+          feedsToUse: '$(Solution.NugetFeedToUse)'
           nugetConfigPath: '$(Solution.NugetConfig)'
-          ${{ if ne(variables.ExternalFeed, '') }} : 
-            externalFeedCredentials: '$(ExternalFeed)'
+          externalFeedCredentials: '$(ExternalFeedValue)'
 
       - ${{ if ne(parameters.Analyze, 'disabled') }} :
         - task: SonarCloudPrepare@3
@@ -201,7 +208,7 @@ jobs:
       - ${{ if ne(parameters.Test, 'disabled') }} :
         - task: reportgenerator@4
           inputs:
-            reports: '**/*.[Oo]pencover.xml;**/[Oo]pencover.xml'
+            reports: '**/*.[Oo]pencover.xml;**/[Oo]pencover.xml;*.[Oo]pencover.xml;[Oo]pencover.xml'
             targetdir: '$(Build.SourcesDirectory)/TestResults/'
           continueOnError: true
           condition: eq(variables.HasTests, 'true')
@@ -209,8 +216,6 @@ jobs:
      
       - ${{ if ne(parameters.Test, 'disabled') }} :
         - template: ../scripts-templates/collect-coverage-files.yml@azure-pipelines-repo
-          condition: eq(variables.HasTests, 'true')
-          displayName: 'Coverage: Collect files'
      
       - ${{ if ne(parameters.Test, 'disabled') }} :
         - task: PublishCodeCoverageResults@2

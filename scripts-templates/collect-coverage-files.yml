@@ -14,7 +14,7 @@ steps:
             $files += ($_.Group | Sort-Object LastWriteTime | Select-Object -First 1)
           };
         
-        Write-Output "`nCollected coverage files:"
+        write-output "`nCollected coverage files:"
         $files.FullName;
         $files | ForEach-Object {
           if ($coverageResults -ne "") {

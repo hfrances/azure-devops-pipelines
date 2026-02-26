@@ -1,7 +1,7 @@
 parameters:
   - name: testResultsDirectory
     type: string
-    default: '$(Build.SourcesDirectory)/TestResults/'
+    default: '$(Build.SourcesDirectory)/TestResults'
 
 steps:
   - task: PowerShell@2
@@ -14,9 +14,9 @@ steps:
           $files = Get-ChildItem $testResultsDirectory -File;
           $hasTests = $files.Count -gt 0;
         } else {
-          Write-Output "Directory $testResultsDirectory does not exist.";
+          write-output "Directory $testResultsDirectory does not exist.";
           $hasTests = $false;
         }
-        Write-Output "HasTests: $hasTests";
-        Write-Output "##vso[task.setvariable variable=HasTests]$hasTests";
+        write-output "HasTests: $hasTests";
+        write-output "##vso[task.setvariable variable=HasTests]$hasTests";
     displayName: 'Coverage: Check if there are test projects'

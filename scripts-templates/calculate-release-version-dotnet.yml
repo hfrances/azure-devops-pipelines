@@ -84,6 +84,7 @@ steps:
           write-output "##vso[task.setvariable variable=BuildParameters.ReleaseAssemblyVersion]$releaseAssemblyVersion";
           write-output "##vso[task.setvariable variable=BuildParameters.DockerVersion]$dockerVersion";
           write-output "##vso[task.setvariable variable=BuildParameters.DockerAlias]$dockerAlias";
+          write-output "##vso[build.addbuildtag]$releaseAssemblyVersion";
           write-output "##vso[build.addbuildtag]$dockerVersion";
           write-output "##vso[build.addbuildtag]$dockerAlias";
           # Display variables
