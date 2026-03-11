@@ -9,8 +9,8 @@ parameters:
     type: string
     default: '$(BuildParameters.TestProjects)'
   - name: testEnabled
-    type: boolean
-    default: true
+    type: string
+    default: 'true'
 
 steps:
   - task: PowerShell@2
@@ -61,14 +61,52 @@ steps:
         # Add test projects if test is enabled
         $files = @($projFiles);
         if ($testEnabled) {
+          write-output "Looking for test projects...";
           $testPatterns = $testProjectsPattern.Split([System.Environment]::NewLine) | ForEach-Object { $_.Trim() } | Where-Object { $_ };
-          foreach ($pattern in $testPatterns) {
-            # Skip exclusion patterns (those starting with !)
-            if (-not $pattern.StartsWith('!')) {
-              $testFiles = @(Get-ChildItem -Recurse -Filter $pattern -ErrorAction SilentlyContinue);
-              $files += $testFiles;
+          write-output "Test patterns found: $($testPatterns.Count)";
+          
+          # Collect all test files first (without exclusions)
+          $allTestFiles = @();
+          $inclusionPatterns = @($testPatterns | Where-Object { -not $_.StartsWith('!') });
+          $exclusionPatterns = @($testPatterns | Where-Object { $_.StartsWith('!') } | ForEach-Object { $_.Substring(1) });
+          
+          write-output "Inclusion patterns: $($inclusionPatterns -join ', ')";
+          write-output "Exclusion patterns: $($exclusionPatterns -join ', ')";
+          
+          foreach ($pattern in $inclusionPatterns) {
+            write-output "Searching with pattern: $pattern";
+            # Convert glob pattern to PowerShell path pattern
+            $psPattern = $pattern -replace '\*\*/', '*/' -replace '\?', '?';
+            $psPattern = "*" + $psPattern;
+            $testFiles = @(Get-ChildItem -Recurse -Path $psPattern -ErrorAction SilentlyContinue | Where-Object { $_.PSIsContainer -eq $false });
+            write-output "Found $($testFiles.Count) files with pattern '$pattern'";
+            $allTestFiles += $testFiles;
+          }
+          
+          # Apply exclusion patterns
+          $filteredTestFiles = @();
+          foreach ($testFile in $allTestFiles) {
+            $shouldExclude = $false;
+            $relativePath = $testFile.FullName;
+            
+            foreach ($exclusionPattern in $exclusionPatterns) {
+              $excludePs = $exclusionPattern -replace '\*\*/', '*/' -replace '\?', '?';
+              if ($relativePath -like "*$excludePs" -or $testFile.Name -like $excludePs) {
+                $shouldExclude = $true;
+                write-output "Excluding: $($testFile.Name) (matched pattern: $exclusionPattern)";
+                break;
+              }
+            }
+            
+            if (-not $shouldExclude) {
+              write-output "Including test file: $($testFile.FullName)";
+              $filteredTestFiles += $testFile;
             }
           }
+          
+          write-output "Total test files after filtering: $($filteredTestFiles.Count)";
+          write-output '';
+          $files += $filteredTestFiles;
         }
         
         # Remove duplicates
@@ -119,7 +157,7 @@ steps:
           }
         }
 
-        # Install frameworks that are actually required (not a range, just the union of required frameworks)
+        # Install frameworks: if any required framework is missing, reinstall all required frameworks >= the minimum missing one
         if ($allRequiredFrameworks.Count -gt 0) {
           # Filter required frameworks to only those in supportedFrameworks and sort them
           $supportedRequired = @($allRequiredFrameworks | Where-Object { $supportedFrameworks -contains $_ } | Sort-Object { [double]$_ });
@@ -128,10 +166,23 @@ steps:
             write-output "Required frameworks (supported only): $($supportedRequired -join ', ')";
             write-output '';
             
-            # Install only the frameworks that are actually required (not filling gaps)
+            # Find the minimum required framework that is not installed
+            $minMissingFramework = $null;
             foreach ($framework in $supportedRequired) {
               if ($installedFrameworks -notcontains $framework) {
-                $frameworksToInstall.Add($framework) | Out-Null;
+                $minMissingFramework = $framework;
+                break;
+              }
+            }
+            
+            # If there's a missing framework, install all required frameworks >= that minimum
+            if ($minMissingFramework -ne $null) {
+              foreach ($framework in $supportedRequired) {
+                $frameworkNumeric = [double]$framework;
+                $minNumeric = [double]$minMissingFramework;
+                if ($frameworkNumeric -ge $minNumeric) {
+                  $frameworksToInstall.Add($framework) | Out-Null;
+                }
               }
             }
           } else {

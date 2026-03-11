@@ -1,0 +1,92 @@
+parameters:
+  - name: sourcesDirectory
+    type: string
+    default: '$(Build.SourcesDirectory)'
+  - name: failOnViolations
+    type: boolean
+    default: true
+
+steps:
+  - task: PowerShell@2
+    displayName: 'Audit: CancellationToken'
+    inputs:
+      pwsh: true
+      targetType: 'inline'
+      script: |
+        $sourcesDirectory = "${{ parameters.sourcesDirectory }}"
+        $failOnViolations = [System.Convert]::ToBoolean("${{ parameters.failOnViolations }}")
+        $ErrorActionPreference = "Stop"
+
+        $root = (Resolve-Path $sourcesDirectory).Path
+        $methodRegex = [regex]'(?ms)^\s*(?:\[[^\]]+\]\s*)*(?<mods>(?:(?:public|private|protected|internal|file|static|virtual|override|sealed|partial|new|extern|unsafe|async)\s+)+)(?:(?:readonly)\s+)?(?:global::)?(?:[\w\.]+\s+)?(?:Task|ValueTask)(?:\s*<[^;\r\n{}=>]+>)?\s+(?<name>[A-Za-z_]\w*)\s*\((?<params>.*?)\)\s*(?:where\s+[^\r\n{;=>]+\s*)*(?:\{|=>|;)'
+
+        function Is-ExcludedFile([string]$path) {
+          return $path -match '\\obj\\|\\bin\\|\\examples\\|\.Test(\.|\\)|Tests?(\.|\\)|\\Test\\'
+        }
+
+        function Is-AllowedException([string]$filePath, [string]$mods, [string]$methodName) {
+          if ($mods -match '\boverride\b') {
+            return $true
+          }
+
+          if ($methodName -in @("Invoke", "InvokeAsync") -and $filePath -match 'Middleware') {
+            return $true
+          }
+
+          if ($filePath -match 'BasicAuthenticationHandler\.cs$' -and $methodName -in @("HandleAuthenticateAsync", "HandleChallengeAsync")) {
+            return $true
+          }
+
+          return $false
+        }
+
+        $violations = @()
+        $files = Get-ChildItem -Path $root -Recurse -Filter *.cs -File | Where-Object { -not (Is-ExcludedFile $_.FullName) }
+
+        foreach ($file in $files) {
+          $content = Get-Content -Raw -Path $file.FullName
+          foreach ($match in $methodRegex.Matches($content)) {
+            $mods = $match.Groups["mods"].Value
+            $name = $match.Groups["name"].Value
+            $params = $match.Groups["params"].Value
+
+            if ($mods -notmatch '\b(public|internal|protected)\b') {
+              continue
+            }
+
+            if ($params -match '\bCancellationToken\b') {
+              continue
+            }
+
+            $relativePath = $file.FullName.Substring($root.Length).TrimStart('\')
+            if (Is-AllowedException $relativePath $mods $name) {
+              continue
+            }
+
+            $violations += [pscustomobject]@{
+              File = $relativePath
+              Method = $name
+              Modifiers = $mods.Trim()
+            }
+          }
+        }
+
+        if ($violations.Count -eq 0) {
+          Write-Host "Cancellation audit passed. No async public/internal/protected methods without CancellationToken."
+          exit 0
+        }
+
+        Write-Host "Cancellation audit found $($violations.Count) violation(s):"
+        $violations | Sort-Object File, Method | ForEach-Object {
+          $line = ("{0} :: {1}" -f $_.File, $_.Method)
+          Write-Host (" - {0}" -f $line)
+          if (-not $failOnViolations) {
+            Write-Host ("##vso[task.logissue type=warning]{0}" -f $line)
+          }
+        }
+
+        if ($failOnViolations) {
+          throw "Cancellation audit failed."
+        }
+
+        Write-Host "##vso[task.logissue type=warning]Cancellation audit completed with violations (failOnViolations=false)."

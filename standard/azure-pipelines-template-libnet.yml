@@ -1,8 +1,8 @@
 ########################################
 ### Template Type: libnet-template   ###
-### Template Version: 3.2.0          ###
+### Template Version: 3.3.0          ###
 ### Author: hfrances                 ###
-### Date: 36/02/2026                 ###
+### Date: 11/03/2026                 ###
 ########################################
 
 parameters:
@@ -64,8 +64,8 @@ variables:
     value: |-
       **/*Test.??proj
       **/*Tests.??proj
-      !**/*Test.*.??proj
-      !**/*Tests.*.??proj
+      !**/*.Test.*.??proj
+      !**/*.Tests.*.??proj
   - name: BuildParameters.ProjectKey
     value: $(Build.DefinitionName)
   - name: BuildParameters.ProjectName
@@ -88,8 +88,6 @@ variables:
     value: "10.0;9.0;8.0;7.0;6.0;5.0;3.1"
   - name: ForceVersion
     value: ${{ parameters.ForceVersion }}
-  - name: SonarCloudOrganization
-    value: $[iif(ne(variables['SonarCloudOrganization'], ''), variables['SonarCloudOrganization'], '')]
   - name: ExternalFeedValue
     value: $[iif(ne(variables['ExternalFeed'], ''), variables['ExternalFeed'], '')]
 
@@ -109,7 +107,7 @@ jobs:
           supportedFrameworks: '$(SupportedFrameworks)'
           solutionPattern: '$(BuildParameters.Solution)'
           testProjects: '$(BuildParameters.TestProjects)'
-          testEnabled: ${{ eq(variables.TestEnabled, 'True') }}
+          testEnabled: $(TestEnabled)
 
       - template: ../scripts-templates/calculate-release-version-dotnet.yml@azure-pipelines-repo
         parameters:
@@ -155,6 +153,10 @@ jobs:
           nugetConfigPath: '$(Solution.NugetConfig)'
           externalFeedCredentials: '$(ExternalFeedValue)'
      
+      - template: ../scripts-templates/audit-cancellation-dotnet.yml@azure-pipelines-repo
+        parameters:
+          sourcesDirectory: '$(Build.SourcesDirectory)'
+     
       - ${{ if ne(parameters.Analyze, 'disabled') }} :
         - task: SonarCloudPrepare@3
           inputs:
@@ -166,18 +168,20 @@ jobs:
             projectVersion: '$(MainProject.Version)'
             extraProperties: |
               sonar.exclusions=**/obj/**,**/*.dll
+              sonar.coverage.exclusions=**/test/**,**/tests/**,**/*Test*/**
+              sonar.dotnet.excludeTestProjects=true
               sonar.cs.opencover.reportsPaths=**/*.opencover.xml
               sonar.cs.cobertura.reportsPaths=**/*.cobertura.xml
               sonar.cs.vscoveragexml.reportsPaths=**/*.coveragexml
               sonar.cs.dotcover.reportsPaths=**/*.html
-              sonar.cs.vstest.reportsPaths=$(Agent.TempDirectory)/*.trx
+              sonar.cs.vstest.reportsPaths=$(Agent.TempDirectory)/**/*.trx
           condition: and(eq(variables.SonarQubeEnabled, 'true'), ne(variables['SonarCloudOrganization'], ''))
      
       - task: DotNetCoreCLI@2
         displayName: Build
         inputs:
           projects: '$(BuildParameters.RestoreBuildProjects)'
-          arguments: '--configuration $(BuildConfiguration)'
+          arguments: '--configuration $(BuildConfiguration) --no-restore'
 
       - ${{ if ne(parameters.Test, 'disabled') }} :
         - task: DotNetCoreCLI@2
@@ -231,7 +235,7 @@ jobs:
           versioningScheme: 'off' #byEnvVar
           versionEnvVar: '$(BuildParameters.ReleaseVersion)'
         displayName: 'NuGet: Pack'
-        condition: eq('${{ parameters.SupportsNuget }}', 'true')
+        condition: and(succeeded(), eq('${{ parameters.SupportsNuget }}', 'true'))
 
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifact: drop'
@@ -244,6 +248,7 @@ jobs:
         inputs:
           targetPath: '$(Build.ArtifactStagingDirectory)/build'
           artifact: 'build'
+        condition: eq('${{ parameters.SupportsNuget }}', 'true')
      
       - task: NuGetCommand@2
         inputs:
@@ -253,4 +258,4 @@ jobs:
           publishFeedCredentials: 'nuget.org'
         displayName: 'NuGet: Push'
         continueOnError: false
-        condition: and(eq('${{ parameters.SupportsNuget }}', 'true'), eq(variables.PublishEnabled, 'true'))
+        condition: and(succeeded(), eq('${{ parameters.SupportsNuget }}', 'true'), eq(variables.PublishEnabled, 'true'))

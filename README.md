@@ -19,7 +19,7 @@ resources:
       ref: refs/heads/master  # or a specific tag/branch
 
 extends:
-  template: classic/template-aspnet.yml@azure-devops-pipelines
+  template: standard/azure-pipelines-template-aspnet.yml@azure-devops-pipelines
   parameters:
     param1: value1
     param2: value2
@@ -34,5 +34,11 @@ Each template contains a `parameters:` block at the top that defines the inputs 
 For more details on how to structure and use templates in Azure Pipelines, refer to the official Microsoft documentation:  
 👉 [Azure Pipelines YAML schema - Extends](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/templates?view=azure-devops&pivots=templates-extends)
 
-## 📜 License  
-This project is licensed under the terms of the [GNU Affero General Public License v3.0](LICENSE).
+## © Copyright
+Copyright (c) 2021-2026 Hector Frances
+
+## 🤝 Contributing
+Issues and pull requests are welcome! See the contribution guidelines (coming soon).
+
+## 📜 License
+This project is licensed under the terms of the [GNU General Public License v3.0](LICENSE).

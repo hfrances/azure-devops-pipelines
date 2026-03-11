@@ -11,42 +11,68 @@ steps:
       script: |
         $path = '${{ parameters.solutionPattern }}';
 
-        # Find solution file.
-        $solution = (Get-Item $path);
-        if ($null -eq $solution) {
+        # Find solution file (take only the first one if multiple match).
+        $solutionFiles = @(Get-Item $path -ErrorAction SilentlyContinue);
+        if ($solutionFiles.Count -eq 0) {
           write-error "Solution file not found: $path";
+          exit 1;
         }
-        else {
-          # Get first project in the solution. That is the main project.
+        if ($solutionFiles.Count -gt 1) {
+          write-warning "$solutionFiles"
+          write-error "Multiple solution files found matching '$path'.";
+          exit 1
+        }
+        $solution = $solutionFiles[0];
+      
+        # Get first project in the solution. That is the main project.
+        $projectPath = $null;
+        if ($solution.Extension -ieq '.sln') {
           $content = (Get-Content $solution);
           $pattern = '(?m)Project\(.*\)\s?=\s?"(?<ProjectName>.*)",\s?"(?<ProjectPath>.*)",\s?.*"';
           $projects = $content | Select-String $pattern -AllMatches;
-
           if ($projects -and $projects.Matches.Count -gt 0) {
             $projectPath = $projects.Matches[0].Groups['ProjectPath'].Value;
-            $projectFile = Join-Path $solution.Directory $projectPath;
-            $file = (Get-Item $projectFile);
-
-            if ($null -eq $file) {
-              write-error 'Project file not found: $projectFile';
-            }
-            else {
-              write-output "Main project found: $($file.FullName)";
-              write-output "##vso[task.setvariable variable=MainProject.FullName]$($file.FullName)";
-            }
           }
-
-          # Find the nuget config file:
-          $nugetConfigPath = Join-Path $solution.Directory 'nuget.config';
-          if (Test-Path $nugetConfigPath) {
-            $nugetConfig = (Get-Item $nugetConfigPath);
-            write-output "##vso[task.setvariable variable=Solution.NugetFeedToUse]config";
-            write-output "##vso[task.setvariable variable=Solution.NugetConfig]$($nugetConfig.FullName)";
-          } 
-          else {
-            write-warning "Nuget config file not found for pattern '$path'.";
-            write-output "##vso[task.setvariable variable=Solution.NugetFeedToUse]select";
-            write-output "##vso[task.setvariable variable=Solution.NugetConfig]";
+        }
+        elseif ($solution.Extension -ieq '.slnx') {
+          [xml]$xml = Get-Content $solution -Raw;
+          $projectNode = $xml.SelectSingleNode('//Project[@Path]');
+          if ($projectNode -and $projectNode.Attributes['Path']) {
+            $projectPath = $projectNode.Attributes['Path'].Value;
           }
+        }
+        else {
+          write-error "Unsupported solution extension: $($solution.Extension).";
+          exit 1;
+        }
+
+        if ([string]::IsNullOrWhiteSpace($projectPath)) {
+          write-error "No project found in solution '$($solution.FullName)'.";
+          exit 1;
+        }
+
+        $projectFile = Join-Path $solution.Directory $projectPath;
+        $file = (Get-Item $projectFile -ErrorAction SilentlyContinue);
+
+        if ($null -eq $file) {
+          write-error "Project file not found: $projectFile";
+          exit 1;
+        }
+        else {
+          write-output "Main project found: $($file.FullName)";
+          write-output "##vso[task.setvariable variable=MainProject.FullName]$($file.FullName)";
+        }
+
+        # Find the nuget config file:
+        $nugetConfigPath = Join-Path $solution.Directory 'nuget.config';
+        if (Test-Path $nugetConfigPath) {
+          $nugetConfig = (Get-Item $nugetConfigPath);
+          write-output "##vso[task.setvariable variable=Solution.NugetFeedToUse]config";
+          write-output "##vso[task.setvariable variable=Solution.NugetConfig]$($nugetConfig.FullName)";
+        } 
+        else {
+          write-warning "Nuget config file not found for pattern '$path'.";
+          write-output "##vso[task.setvariable variable=Solution.NugetFeedToUse]select";
+          write-output "##vso[task.setvariable variable=Solution.NugetConfig]";
         }
     displayName: Get main project from Solution
