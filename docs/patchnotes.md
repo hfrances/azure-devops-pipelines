@@ -1,8 +1,21 @@
 # Patch Notes
 
+## 3.5.0
+
+Status: current working tree, pending tag.
+
+Highlights:
+- add shared `aca-deploy-job` documentation under `docs/features`
+- update `aca-deploy-job` to print the hosts-file warning only for external ingress on subnet-based environments
+- document the external-ingress-only hosts warning behavior
+
+Main files:
+- `jobs-templates/aca-deploy-job.yml`
+- `docs/features/aca-deploy-job.md`
+
 ## 3.4.0
 
-Status: current working tree, not tagged yet.
+Status: previous working tree release notes.
 
 Highlights:
 - add publish change detection with baseline comparison and `dotnet-affected`

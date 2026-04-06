@@ -12,6 +12,7 @@ This repository contains a collection of reusable **Azure Pipelines YAML templat
   - [Change Detection](docs/features/change-detection.md)
   - [Release Version](docs/features/release-version.md)
   - [Cancellation Audit](docs/features/cancellation-audit.md)
+  - [ACA Deploy Job](docs/features/aca-deploy-job.md)
 - Releases:
   - [Patch Notes](docs/patchnotes.md)
 
