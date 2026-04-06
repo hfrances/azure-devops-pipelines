@@ -13,7 +13,7 @@ It can also manage the target Container Apps Environment when the caller enables
 | Param | Default | Meaning |
 | --- | --- | --- |
 | `jobName` | `DeployToACA` | generated job name |
-| `displayName` | `Deploy to Azure Container Apps` | generated job display name |
+| `displayName` | `Deploy to ACA` | generated job display name |
 | `dependsOn` | `[]` | optional job dependencies |
 | `condition` | `''` | optional job condition |
 | `variables` | `{}` | optional job-level variables |
