@@ -1,8 +1,8 @@
 ########################################
 ### Template Type: libnet-template   ###
-### Template Version: 3.3.0          ###
+### Template Version: 3.4.0          ###
 ### Author: hfrances                 ###
-### Date: 11/03/2026                 ###
+### Date: 30/03/2026                 ###
 ########################################
 
 parameters:
@@ -54,12 +54,21 @@ parameters:
     displayName: "Supports NuGet packages"
     type: boolean
     default: true
+  # Indica si se debe comprobar si existen cambios afectados antes de compilar o publicar.
+  # - true: Busca la última ejecución compilada y publicada con éxito del mismo pipeline y rama, y usa dotnet-affected para decidir qué hacer.
+  # - false: No realiza comprobaciones y mantiene el comportamiento anterior.
+  - name: PublishChangeDetection
+    displayName: "Publish change detection"
+    type: boolean
+    default: true
 
 variables:
   - name: BuildParameters.RestoreBuildProjects
     value: "**/${{ parameters.Solution }}"
   - name: BuildParameters.Solution
     value: ${{ parameters.Solution }}
+  - name: Solution.FullName
+    value: ''
   - name: BuildParameters.TestProjects
     value: |-
       **/*Test.??proj
@@ -77,11 +86,13 @@ variables:
   - name: Deploy
     value: ${{ parameters.Deploy }}
   - name: PublishEnabled
-    value: $[or(eq(variables.Deploy, 'true'), and(eq(variables.Deploy, 'auto'), in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/main', 'refs/heads/staging', 'refs/heads/alpha')))]
+    value: $[or(eq(variables.Deploy, 'true'), and(eq(variables.Deploy, 'auto'), in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/main', 'refs/heads/staging', 'refs/heads/alpha', 'refs/heads/feature/net10')))] # TODO: Remove 'refs/heads/feature/net10' when not needed
+  - name: PublishDocker
+    value: false
   - name: Analyze
     value: ${{ parameters.Analyze }}
   - name: SonarQubeEnabled
-    value: $[or(eq(variables.Analyze, 'true'), and(eq(variables.Analyze, 'auto'), in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/main', 'refs/heads/staging', 'refs/heads/alpha')))]
+    value: $[or(eq(variables.Analyze, 'true'), and(eq(variables.Analyze, 'auto'), in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/main', 'refs/heads/staging', 'refs/heads/alpha', 'refs/heads/feature/net10')))] # TODO: Remove 'refs/heads/feature/net10' when not needed
   - name: TestEnabled
     value: $[ne('${{ parameters.Test }}', 'disabled')]
   - name: SupportedFrameworks
@@ -92,15 +103,44 @@ variables:
     value: $[iif(ne(variables['ExternalFeed'], ''), variables['ExternalFeed'], '')]
 
 jobs:
+  - template: ../jobs-templates/prepare-dotnet.yml@azure-pipelines-repo
+    parameters:
+      solutionPattern: '$(BuildParameters.Solution)'
+      publishChangeDetection: ${{ parameters.PublishChangeDetection }}
+      publishExtraMode: none
+
   - job: Build
+    dependsOn: Prepare
+    condition: and(succeeded(), eq(dependencies.Prepare.outputs['ExportPreparation.BuildParameters.HasAffectedBuildProjects'], 'true'))
+    variables:
+      - name: Solution.FullName
+        value: $[ dependencies.Prepare.outputs['ExportPreparation.SolutionFullName'] ]
+      - name: Solution.NugetFeedToUse
+        value: $[ dependencies.Prepare.outputs['ExportPreparation.SolutionNugetFeedToUse'] ]
+      - name: Solution.NugetConfig
+        value: $[ dependencies.Prepare.outputs['ExportPreparation.SolutionNugetConfig'] ]
+      - name: MainProject.FullName
+        value: $[ dependencies.Prepare.outputs['ExportPreparation.MainProjectFullName'] ]
+      - name: MainProject.Version
+        value: $[ dependencies.Prepare.outputs['ExportPreparation.MainProjectVersion'] ]
+      - name: MainProject.PackageName
+        value: $[ dependencies.Prepare.outputs['ExportPreparation.MainProjectPackageName'] ]
+      - name: MainProject.Description
+        value: $[ dependencies.Prepare.outputs['ExportPreparation.MainProjectDescription'] ]
+      - name: BuildParameters.HasAffectedBuildProjects
+        value: $[ dependencies.Prepare.outputs['ExportPreparation.BuildParameters.HasAffectedBuildProjects'] ]
+      - name: BuildParameters.HasAffectedPublishProjects
+        value: $[ dependencies.Prepare.outputs['ExportPreparation.BuildParameters.HasAffectedPublishProjects'] ]
+      - name: PublishEnabled
+        value: $[ dependencies.Prepare.outputs['ExportPreparation.PublishEnabled'] ]
+      - name: PublishDocker
+        value: $[ dependencies.Prepare.outputs['ExportPreparation.PublishDocker'] ]
     steps:
+      - checkout: self
+        fetchDepth: 0
+        persistCredentials: true
+
       - template: ../scripts-templates/create-drop-folder.yml@azure-pipelines-repo
-
-      - template: ../scripts-templates/get-main-project-dotnet.yml@azure-pipelines-repo
-        parameters:
-          solutionPattern: '$(BuildParameters.Solution)'
-
-      - template: ../scripts-templates/get-project-properties-dotnet.yml@azure-pipelines-repo
 
       - template: ../scripts-templates/calculate-target-frameworks-dotnet.yml@azure-pipelines-repo
         parameters:
@@ -108,20 +148,24 @@ jobs:
           solutionPattern: '$(BuildParameters.Solution)'
           testProjects: '$(BuildParameters.TestProjects)'
           testEnabled: $(TestEnabled)
+          condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
 
       - template: ../scripts-templates/calculate-release-version-dotnet.yml@azure-pipelines-repo
         parameters:
           projectVersion: '$(MainProject.Version)'
+          condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
 
       - template: ../scripts-templates/apply-release-version-dotnet.yml@azure-pipelines-repo
         parameters:
           workingDirectory: '$(Build.SourcesDirectory)'
           solutionPattern: '$(BuildParameters.Solution)'
           forceVersion: '$(ForceVersion)'
-     
+          condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
+
       - template: ../scripts-templates/set-output-filename.yml@azure-pipelines-repo
         parameters:
           workingDirectory: '$(Build.SourcesDirectory)'
+          condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
 
       - template: ../scripts-templates/export-variable-list.yml@azure-pipelines-repo
 
@@ -129,12 +173,11 @@ jobs:
         inputs:
           folderPath: '$(System.DefaultWorkingDirectory)'
           enableXmlTransform: false
-          xmlTransformationRules: '' # disabled (previous versions)
+          xmlTransformationRules: ''
           jsonTargetFiles: '**/appsettings.json'
-        condition: and(succeeded(), eq(variables['FileTransformEnabled'], 'true'))
+        condition: and(succeeded(), or(eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'), eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true')), eq(variables['FileTransformEnabled'], 'true'))
         continueOnError: true
 
-      # Do no use "TargetFramework_Install_" because overrides other dotnet versions.
       - ${{ each framework in split(variables.SupportedFrameworks, ';') }}:
         - task: UseDotNet@2
           inputs:
@@ -142,7 +185,7 @@ jobs:
             version: '${{ framework }}.x'
             includePreviewVersions: false
           displayName: 'UseDotNet ${{ framework }}'
-          condition: and(succeeded(), ne(variables['BuildParameters.TargetFramework_${{framework}}'], ''))
+          condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'), ne(variables['BuildParameters.TargetFramework_${{framework}}'], ''))
 
       - task: DotNetCoreCLI@2
         displayName: Restore
@@ -152,11 +195,13 @@ jobs:
           feedsToUse: '$(Solution.NugetFeedToUse)'
           nugetConfigPath: '$(Solution.NugetConfig)'
           externalFeedCredentials: '$(ExternalFeedValue)'
-     
+        condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
+
       - template: ../scripts-templates/audit-cancellation-dotnet.yml@azure-pipelines-repo
         parameters:
           sourcesDirectory: '$(Build.SourcesDirectory)'
-     
+          condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
+
       - ${{ if ne(parameters.Analyze, 'disabled') }} :
         - task: SonarCloudPrepare@3
           inputs:
@@ -175,13 +220,14 @@ jobs:
               sonar.cs.vscoveragexml.reportsPaths=**/*.coveragexml
               sonar.cs.dotcover.reportsPaths=**/*.html
               sonar.cs.vstest.reportsPaths=$(Agent.TempDirectory)/**/*.trx
-          condition: and(eq(variables.SonarQubeEnabled, 'true'), ne(variables['SonarCloudOrganization'], ''))
-     
+          condition: and(eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'), eq(variables.SonarQubeEnabled, 'true'), ne(variables['SonarCloudOrganization'], ''))
+
       - task: DotNetCoreCLI@2
         displayName: Build
         inputs:
           projects: '$(BuildParameters.RestoreBuildProjects)'
           arguments: '--configuration $(BuildConfiguration) --no-restore'
+        condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
 
       - ${{ if ne(parameters.Test, 'disabled') }} :
         - task: DotNetCoreCLI@2
@@ -191,11 +237,13 @@ jobs:
             projects: '$(BuildParameters.TestProjects)'
             arguments: '--configuration $(BuildConfiguration) /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:Exclude=".*\.Test[s]?\..*" /p:CoverletOutput="$(Build.SourcesDirectory)/TestResults/"'
             publishTestResults: true
+          condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
 
       - ${{ if ne(parameters.Test, 'disabled') }} :
         - template: ../scripts-templates/check-test-projects-dotnet.yml@azure-pipelines-repo
           parameters:
             testResultsDirectory: '$(Build.SourcesDirectory)/TestResults'
+            condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
 
       - ${{ if ne(parameters.Test, 'disabled') }} :
         - task: reportgenerator@5
@@ -203,28 +251,35 @@ jobs:
             reports: '**/*.[Oo]pencover.xml;**/[Oo]pencover.xml;*.[Oo]pencover.xml;[Oo]pencover.xml'
             targetdir: '$(Build.SourcesDirectory)/TestResults/'
           continueOnError: true
-          condition: eq(variables.HasTests, 'true')
+          condition: and(eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'), eq(variables.HasTests, 'true'))
           displayName: 'Coverage: Parse format'
-     
+
       - ${{ if ne(parameters.Test, 'disabled') }} :
         - template: ../scripts-templates/collect-coverage-files.yml@azure-pipelines-repo
-     
+          parameters:
+            condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
+
       - ${{ if ne(parameters.Test, 'disabled') }} :
         - task: PublishCodeCoverageResults@2
           inputs:
             codeCoverageTool: 'Cobertura'
             summaryFileLocation: '$(CoverageResults)'
           continueOnError: true
-          condition: eq(variables.HasTests, 'true')
+          condition: and(eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'), eq(variables.HasTests, 'true'))
           displayName: 'Coverage: Publish report'
-     
+
       - ${{ if ne(parameters.Analyze, 'disabled') }} :
         - task: SonarCloudAnalyze@3
-          condition: and(eq(variables.SonarQubeEnabled, 'true'), ne(variables['SonarCloudOrganization'], ''))
+          condition: and(eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'), eq(variables.SonarQubeEnabled, 'true'), ne(variables['SonarCloudOrganization'], ''))
         - task: SonarCloudPublish@3
           inputs:
             pollingTimeoutSec: '300'
-          condition: and(eq(variables.SonarQubeEnabled, 'true'), ne(variables['SonarCloudOrganization'], ''))
+          condition: and(eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'), eq(variables.SonarQubeEnabled, 'true'), ne(variables['SonarCloudOrganization'], ''))
+
+      - template: ../scripts-templates/mark-build-published.yml@azure-pipelines-repo
+        parameters:
+          tag: compiled
+          condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
 
       - task: DotNetCoreCLI@2
         inputs:
@@ -232,24 +287,24 @@ jobs:
           packagesToPack: '**/*.??proj;!examples/**/*.??proj;!**/*.Test.??proj;!**/*.Test.*.??proj'
           packDirectory: '$(Build.ArtifactStagingDirectory)/build'
           nobuild: true
-          versioningScheme: 'off' #byEnvVar
+          versioningScheme: 'off'
           versionEnvVar: '$(BuildParameters.ReleaseVersion)'
         displayName: 'NuGet: Pack'
-        condition: and(succeeded(), eq('${{ parameters.SupportsNuget }}', 'true'))
+        condition: and(succeeded(), eq('${{ parameters.SupportsNuget }}', 'true'), eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true'))
 
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifact: drop'
         inputs:
           pathtoPublish: '$(Build.ArtifactStagingDirectory)/drop'
         condition: succeededOrFailed()
-     
+
       - task: PublishPipelineArtifact@1
         displayName: 'Publish Artifact: build'
         inputs:
           targetPath: '$(Build.ArtifactStagingDirectory)/build'
           artifact: 'build'
-        condition: eq('${{ parameters.SupportsNuget }}', 'true')
-     
+        condition: and(eq('${{ parameters.SupportsNuget }}', 'true'), eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true'))
+
       - task: NuGetCommand@2
         inputs:
           command: 'push'
@@ -258,4 +313,9 @@ jobs:
           publishFeedCredentials: 'nuget.org'
         displayName: 'NuGet: Push'
         continueOnError: false
-        condition: and(succeeded(), eq('${{ parameters.SupportsNuget }}', 'true'), eq(variables.PublishEnabled, 'true'))
+        condition: and(succeeded(), eq('${{ parameters.SupportsNuget }}', 'true'), eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true'), eq(variables['PublishEnabled'], 'true'))
+
+      - template: ../scripts-templates/mark-build-published.yml@azure-pipelines-repo
+        parameters:
+          tag: published
+          condition: and(succeeded(), eq('${{ parameters.SupportsNuget }}', 'true'), eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true'), eq(variables['PublishEnabled'], 'true'))

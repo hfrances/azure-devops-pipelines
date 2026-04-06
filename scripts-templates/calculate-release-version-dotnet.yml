@@ -2,6 +2,9 @@ parameters:
   - name: ProjectVersion
     type: string
     default: '$(MainProject.Version)'
+  - name: condition
+    type: string
+    default: succeeded()
 
 steps:
   - task: PowerShell@2
@@ -97,4 +100,4 @@ steps:
           write-error "Invalid version format for: $ProjectVersion";
         }
     displayName: 'Calculate release version'
-    condition: succeeded()
+    condition: ${{ parameters.condition }}

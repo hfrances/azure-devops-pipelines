@@ -1,0 +1,113 @@
+parameters:
+  - name: jobName
+    type: string
+    default: Prepare
+  - name: displayName
+    type: string
+    default: Prepare
+  - name: solutionPattern
+    type: string
+    default: '$(BuildParameters.Solution)'
+  - name: workingDirectory
+    type: string
+    default: ''
+  - name: includedPatterns
+    type: object
+    default: []
+  - name: excludedPatterns
+    type: object
+    default: []
+  - name: publishChangeDetection
+    type: boolean
+    default: true
+  - name: publishEnabled
+    type: string
+    default: '$(PublishEnabled)'
+  - name: publishDocker
+    type: string
+    default: '$(PublishDocker)'
+  - name: tagSuffix
+    type: string
+    default: ''
+  - name: publishExtraMode
+    type: string
+    default: none
+    values:
+      - none
+      - aspnet
+
+jobs:
+  - job: ${{ parameters.jobName }}
+    displayName: ${{ parameters.displayName }}
+    steps:
+      - checkout: self
+        fetchDepth: 0
+        persistCredentials: true
+
+      - template: ../scripts-templates/create-drop-folder.yml@azure-pipelines-repo
+
+      - template: ../scripts-templates/get-main-project-dotnet.yml@azure-pipelines-repo
+        parameters:
+          solutionPattern: '${{ parameters.solutionPattern }}'
+          workingDirectory: '$(Build.SourcesDirectory)/${{ parameters.workingDirectory }}'
+
+      - template: ../scripts-templates/get-project-properties-dotnet.yml@azure-pipelines-repo
+
+      - template: ../scripts-templates/detect-publishable-changes-dotnet.yml@azure-pipelines-repo
+        parameters:
+          enabled: ${{ parameters.publishChangeDetection }}
+          workingDirectory: '${{ parameters.workingDirectory }}'
+          solutionPath: '$(Solution.FullName)'
+          tagSuffix: ${{ parameters.tagSuffix }}
+          includedPatterns: ${{ parameters.includedPatterns }}
+          excludedPatterns: ${{ parameters.excludedPatterns }}
+          publishEnabled: ${{ parameters.publishEnabled }}
+          publishDocker: ${{ parameters.publishDocker }}
+          publishExtraMode: ${{ parameters.publishExtraMode }}
+
+      - task: PowerShell@2
+        name: ExportPreparation
+        displayName: Export preparation outputs
+        inputs:
+          pwsh: true
+          targetType: inline
+          script: |
+            function export-output([string]$name, [string]$value) {
+              if ($null -eq $value) { $value = '' }
+              Write-Output "##vso[task.setvariable variable=$name;isOutput=true]$value"
+            }
+
+            Write-Output "SolutionFullName: $(Solution.FullName)"
+            export-output 'SolutionFullName' '$(Solution.FullName)'
+            Write-Output "SolutionNugetFeedToUse: $(Solution.NugetFeedToUse)"
+            export-output 'SolutionNugetFeedToUse' '$(Solution.NugetFeedToUse)'
+            Write-Output "SolutionNugetConfig: $(Solution.NugetConfig)"
+            export-output 'SolutionNugetConfig' '$(Solution.NugetConfig)'
+            Write-Output ""
+            Write-Output "MainProjectFullName: $(MainProject.FullName)"
+            export-output 'MainProjectFullName' '$(MainProject.FullName)'
+            Write-Output "MainProjectVersion: $(MainProject.Version)"
+            export-output 'MainProjectVersion' '$(MainProject.Version)'
+            Write-Output "MainProjectPackageName: $(MainProject.PackageName)"
+            export-output 'MainProjectPackageName' '$(MainProject.PackageName)'
+            Write-Output "MainProjectDescription: $(MainProject.Description)"
+            export-output 'MainProjectDescription' '$(MainProject.Description)'
+            Write-Output ""
+            Write-Output "BuildParameters.HasAffectedBuildProjects: $(BuildParameters.HasAffectedBuildProjects)"
+            export-output 'BuildParameters.HasAffectedBuildProjects' '$(BuildParameters.HasAffectedBuildProjects)'
+            Write-Output "BuildParameters.HasAffectedPublishProjects: $(BuildParameters.HasAffectedPublishProjects)"
+            export-output 'BuildParameters.HasAffectedPublishProjects' '$(BuildParameters.HasAffectedPublishProjects)'
+            Write-Output ""
+            Write-Output "PublishEnabled: $(PublishEnabled)"
+            export-output 'PublishEnabled' '$(PublishEnabled)'
+            Write-Output "PublishDocker: $(PublishDocker)"
+            export-output 'PublishDocker' '$(PublishDocker)'
+            
+      - template: ../scripts-templates/export-variable-list.yml@azure-pipelines-repo
+
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifact: drop-prepare'
+        inputs:
+          pathtoPublish: '$(Build.ArtifactStagingDirectory)/drop'
+          artifactName: 'drop-prepare'
+        condition: succeededOrFailed()

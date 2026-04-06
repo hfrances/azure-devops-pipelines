@@ -1,3 +1,8 @@
+parameters:
+  - name: condition
+    type: string
+    default: eq(variables.HasTests, 'true')
+
 steps:
   - task: PowerShell@2
     inputs:
@@ -24,5 +29,5 @@ steps:
           Copy-Item $_ $(Agent.TempDirectory); 
         }
         write-output "##vso[task.setvariable variable=CoverageResults]$coverageResults"
-    condition: eq(variables.HasTests, 'true')
     displayName: 'Coverage: Collect files'
+    condition: ${{ parameters.condition }}

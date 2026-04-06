@@ -2,6 +2,9 @@ parameters:
   - name: solutionPattern
     type: string
     default: '$(BuildParameters.Solution)'
+  - name: workingDirectory
+    type: string
+    default: ''
 
 steps:
   - task: PowerShell@2
@@ -23,6 +26,8 @@ steps:
           exit 1
         }
         $solution = $solutionFiles[0];
+        write-output "Solution found: $($solution.FullName)";
+        write-output "##vso[task.setvariable variable=Solution.FullName]$($solution.FullName)";
       
         # Get first project in the solution. That is the main project.
         $projectPath = $null;
@@ -75,4 +80,5 @@ steps:
           write-output "##vso[task.setvariable variable=Solution.NugetFeedToUse]select";
           write-output "##vso[task.setvariable variable=Solution.NugetConfig]";
         }
+      workingDirectory: '${{ parameters.workingDirectory }}'
     displayName: Get main project from Solution
