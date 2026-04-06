@@ -224,7 +224,7 @@ jobs:
           echo "Subnet validated and ready for ACA."
 
   - task: AzureCLI@2
-    displayName: 'Create or validate ACA environment'
+    displayName: 'Create or validate CAE'
     inputs:
       azureSubscription: ${{ parameters.azureServiceConnection }}
       visibleAzLogin: false
