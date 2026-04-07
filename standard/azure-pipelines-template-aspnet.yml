@@ -132,6 +132,7 @@ jobs:
       publishExtraMode: aspnet
 
   - job: Build
+    displayName: Build and push
     dependsOn: Prepare
     condition: and(succeeded(), eq(dependencies.Prepare.outputs['ExportPreparation.BuildParameters.HasAffectedBuildProjects'], 'true'))
     variables:
