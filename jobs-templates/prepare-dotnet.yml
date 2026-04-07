@@ -20,12 +20,6 @@ parameters:
   - name: publishChangeDetection
     type: boolean
     default: true
-  - name: publishEnabled
-    type: string
-    default: '$(PublishEnabled)'
-  - name: publishDocker
-    type: string
-    default: '$(PublishDocker)'
   - name: tagSuffix
     type: string
     default: ''
@@ -61,8 +55,6 @@ jobs:
           tagSuffix: ${{ parameters.tagSuffix }}
           includedPatterns: ${{ parameters.includedPatterns }}
           excludedPatterns: ${{ parameters.excludedPatterns }}
-          publishEnabled: ${{ parameters.publishEnabled }}
-          publishDocker: ${{ parameters.publishDocker }}
           publishExtraMode: ${{ parameters.publishExtraMode }}
 
       - task: PowerShell@2

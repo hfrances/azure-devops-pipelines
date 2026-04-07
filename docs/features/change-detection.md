@@ -22,12 +22,10 @@ If `tagSuffix` is set, it compares against:
 
 | Param | Default | Meaning |
 | --- | --- | --- |
-| `enabled` | `true` | turn detection on/off |
+| `enabled` | `true` | enables/disables detector logic; when `false`, both affected flags are set to `true` |
 | `workingDirectory` | `''` | optional base folder used to scope git changes and resolve relative paths |
 | `solutionPath` | `$(Solution.FullName)` | solution for `dotnet-affected` |
 | `tagSuffix` | `''` | optional suffix for tags like `compiled-api` / `published-api` |
-| `publishEnabled` | `$(PublishEnabled)` | explicit publish intent for package/file publish |
-| `publishDocker` | `$(PublishDocker)` | explicit publish intent for Docker publish |
 | `publishExtraMode` | `none` | `aspnet` enables extra non-project publish files |
 | `includedPatterns` | `[]` | optional wildcard patterns that replace the default ASP.NET extra include list |
 | `excludedPatterns` | `[]` | optional wildcard patterns that replace the default ASP.NET extra exclude list |
@@ -38,8 +36,6 @@ The detection step publishes these outputs:
 
 - `HasAffectedBuildProjects`
 - `HasAffectedPublishProjects`
-- `PublishEnabled`
-- `PublishDocker`
 
 In the standard .NET templates they are produced in the `Prepare` job and then mapped into the `Build` job variables before any gated task runs.
 
@@ -50,10 +46,6 @@ In the standard .NET templates they are produced in the `Prepare` job and then m
 - `includedPatterns`
 - `excludedPatterns`
 - `tagSuffix`
-- `publishEnabled`
-- `publishDocker`
-
-This makes the template easier to reuse in monorepos and lets callers pass publish intent explicitly instead of depending only on ambient pipeline variables.
 
 When `workingDirectory` is set:
 - git diff is scoped to that subtree before build/publish decisions are made
@@ -147,13 +139,13 @@ If `tagSuffix` is set, the exported file names also use that suffix. Example:
 
 If detection breaks, it fails open:
 - build stays on
-- publish falls back to the parent template intent
+- publish stays on
 
 ## Git Inputs
 
 | Param | Default | Meaning |
 | --- | --- | --- |
-| `enabled` | `true` | turn detection on/off |
+| `enabled` | `true` | enables/disables detector logic; when `false`, both affected flags are set to `true` |
 | `workingDirectory` | `''` | optional subtree used to scope git changes |
 | `tagSuffix` | `''` | optional suffix for tags like `compiled-ui` / `published-ui` |
 | `includedPatterns` | `[]` | optional wildcard patterns that replace the implicit include default |

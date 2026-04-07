@@ -17,12 +17,6 @@ parameters:
   - name: excludedPatterns
     type: object
     default: []
-  - name: publishEnabled
-    type: string
-    default: '$(PublishEnabled)'
-  - name: publishDocker
-    type: string
-    default: '$(PublishDocker)'
   - name: publishExtraMode
     type: string
     default: none
@@ -68,24 +62,22 @@ steps:
         function report($name,$base,$files,$reason,$suffix,$commits){$drop=Join-Path $env:BUILD_ARTIFACTSTAGINGDIRECTORY 'drop';if(!(Test-Path $drop)){ni -ItemType Directory -Path $drop -Force|Out-Null};$p=Join-Path $drop (suffixname $name $suffix);$b=if($base){$base}else{'<none>'};$lines=@("# current: $env:BUILD_SOURCEVERSION","# baseline: $b","# files: $($files.Count)","# changes: $($commits.Count)");if($reason){$lines+="# reason: $reason"};$lines+='';$lines+="## changes ($($commits.Count))";if($commits.Count){$lines+=@($commits|%{"- $_"})}else{$lines+='- <none>'};$lines+='';$lines+="## files ($($files.Count))";if($files.Count){$lines+=@($files|%{"- $_"})}else{$lines+='- <none>'};Set-Content $p $lines;Write-Output "Changed files report: $p"}
         function copydrop($src,$name,$suffix){if(Test-Path $src){$drop=Join-Path $env:BUILD_ARTIFACTSTAGINGDIRECTORY 'drop';if(!(Test-Path $drop)){ni -ItemType Directory -Path $drop -Force|Out-Null};$dst=Join-Path $drop (suffixname $name $suffix);Copy-Item -LiteralPath $src -Destination $dst -Force;Write-Output "Drop file exported: $dst"}}
         function ensuretool($dir,$ver){ni -ItemType Directory -Path $dir -Force|Out-Null;Write-Host '';Write-Host '=== dotnet-affected ===';Write-Host "Resolving tool version $ver";& dotnet tool update dotnet-affected --tool-path $dir --version $ver --verbosity quiet 2>&1 | Out-Null;if($LASTEXITCODE -ne 0){$global:LASTEXITCODE=0;& dotnet tool install dotnet-affected --tool-path $dir --version $ver --verbosity quiet 2>&1 | Out-Null;if($LASTEXITCODE -ne 0){throw 'Unable to install dotnet-affected.'};Write-Host 'dotnet-affected installed.'}else{Write-Host 'dotnet-affected updated.'};$global:LASTEXITCODE=0;$tool=Join-Path $dir 'dotnet-affected.exe';if(!(Test-Path $tool)){$tool=Join-Path $dir 'dotnet-affected'};if(!(Test-Path $tool)){throw "dotnet-affected executable not found in '$dir'."};return $tool}
-        $enabled=bool "${{ parameters.enabled }}" $true;$solution="${{ parameters.solutionPath }}";$wd=norm "${{ parameters.workingDirectory }}";$suffix='${{ parameters.tagSuffix }}';$compiledTag=if([string]::IsNullOrWhiteSpace($suffix)){'compiled'}else{"compiled-$suffix"};$publishedTag=if([string]::IsNullOrWhiteSpace($suffix)){'published'}else{"published-$suffix"};$mode="${{ parameters.publishExtraMode }}";$pub=bool "${{ parameters.publishEnabled }}" $false;$dock=bool "${{ parameters.publishDocker }}" $false;$anyPub=$pub -or $dock;$ver='6.2.0';$patterns=@();$expatterns=@();if($env:INCLUDED_PATTERNS_JSON){$patterns=@((ConvertFrom-Json -InputObject $env:INCLUDED_PATTERNS_JSON)|%{norm "$_"})};if($env:EXCLUDED_PATTERNS_JSON){$expatterns=@((ConvertFrom-Json -InputObject $env:EXCLUDED_PATTERNS_JSON)|%{norm "$_"})}
-        $cb='';$pb='';$bskip='';$pskip='';$bskipType='info';$pskipType='info';$build=$true;$publish=$anyPub;$bfiles=@();$pfiles=@();$bcommits=@();$pcommits=@()
+        $enabled=bool "${{ parameters.enabled }}" $true;$solution="${{ parameters.solutionPath }}";$wd=norm "${{ parameters.workingDirectory }}";$suffix='${{ parameters.tagSuffix }}';$compiledTag=if([string]::IsNullOrWhiteSpace($suffix)){'compiled'}else{"compiled-$suffix"};$publishedTag=if([string]::IsNullOrWhiteSpace($suffix)){'published'}else{"published-$suffix"};$mode="${{ parameters.publishExtraMode }}";$ver='6.2.0';$patterns=@();$expatterns=@();if($env:INCLUDED_PATTERNS_JSON){$patterns=@((ConvertFrom-Json -InputObject $env:INCLUDED_PATTERNS_JSON)|%{norm "$_"})};if($env:EXCLUDED_PATTERNS_JSON){$expatterns=@((ConvertFrom-Json -InputObject $env:EXCLUDED_PATTERNS_JSON)|%{norm "$_"})}
+        $cb='';$pb='';$bskip='';$pskip='';$bskipType='info';$pskipType='info';$build=$true;$publish=$true;$bfiles=@();$pfiles=@();$bcommits=@();$pcommits=@()
         if(!(Test-Path $solution)){throw "Resolved solution path not found: $solution"}
         section 'Baseline comparison'
         Write-Output "Current commit: $env:BUILD_SOURCEVERSION"
         try{
-          if($enabled){if(!$env:SYSTEM_ACCESSTOKEN){throw 'System.AccessToken is not available.'};$h=@{Authorization="Bearer $($env:SYSTEM_ACCESSTOKEN)"};$cbld=baseline $h $compiledTag;$pbld=baseline $h $publishedTag;if($cbld){$cb="$($cbld.sourceVersion)";Write-Output "Compiled baseline build: $($cbld.id)";Write-Output "Compiled baseline commit: $cb";Write-Output "Compiled comparison: $cb -> $env:BUILD_SOURCEVERSION"}else{Write-Output 'Compiled baseline build: <none>';Write-Output 'Compiled baseline commit: <none>'};if($pbld){$pb="$($pbld.sourceVersion)";Write-Output "Published baseline build: $($pbld.id)";Write-Output "Published baseline commit: $pb";Write-Output "Published comparison: $pb -> $env:BUILD_SOURCEVERSION"}else{Write-Output 'Published baseline build: <none>';Write-Output 'Published baseline commit: <none>'};if($cb){& git cat-file -e "$cb^{commit}" 2>$null;$e=$LASTEXITCODE;$global:LASTEXITCODE=0;if($e -ne 0){throw "Compiled baseline commit '$cb' is not available locally. Ensure checkout uses fetchDepth: 0."}};if($pb){& git cat-file -e "$pb^{commit}" 2>$null;$e=$LASTEXITCODE;$global:LASTEXITCODE=0;if($e -ne 0){throw "Published baseline commit '$pb' is not available locally. Ensure checkout uses fetchDepth: 0."}};if($cb -and $cb -eq $env:BUILD_SOURCEVERSION){$build=$false;$bskip='Current commit matches the last compiled build.'}elseif($cb){$bfiles=@(gitok "git diff --name-only `"$cb...$env:BUILD_SOURCEVERSION`"" "git diff failed for baseline '$cb'."|?{inwd $_ $wd});$bcommits=@(gitlines "git log --format=`"%s`" `"$cb..$env:BUILD_SOURCEVERSION`"" "git log failed for baseline '$cb'.");if(!$bfiles.Count){$build=$false;$bskip='No file changes since the last compiled build.'}};if(!$anyPub){$publish=$false;$pskip='Publish not requested for this branch/configuration.'}elseif($pb -and $pb -eq $env:BUILD_SOURCEVERSION){$publish=$false;$pskip='Current commit matches the last published build.'}elseif($pb){$pfiles=@(gitok "git diff --name-only `"$pb...$env:BUILD_SOURCEVERSION`"" "git diff failed for baseline '$pb'."|?{inwd $_ $wd});$pcommits=@(gitlines "git log --format=`"%s`" `"$pb..$env:BUILD_SOURCEVERSION`"" "git log failed for baseline '$pb'.");if(!$pfiles.Count){$publish=$false;$pskip='No file changes since the last published build.'}}}else{Write-Output 'Change detection disabled. Falling back to the legacy always-build / branch-controlled publish behaviour.';if(!$anyPub){$publish=$false;$pskip='Publish not requested for this branch/configuration.'}}
+          if($enabled){if(!$env:SYSTEM_ACCESSTOKEN){throw 'System.AccessToken is not available.'};$h=@{Authorization="Bearer $($env:SYSTEM_ACCESSTOKEN)"};$cbld=baseline $h $compiledTag;$pbld=baseline $h $publishedTag;if($cbld){$cb="$($cbld.sourceVersion)";Write-Output "Compiled baseline build: $($cbld.id)";Write-Output "Compiled baseline commit: $cb";Write-Output "Compiled comparison: $cb -> $env:BUILD_SOURCEVERSION"}else{Write-Output 'Compiled baseline build: <none>';Write-Output 'Compiled baseline commit: <none>'};if($pbld){$pb="$($pbld.sourceVersion)";Write-Output "Published baseline build: $($pbld.id)";Write-Output "Published baseline commit: $pb";Write-Output "Published comparison: $pb -> $env:BUILD_SOURCEVERSION"}else{Write-Output 'Published baseline build: <none>';Write-Output 'Published baseline commit: <none>'};if($cb){& git cat-file -e "$cb^{commit}" 2>$null;$e=$LASTEXITCODE;$global:LASTEXITCODE=0;if($e -ne 0){throw "Compiled baseline commit '$cb' is not available locally. Ensure checkout uses fetchDepth: 0."}};if($pb){& git cat-file -e "$pb^{commit}" 2>$null;$e=$LASTEXITCODE;$global:LASTEXITCODE=0;if($e -ne 0){throw "Published baseline commit '$pb' is not available locally. Ensure checkout uses fetchDepth: 0."}};if($cb -and $cb -eq $env:BUILD_SOURCEVERSION){$build=$false;$bskip='Current commit matches the last compiled build.'}elseif($cb){$bfiles=@(gitok "git diff --name-only `"$cb...$env:BUILD_SOURCEVERSION`"" "git diff failed for baseline '$cb'."|?{inwd $_ $wd});$bcommits=@(gitlines "git log --format=`"%s`" `"$cb..$env:BUILD_SOURCEVERSION`"" "git log failed for baseline '$cb'.");if(!$bfiles.Count){$build=$false;$bskip='No file changes since the last compiled build.'}};if($pb -and $pb -eq $env:BUILD_SOURCEVERSION){$publish=$false;$pskip='Current commit matches the last published build.'}elseif($pb){$pfiles=@(gitok "git diff --name-only `"$pb...$env:BUILD_SOURCEVERSION`"" "git diff failed for baseline '$pb'."|?{inwd $_ $wd});$pcommits=@(gitlines "git log --format=`"%s`" `"$pb..$env:BUILD_SOURCEVERSION`"" "git log failed for baseline '$pb'.");if(!$pfiles.Count){$publish=$false;$pskip='No relevant file changes since the last published build.'}}}
+          else{Write-Output 'Change detection disabled. Keeping default affected flags (build=true, publish=true).'}
           section 'Changed files'
           report 'changed-files-build.txt' $cb $bfiles $bskip $suffix $bcommits;report 'changed-files-deploy.txt' $pb $pfiles $pskip $suffix $pcommits; if($bcommits.Count){Write-Output "Build commits: $($bcommits.Count)";$bcommits|%{Write-Output " - commit: $_"}}; if($pcommits.Count){Write-Output "Publish commits: $($pcommits.Count)";$pcommits|%{Write-Output " - commit: $_"}}; if($cb){Write-Output "Build changed files: $($bfiles.Count)"}; if($pb){Write-Output "Publish changed files: $($pfiles.Count)"}
-          if($enabled -and (($cb -and $build) -or ($pb -and $publish))){$toolDir=Join-Path $env:AGENT_TEMPDIRECTORY 'dotnet-tools';$tool=ensuretool $toolDir $ver;if($cb -and $build){section 'Affected build';$r=affected $tool $cb 'affected-build' $solution;Write-Output "dotnet-affected build exit code: $($r.Code)";if(!$r.Ok){if($r.Out){log warning $r.Out};if($r.Code -eq 1){throw "dotnet-affected build exit code 1. Detection will continue in fail-open mode."};throw $r.Err};copydrop $r.File 'affected-build.proj' $suffix;$build=$r.Projects.Count -gt 0;if($build){Write-Output "Affected build projects: $($r.Projects.Count)";$r.Projects|%{Write-Output " - build: $_"}}else{$bskip='No affected projects since the last compiled build.'}}elseif($cb){section 'Affected build';Write-Output "dotnet-affected build exit code: <not-run>"};if($pb -and $publish){section 'Affected publish';$r=affected $tool $pb 'affected-publish' $solution;Write-Output "dotnet-affected publish exit code: $($r.Code)";if(!$r.Ok){if($r.Out){log warning $r.Out};throw $r.Err};copydrop $r.File 'affected-publish.proj' $suffix;$pps=@($r.Projects|?{publishable $_});$extras=@();if($mode -eq 'aspnet'){$c=cfg $mode $wd $patterns $expatterns;Write-Output "Publish extra include patterns: $($c.Include.Count)";Write-Output "Publish extra exclude patterns: $($c.Exclude.Count)";$extras=@($pfiles|?{ $x=relwd $_ $wd; (any $x $c.Include) -and -not (any $x $c.Exclude) })};$publish=($pps.Count -gt 0) -or ($extras.Count -gt 0);if($publish){if($pps.Count){Write-Output "Affected publish projects: $($pps.Count)";$pps|%{Write-Output " - publish: $_"}};if($extras.Count){Write-Output "Affected extra publish files: $($extras.Count)";$extras|%{Write-Output " - extra: $_"}}}else{$pskip='No publishable changes since the last published build.'}}elseif($pb -or $anyPub){section 'Affected publish';Write-Output "dotnet-affected publish exit code: <not-run>"}}
-        }catch{markissue $_.Exception.Message;$build=$true;$publish=$anyPub;$bskip="Detection failed: $($_.Exception.Message)";$bskipType='warning';$pskip=if($anyPub){"Detection failed: $($_.Exception.Message)"}else{'Publish not requested for this branch/configuration.'};$pskipType=if($anyPub){'warning'}else{'info'};$global:LASTEXITCODE=0}
-        $pubFinal=($pub -and $publish).ToString().ToLowerInvariant();$dockFinal=($dock -and $publish).ToString().ToLowerInvariant();
+          if($enabled -and (($cb -and $build) -or ($pb -and $publish))){$toolDir=Join-Path $env:AGENT_TEMPDIRECTORY 'dotnet-tools';$tool=ensuretool $toolDir $ver;if($cb -and $build){section 'Affected build';$r=affected $tool $cb 'affected-build' $solution;Write-Output "dotnet-affected build exit code: $($r.Code)";if(!$r.Ok){if($r.Out){log warning $r.Out};if($r.Code -eq 1){throw "dotnet-affected build exit code 1. Detection will continue in fail-open mode."};throw $r.Err};copydrop $r.File 'affected-build.proj' $suffix;$build=$r.Projects.Count -gt 0;if($build){Write-Output "Affected build projects: $($r.Projects.Count)";$r.Projects|%{Write-Output " - build: $_"}}else{$bskip='No affected projects since the last compiled build.'}}elseif($cb){section 'Affected build';Write-Output "dotnet-affected build exit code: <not-run>"};if($pb -and $publish){section 'Affected publish';$r=affected $tool $pb 'affected-publish' $solution;Write-Output "dotnet-affected publish exit code: $($r.Code)";if(!$r.Ok){if($r.Out){log warning $r.Out};throw $r.Err};copydrop $r.File 'affected-publish.proj' $suffix;$pps=@($r.Projects|?{publishable $_});$extras=@();if($mode -eq 'aspnet'){$c=cfg $mode $wd $patterns $expatterns;Write-Output "Publish extra include patterns: $($c.Include.Count)";Write-Output "Publish extra exclude patterns: $($c.Exclude.Count)";$extras=@($pfiles|?{ $x=relwd $_ $wd; (any $x $c.Include) -and -not (any $x $c.Exclude) })};$publish=($pps.Count -gt 0) -or ($extras.Count -gt 0);if($publish){if($pps.Count){Write-Output "Affected publish projects: $($pps.Count)";$pps|%{Write-Output " - publish: $_"}};if($extras.Count){Write-Output "Affected extra publish files: $($extras.Count)";$extras|%{Write-Output " - extra: $_"}}}else{$pskip='No publishable changes since the last published build.'}}elseif($pb){section 'Affected publish';Write-Output "dotnet-affected publish exit code: <not-run>"}}
+        }catch{markissue $_.Exception.Message;$build=$true;$publish=$true;$bskip="Detection failed: $($_.Exception.Message)";$bskipType='warning';$pskip="Detection failed: $($_.Exception.Message)";$pskipType='warning';$global:LASTEXITCODE=0}
         Write-Output "##vso[task.setvariable variable=BuildParameters.HasAffectedBuildProjects]$($build.ToString().ToLowerInvariant())"
         Write-Output "##vso[task.setvariable variable=BuildParameters.HasAffectedPublishProjects]$($publish.ToString().ToLowerInvariant())"
-        Write-Output "##vso[task.setvariable variable=PublishEnabled]$pubFinal"
-        Write-Output "##vso[task.setvariable variable=PublishDocker]$dockFinal"
         section 'Final decision'
-        Write-Output "BuildParameters.HasAffectedBuildProjects: $build";Write-Output "BuildParameters.HasAffectedPublishProjects: $publish";Write-Output "PublishEnabled: $pubFinal";Write-Output "PublishDocker: $dockFinal"
+        Write-Output "BuildParameters.HasAffectedBuildProjects: $build";Write-Output "BuildParameters.HasAffectedPublishProjects: $publish"
         if((-not $build) -and $bskip){log $bskipType "Build skip reason: $bskip"};if((-not $publish) -and $pskip){log $pskipType "Publish skip reason: $pskip"};if($taskHasIssues){Write-Output "##vso[task.complete result=SucceededWithIssues;]Detect compiled and published changes completed with warnings."};$global:LASTEXITCODE=0
     displayName: Detect compiled and published changes
     
@@ -119,12 +111,6 @@ steps:
 #   - parameter excludedPatterns:
 #     optional wildcard patterns that replace the default ASP.NET extra exclude list
 #     before any override file is applied.
-#   - parameter publishEnabled:
-#     explicit publish intent for package/file publish flows. Replaces the detector's
-#     previous direct dependence on the ambient `$(PublishEnabled)` variable.
-#   - parameter publishDocker:
-#     explicit publish intent for Docker publish flows. Replaces the detector's
-#     previous direct dependence on the ambient `$(PublishDocker)` variable.
 #   - parameter publishExtraMode:
 #     "aspnet" enables extra publish-only file checks outside the .NET project graph.
 #   - parameter includedPatterns:
@@ -151,22 +137,20 @@ steps:
 #        [exclude]
 #
 # - High-level flow:
-#   1. Resolve current publish intent from explicit parameters:
-#      publishEnabled and publishDocker.
-#   2. Look up compiled/published baselines for the same pipeline + branch.
-#   3. If a baseline equals the current commit, skip that side immediately.
-#   4. Otherwise compute git changed files for build and publish, constrained to
+#   1. Look up compiled/published baselines for the same pipeline + branch.
+#   2. If a baseline equals the current commit, skip that side immediately.
+#   3. Otherwise compute git changed files for build and publish, constrained to
 #      `workingDirectory` when provided.
-#   5. Export raw changed-file reports into drop:
+#   4. Export raw changed-file reports into drop:
 #      - changed-files-build.txt
 #      - changed-files-deploy.txt
-#   6. If semantic evaluation is needed, run dotnet-affected:
+#   5. If semantic evaluation is needed, run dotnet-affected:
 #      - affected-build.proj
 #      - affected-publish.proj
-#   7. For publish:
+#   6. For publish:
 #      - remove test/example projects
 #      - in aspnet mode, also include extra files such as Dockerfile/wwwroot/config
-#   8. Export final Azure DevOps variables and log final decisions.
+#   7. Export final Azure DevOps variables and log final decisions.
 #
 # - What counts for build:
 #   - Any file returned by `git diff` is considered a candidate change.
@@ -227,8 +211,6 @@ steps:
 # - Final exported variables:
 #   - BuildParameters.HasAffectedBuildProjects
 #   - BuildParameters.HasAffectedPublishProjects
-#   - PublishEnabled
-#   - PublishDocker
 #
 # - Artifacts written into $(Build.ArtifactStagingDirectory)/drop:
 #   - changed-files-build.txt
@@ -244,5 +226,5 @@ steps:
 # - Fail-open behavior:
 #   Any unexpected detection failure keeps the pipeline alive:
 #   - build => true
-#   - publish => current publish intent
+#   - publish => true
 #   This avoids blocking CI/CD because the detector itself failed.
