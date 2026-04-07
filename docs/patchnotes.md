@@ -8,10 +8,12 @@ Highlights:
 - add shared `aca-deploy-job` documentation under `docs/features`
 - update `aca-deploy-job` to print the hosts-file warning only for external ingress on subnet-based environments
 - document the external-ingress-only hosts warning behavior
+- rename `calculate-release-version-dotnet.yml` to `calculate-release-version.yml` with optional `calculateAssemblyVersion` parameter
 
 Main files:
 - `jobs-templates/aca-deploy-job.yml`
 - `docs/features/aca-deploy-job.md`
+- `scripts-templates/calculate-release-version.yml` (renamed from `calculate-release-version-dotnet.yml`)
 
 ## 3.4.0
 
