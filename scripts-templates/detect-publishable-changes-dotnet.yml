@@ -89,6 +89,14 @@ steps:
 #   using the last successful build tagged as "compiled" and "published" for the same
 #   pipeline definition and branch.
 #
+# - Parity note:
+#   This template is the canonical parity reference for:
+#   - `detect-publishable-changes-dotnet.yml`
+#   - `detect-publishable-changes-git.yml`
+#   Before changing shared logic/shape, read:
+#   `docs/features/change-detection-parity.md`
+#   This note is also intended for AI-assisted edits.
+#
 # - Inputs:
 #   - parameter enabled:
 #     turns change detection on/off. When false, the template falls back to the legacy

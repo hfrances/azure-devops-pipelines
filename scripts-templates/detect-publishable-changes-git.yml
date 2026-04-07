@@ -61,3 +61,105 @@ steps:
         Write-Output "BuildParameters.HasAffectedBuildProjects: $build";Write-Output "BuildParameters.HasAffectedPublishProjects: $publish"
         if((-not $build) -and $bskip){log $bskipType "Build skip reason: $bskip"};if((-not $publish) -and $pskip){log $pskipType "Publish skip reason: $pskip"};if($taskHasIssues){Write-Output "##vso[task.complete result=SucceededWithIssues;]Detect compiled and published changes completed with warnings."};$global:LASTEXITCODE=0
     displayName: Detect compiled and published changes
+
+# Documentation
+# - Purpose:
+#   Decide independently whether the current pipeline run must rebuild and/or republish,
+#   using the last successful build tagged as "compiled" and "published" for the same
+#   pipeline definition and branch.
+#
+# - Parity note:
+#   Keep this template structurally aligned with:
+#   - `detect-publishable-changes-dotnet.yml` (canonical)
+#   - `detect-publishable-changes-git.yml`
+#   Before changing shared logic/shape, read:
+#   `docs/features/change-detection-parity.md`
+#   This note is also intended for AI-assisted edits.
+#
+# - Inputs:
+#   - parameter enabled:
+#     turns change detection on/off. When false, the template falls back to the legacy
+#     behavior: always build and always publish.
+#   - parameter workingDirectory:
+#     optional subtree used to scope `git diff` before any build/publish decision is made.
+#     This is especially useful in monorepos so unrelated components do not contaminate
+#     the change set for the current artifact.
+#   - parameter tagSuffix:
+#     optional suffix appended to the compiled/published tags. Examples:
+#     - `compiled`
+#     - `published`
+#     - `compiled-ui`
+#     - `published-ui`
+#   - parameter includedPatterns:
+#     optional wildcard patterns for include matching.
+#   - parameter excludedPatterns:
+#     optional wildcard patterns for exclude matching.
+#
+# - Data sources:
+#   1. Azure DevOps REST API:
+#      finds the latest successful build tagged "compiled" and "published".
+#   2. Local git checkout:
+#      compares baseline commit -> current commit with `git diff --name-only`,
+#      optionally restricted to `workingDirectory`.
+#   3. Optional consumer file:
+#      `.azuredevops/publish-extra-paths.txt` can override include/exclude
+#      patterns. If `workingDirectory` is set, the detector first looks for the
+#      file in `<workingDirectory>/.azuredevops/publish-extra-paths.txt` and
+#      falls back to the repo root only if that scoped file does not exist.
+#      Sections:
+#        [include]
+#        [exclude]
+#
+# - High-level flow:
+#   1. Look up compiled/published baselines for the same pipeline + branch.
+#   2. If a baseline equals the current commit, skip that side immediately.
+#   3. Otherwise compute git changed files for build and publish, constrained to
+#      `workingDirectory` when provided.
+#   4. Apply include/exclude rules over changed files.
+#   5. Export raw changed-file reports into drop:
+#      - changed-files-build.txt
+#      - changed-files-deploy.txt
+#   6. Export final Azure DevOps variables and log final decisions.
+#
+# - What counts for build:
+#   - Any file returned by `git diff` is considered a candidate change.
+#   - Build only becomes false when one of these is true:
+#     - current commit equals the compiled baseline commit
+#     - there are no changed files matching include/exclude rules
+#
+# - What counts for publish:
+#   - Publish starts from the same git changes.
+#   - Publish only becomes true when:
+#     - there is no publish skip condition, and
+#     - changed files matching include/exclude rules exist.
+#
+# - Default include/exclude rules:
+#   - Default include:
+#     - `**`
+#   - Default exclude:
+#     - `README*`
+#     - `**/README*`
+#     - `docs/**`
+#     - `.github/**`
+#     - `.azuredevops/**`
+#     - `azure-pipelines*.yml`
+#     - `**/azure-pipelines*.yml`
+#   - If `includedPatterns` is informed, it replaces the default include list.
+#   - If `excludedPatterns` is informed, it replaces the default exclude list.
+#
+# - Final exported variables:
+#   - BuildParameters.HasAffectedBuildProjects
+#   - BuildParameters.HasAffectedPublishProjects
+#
+# - Artifacts written into $(Build.ArtifactStagingDirectory)/drop:
+#   - changed-files-build.txt
+#   - changed-files-deploy.txt
+#   If `tagSuffix` is set, the detector appends it to the exported file names:
+#   - changed-files-build-ui.txt
+#   - changed-files-deploy-ui.txt
+#
+# - Fail-open behavior:
+#   Any unexpected detection failure keeps the pipeline alive:
+#   - build => true
+#   - publish => true
+#   This avoids blocking CI/CD because the detector itself failed.

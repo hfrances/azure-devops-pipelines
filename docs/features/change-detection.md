@@ -1,5 +1,8 @@
 # Change Detection
 
+See also:
+- `docs/features/change-detection-parity.md` (maintenance/parity rules between `dotnet` and `git` detectors)
+
 Templates:
 - `.NET`: `jobs-templates/prepare-dotnet.yml` + `scripts-templates/detect-publishable-changes-dotnet.yml`
 - `git`: `jobs-templates/prepare-path-change-git.yml` + `scripts-templates/detect-publishable-changes-git.yml`
