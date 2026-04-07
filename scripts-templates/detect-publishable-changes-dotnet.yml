@@ -82,7 +82,7 @@ steps:
         Write-Output "BuildParameters.HasAffectedBuildProjects: $build";Write-Output "BuildParameters.HasAffectedPublishProjects: $publish"
         if((-not $build) -and $bskip){log $bskipType "Build skip reason: $bskip"};if((-not $publish) -and $pskip){log $pskipType "Publish skip reason: $pskip"};if($taskHasIssues){Write-Output "##vso[task.complete result=SucceededWithIssues;]Detect compiled and published changes completed with warnings."};$global:LASTEXITCODE=0
     displayName: Detect compiled and published changes
-    
+
 # Documentation
 # - Purpose:
 #   Decide independently whether the current pipeline run must rebuild and/or republish,

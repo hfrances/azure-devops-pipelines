@@ -134,9 +134,9 @@ steps:
 #     - changed files matching include/exclude rules exist.
 #
 # - Default include/exclude rules:
-#   - Default include:
+#   - Default include patterns:
 #     - `**`
-#   - Default exclude:
+#   - Default exclude patterns:
 #     - `README*`
 #     - `**/README*`
 #     - `docs/**`
