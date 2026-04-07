@@ -85,14 +85,21 @@ variables:
     value: 'Release'
   - name: Deploy
     value: ${{ parameters.Deploy }}
+  - name: PublishEnabledBranches
+    value: |
+      refs/heads/master
+      refs/heads/main
+      refs/heads/staging
+      refs/heads/alpha
+      refs/heads/feature/net10
+  - name: SonarQubeEnabledBranches
+    value: $(PublishEnabledBranches)
   - name: PublishEnabled
-    value: $[or(eq(variables.Deploy, 'true'), and(eq(variables.Deploy, 'auto'), in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/main', 'refs/heads/staging', 'refs/heads/alpha', 'refs/heads/feature/net10')))] # TODO: Remove 'refs/heads/feature/net10' when not needed
-  - name: PublishDocker
-    value: false
+    value: $[iif(or(eq(variables.Deploy, 'true'), and(eq(variables.Deploy, 'auto'), contains(format('\n{0}\n', variables['PublishEnabledBranches']), format('\n{0}\n', variables['Build.SourceBranch'])))), 'true', 'false')] # TODO: Remove 'refs/heads/feature/net10' when not needed
   - name: Analyze
     value: ${{ parameters.Analyze }}
   - name: SonarQubeEnabled
-    value: $[or(eq(variables.Analyze, 'true'), and(eq(variables.Analyze, 'auto'), in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/main', 'refs/heads/staging', 'refs/heads/alpha', 'refs/heads/feature/net10')))] # TODO: Remove 'refs/heads/feature/net10' when not needed
+    value: $[or(eq(variables.Analyze, 'true'), and(eq(variables.Analyze, 'auto'), contains(format('\n{0}\n', variables['SonarQubeEnabledBranches']), format('\n{0}\n', variables['Build.SourceBranch']))))] # TODO: Remove 'refs/heads/feature/net10' when not needed
   - name: TestEnabled
     value: $[ne('${{ parameters.Test }}', 'disabled')]
   - name: SupportedFrameworks
@@ -131,10 +138,6 @@ jobs:
         value: $[ dependencies.Prepare.outputs['ExportPreparation.BuildParameters.HasAffectedBuildProjects'] ]
       - name: BuildParameters.HasAffectedPublishProjects
         value: $[ dependencies.Prepare.outputs['ExportPreparation.BuildParameters.HasAffectedPublishProjects'] ]
-      - name: PublishEnabled
-        value: $[ dependencies.Prepare.outputs['ExportPreparation.PublishEnabled'] ]
-      - name: PublishDocker
-        value: $[ dependencies.Prepare.outputs['ExportPreparation.PublishDocker'] ]
     steps:
       - checkout: self
         fetchDepth: 0
