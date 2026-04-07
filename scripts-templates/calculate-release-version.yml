@@ -42,6 +42,7 @@ steps:
         $regex = '(?<version>(?<major>\d+)(?:.(?<minor>\d+))(?:.(?<patch>\d+))?(?:.(?<build>\d+))?)(?:-(?<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$';
 
         $ProjectVersion = "${{ parameters.ProjectVersion }}";
+        $calculateAssemblyVersion = [System.Convert]::ToBoolean('${{ parameters.calculateAssemblyVersion }}')
         if ("$ProjectVersion" -match $regex) {
           $version = $matches['version'];
           $major = $matches['major'];
@@ -83,7 +84,7 @@ steps:
             $dockerVersion = "$version-$($branchNameClean).$(Build.BuildId)";
             $dockerAlias = "$branchNameClean";
           }
-          if (${{ parameters.calculateAssemblyVersion }}) {
+          if ($calculateAssemblyVersion) {
             # Calculate AssemblyVersion
             $releaseAssemblyVersion = "$major.$minor.$patch.$(Build.BuildId)";
             # Set variables
@@ -98,7 +99,7 @@ steps:
           write-output "##vso[build.addbuildtag]$dockerAlias";
           # Display variables
           write-output "Release version: $releaseVersion"
-          if (${{ parameters.calculateAssemblyVersion }}) {
+          if ($calculateAssemblyVersion) {
             write-output "Release assembly version: $releaseAssemblyVersion"
           }
           write-output "Docker version: $dockerVersion"
