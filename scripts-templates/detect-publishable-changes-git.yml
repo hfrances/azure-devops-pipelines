@@ -74,6 +74,8 @@ steps:
         section 'Changed files'
         report 'changed-files-build.txt' $cb $bfiles $bskip $suffix $bcommits
         report 'changed-files-deploy.txt' $pb $pfiles $pskip $suffix $pcommits
+        if($bcommits.Count){Write-Output "Build commits: $($bcommits.Count)";$bcommits|%{Write-Output " - commit: $_"}}
+        if($pcommits.Count){Write-Output "Publish commits: $($pcommits.Count)";$pcommits|%{Write-Output " - commit: $_"}}
         if($cb){Write-Output "Build changed files: $($bfiles.Count)"}
         if($pb){Write-Output "Publish changed files: $($pfiles.Count)"}
         Write-Output "##vso[task.setvariable variable=BuildParameters.HasAffectedBuildProjects]$($build.ToString().ToLowerInvariant())"
