@@ -96,14 +96,25 @@ variables:
     value: 'Release'
   - name: Deploy
     value: ${{ parameters.Deploy }}
+  - name: PublishEnabledBranches
+    value: |
+      refs/heads/master
+      refs/heads/main
+  - name: DockerEnabledBranches
+    value: |
+      refs/heads/master
+      refs/heads/main
+      refs/heads/staging
+  - name: SonarQubeEnabledBranches
+    value: $(PublishEnabledBranches)
   - name: PublishEnabled
-    value: $[or(eq(variables.Deploy, 'true'), and(eq(variables.Deploy, 'auto'), in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/main')))]
+    value: $[iif(or(eq(variables.Deploy, 'true'), and(eq(variables.Deploy, 'auto'), contains(format('\n{0}\n', variables['PublishEnabledBranches']), format('\n{0}\n', variables['Build.SourceBranch'])))), 'true', 'false')]
   - name: PublishDocker
-    value: true # TODO: Review condition
+    value: $[iif(and(eq('${{ parameters.SupportsContainers }}', 'true'), ne(variables['ContainerRegistry'], ''), ne(variables['ContainerName'], ''), or(eq(variables.Deploy, 'true'), and(eq(variables.Deploy, 'auto'), contains(format('\n{0}\n', variables['DockerEnabledBranches']), format('\n{0}\n', variables['Build.SourceBranch']))))), 'true', 'false')]
   - name: Analyze
     value: ${{ parameters.Analyze }}
   - name: SonarQubeEnabled
-    value: $[or(eq(variables.Analyze, 'true'), and(eq(variables.Analyze, 'auto'), in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/main', 'refs/heads/staging', 'refs/heads/feature/net10')))] # TODO: Remove 'refs/heads/feature/net10' when not needed
+    value: $[or(eq(variables.Analyze, 'true'), and(eq(variables.Analyze, 'auto'), contains(format('\n{0}\n', variables['SonarQubeEnabledBranches']), format('\n{0}\n', variables['Build.SourceBranch']))))] # TODO: Remove 'refs/heads/feature/net10' when not needed
   - name: TestEnabled
     value: $[ne('${{ parameters.Test }}', 'disabled')]
   - name: SupportedFrameworks
@@ -121,6 +132,7 @@ jobs:
       publishExtraMode: aspnet
 
   - job: Build
+    displayName: Build and push
     dependsOn: Prepare
     condition: and(succeeded(), eq(dependencies.Prepare.outputs['ExportPreparation.BuildParameters.HasAffectedBuildProjects'], 'true'))
     variables:
@@ -142,10 +154,6 @@ jobs:
         value: $[ dependencies.Prepare.outputs['ExportPreparation.BuildParameters.HasAffectedBuildProjects'] ]
       - name: BuildParameters.HasAffectedPublishProjects
         value: $[ dependencies.Prepare.outputs['ExportPreparation.BuildParameters.HasAffectedPublishProjects'] ]
-      - name: PublishEnabled
-        value: $[ dependencies.Prepare.outputs['ExportPreparation.PublishEnabled'] ]
-      - name: PublishDocker
-        value: $[ dependencies.Prepare.outputs['ExportPreparation.PublishDocker'] ]
     steps:
       - checkout: self
         fetchDepth: 0
@@ -161,10 +169,11 @@ jobs:
           testEnabled: $(TestEnabled)
           condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
 
-      - template: ../scripts-templates/calculate-release-version-dotnet.yml@azure-pipelines-repo
+      - template: ../scripts-templates/calculate-release-version.yml@azure-pipelines-repo
         parameters:
           projectVersion: '$(MainProject.Version)'
           condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
+          calculateAssemblyVersion: true
 
       - template: ../scripts-templates/apply-release-version-dotnet.yml@azure-pipelines-repo
         parameters:

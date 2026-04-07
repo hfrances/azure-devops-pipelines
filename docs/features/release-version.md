@@ -1,12 +1,12 @@
 # Release Version
 
-Template: `scripts-templates/calculate-release-version-dotnet.yml`
+Template: `scripts-templates/calculate-release-version.yml`
 
 ## What It Does
 
 Turns `$(MainProject.Version)` into pipeline variables used later for:
 - package version
-- assembly version
+- assembly version (optional)
 - Docker version
 - Docker alias
 
@@ -18,16 +18,17 @@ It also adds build tags with those values.
 | --- | --- | --- |
 | `ProjectVersion` | `$(MainProject.Version)` | Source version read from the main project |
 | `condition` | `succeeded()` | Azure Pipelines condition |
+| `calculateAssemblyVersion` | `true` | Whether to calculate and set `ReleaseAssemblyVersion` (useful for .NET projects) |
 
 ## Output Variables
 
 - `BuildParameters.ReleaseVersion`
-- `BuildParameters.ReleaseAssemblyVersion`
+- `BuildParameters.ReleaseAssemblyVersion` (if `calculateAssemblyVersion` is `true`)
 - `BuildParameters.DockerVersion`
 - `BuildParameters.DockerAlias`
 
 It also adds build tags:
-- assembly version
+- assembly version (if `calculateAssemblyVersion` is `true`)
 - Docker version
 - Docker alias
 
@@ -68,7 +69,7 @@ DockerAlias = beta
 
 ## Assembly Version
 
-Always:
+When `calculateAssemblyVersion` is `true` (default), always:
 
 ```text
 <major>.<minor>.<patch>.<Build.BuildId>

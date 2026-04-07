@@ -2,6 +2,9 @@ parameters:
   - name: ProjectVersion
     type: string
     default: '$(MainProject.Version)'
+  - name: calculateAssemblyVersion
+    type: boolean
+    default: true
   - name: condition
     type: string
     default: succeeded()
@@ -39,6 +42,7 @@ steps:
         $regex = '(?<version>(?<major>\d+)(?:.(?<minor>\d+))(?:.(?<patch>\d+))?(?:.(?<build>\d+))?)(?:-(?<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$';
 
         $ProjectVersion = "${{ parameters.ProjectVersion }}";
+        $calculateAssemblyVersion = [System.Convert]::ToBoolean('${{ parameters.calculateAssemblyVersion }}')
         if ("$ProjectVersion" -match $regex) {
           $version = $matches['version'];
           $major = $matches['major'];
@@ -80,19 +84,24 @@ steps:
             $dockerVersion = "$version-$($branchNameClean).$(Build.BuildId)";
             $dockerAlias = "$branchNameClean";
           }
-          # Calculate AssemblyVersion
-          $releaseAssemblyVersion = "$major.$minor.$patch.$(Build.BuildId)";
+          if ($calculateAssemblyVersion) {
+            # Calculate AssemblyVersion
+            $releaseAssemblyVersion = "$major.$minor.$patch.$(Build.BuildId)";
+            # Set variables
+            write-output "##vso[task.setvariable variable=BuildParameters.ReleaseAssemblyVersion]$releaseAssemblyVersion";
+            write-output "##vso[build.addbuildtag]$releaseAssemblyVersion";
+          }
           # Set variables
           write-output "##vso[task.setvariable variable=BuildParameters.ReleaseVersion]$releaseVersion";
-          write-output "##vso[task.setvariable variable=BuildParameters.ReleaseAssemblyVersion]$releaseAssemblyVersion";
           write-output "##vso[task.setvariable variable=BuildParameters.DockerVersion]$dockerVersion";
           write-output "##vso[task.setvariable variable=BuildParameters.DockerAlias]$dockerAlias";
-          write-output "##vso[build.addbuildtag]$releaseAssemblyVersion";
           write-output "##vso[build.addbuildtag]$dockerVersion";
           write-output "##vso[build.addbuildtag]$dockerAlias";
           # Display variables
           write-output "Release version: $releaseVersion"
-          write-output "Release assembly version: $releaseAssemblyVersion"
+          if ($calculateAssemblyVersion) {
+            write-output "Release assembly version: $releaseAssemblyVersion"
+          }
           write-output "Docker version: $dockerVersion"
           write-output "Docker alias: $dockerAlias"
         }
