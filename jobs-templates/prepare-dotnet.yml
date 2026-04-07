@@ -89,11 +89,6 @@ jobs:
             export-output 'BuildParameters.HasAffectedBuildProjects' '$(BuildParameters.HasAffectedBuildProjects)'
             Write-Output "BuildParameters.HasAffectedPublishProjects: $(BuildParameters.HasAffectedPublishProjects)"
             export-output 'BuildParameters.HasAffectedPublishProjects' '$(BuildParameters.HasAffectedPublishProjects)'
-            Write-Output ""
-            Write-Output "PublishEnabled: $(PublishEnabled)"
-            export-output 'PublishEnabled' '$(PublishEnabled)'
-            Write-Output "PublishDocker: $(PublishDocker)"
-            export-output 'PublishDocker' '$(PublishDocker)'
             
       - template: ../scripts-templates/export-variable-list.yml@azure-pipelines-repo
 
