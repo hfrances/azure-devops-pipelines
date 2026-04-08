@@ -5,10 +5,12 @@ parameters:
   - name: failOnViolations
     type: boolean
     default: true
+  - name: condition
+    type: string
+    default: succeeded()
 
 steps:
   - task: PowerShell@2
-    displayName: 'Audit: CancellationToken'
     inputs:
       pwsh: true
       targetType: 'inline'
@@ -90,3 +92,5 @@ steps:
         }
 
         Write-Host "##vso[task.logissue type=warning]Cancellation audit completed with violations (failOnViolations=false)."
+    displayName: 'Audit: CancellationToken'
+    condition: ${{ parameters.condition }}

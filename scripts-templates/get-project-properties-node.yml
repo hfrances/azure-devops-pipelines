@@ -1,0 +1,70 @@
+parameters:
+  - name: workingDirectory
+    type: string
+    default: '.'
+
+steps:
+  - task: PowerShell@2
+    displayName: Get main Node project properties
+    inputs:
+      pwsh: true
+      targetType: inline
+      script: |
+        $workingDirectory = '${{ parameters.workingDirectory }}'
+        $packageJsonPath = Join-Path $workingDirectory 'package.json'
+
+        if (!(Test-Path $packageJsonPath)) {
+          Write-Error "package.json not found: $packageJsonPath"
+          exit 1
+        }
+
+        $packageJsonFile = Get-Item $packageJsonPath
+        $packageJson = Get-Content $packageJsonFile.FullName -Raw | ConvertFrom-Json
+
+        $packageName = "$($packageJson.name)".Trim()
+        if ([string]::IsNullOrWhiteSpace($packageName)) {
+          $packageName = $packageJsonFile.Directory.Name.ToLowerInvariant()
+        }
+
+        $version = "$($packageJson.version)".Trim()
+        if ([string]::IsNullOrWhiteSpace($version)) {
+          $version = '0.1.0'
+          Write-Warning "Version could not be obtained from '$($packageJsonFile.FullName)'. Defaulting to '$version'."
+        }
+
+        $description = "$($packageJson.description)".Trim()
+        $hasTests = $false
+        if ($packageJson.scripts -and $packageJson.scripts.PSObject.Properties.Name -contains 'test') {
+          $hasTests = $true
+        }
+
+        $packageManager = "$($packageJson.packageManager)".Trim()
+        if ([string]::IsNullOrWhiteSpace($packageManager)) {
+          if (Test-Path (Join-Path $packageJsonFile.Directory.FullName 'pnpm-lock.yaml')) {
+            $packageManager = 'pnpm'
+          }
+          elseif (Test-Path (Join-Path $packageJsonFile.Directory.FullName 'package-lock.json')) {
+            $packageManager = 'npm'
+          }
+          elseif (Test-Path (Join-Path $packageJsonFile.Directory.FullName 'yarn.lock')) {
+            $packageManager = 'yarn'
+          }
+          else {
+            $packageManager = 'pnpm'
+          }
+        }
+
+        $dockerfilePath = Join-Path $packageJsonFile.Directory.FullName 'Dockerfile'
+        if (!(Test-Path $dockerfilePath)) {
+          Write-Error "Dockerfile not found: $dockerfilePath"
+          exit 1
+        }
+
+        Write-Output "##vso[task.setvariable variable=MainProject.FullName]$($packageJsonFile.FullName)"
+        Write-Output "##vso[task.setvariable variable=MainProject.Version]$version"
+        Write-Output "##vso[task.setvariable variable=MainProject.PackageName]$packageName"
+        Write-Output "##vso[task.setvariable variable=MainProject.Description]$description"
+        Write-Output "##vso[task.setvariable variable=NodeProject.HasTestScript]$hasTests"
+        Write-Output "##vso[task.setvariable variable=NodeProject.PackageManager]$packageManager"
+        Write-Output "##vso[task.setvariable variable=NodeProject.DockerfilePath]$dockerfilePath"
+        Write-Output "##vso[task.setvariable variable=NodeProject.WorkingDirectory]$($packageJsonFile.Directory.FullName)"

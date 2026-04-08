@@ -2,6 +2,9 @@ parameters:
   - name: testResultsDirectory
     type: string
     default: '$(Build.SourcesDirectory)/TestResults'
+  - name: condition
+    type: string
+    default: succeeded()
 
 steps:
   - task: PowerShell@2
@@ -20,3 +23,4 @@ steps:
         write-output "HasTests: $hasTests";
         write-output "##vso[task.setvariable variable=HasTests]$hasTests";
     displayName: 'Coverage: Check if there are test projects'
+    condition: ${{ parameters.condition }}

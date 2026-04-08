@@ -2,13 +2,22 @@
 
 This repository contains a collection of reusable **Azure Pipelines YAML templates** designed to standardize and simplify CI/CD workflows across multiple projects.
 
-## 🎯 Purpose
+## 🧩 Index
 
-These templates are intended to be imported into project-specific pipelines using the `resources.repositories` and `extends` mechanisms provided by Azure DevOps. This allows teams to centralize common logic, enforce best practices, and reduce duplication.
+- Templates:
+  - [Common Usage](docs/templates/common-usage.md)
+  - [ASP.NET Template](docs/templates/aspnet.md)
+  - [Library Template](docs/templates/libnet.md)
+- Features:
+  - [Change Detection](docs/features/change-detection.md)
+  - [Release Version](docs/features/release-version.md)
+  - [Cancellation Audit](docs/features/cancellation-audit.md)
+- Releases:
+  - [Patch Notes](docs/patchnotes.md)
 
 ## 🚀 How to Use
 
-In your project’s pipeline (`azure-pipelines.yml`), reference this repository like so:
+Reference this repository from the consumer pipeline:
 
 ```yaml
 resources:
@@ -25,9 +34,7 @@ extends:
     param2: value2
 ```
 
-## 📚 Template Parameters
-
-Each template contains a `parameters:` block at the top that defines the inputs it expects. Check the header comments or accompanying `README.md` inside each template folder for usage examples.
+For template behavior, branch rules, required variables, and optional files such as `.azuredevops/publish-extra-paths.txt`, use the docs linked above.
 
 ## 📖 Official Documentation
 

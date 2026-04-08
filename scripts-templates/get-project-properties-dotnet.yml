@@ -4,6 +4,12 @@ steps:
       pwsh: true
       targetType: 'inline'
       script: |
+        $taskHasIssues = $false;
+        function mark-task-issue([string]$message) {
+          write-warning $message;
+          $script:taskHasIssues = $true;
+        }
+
         $file = (Get-Item '$(MainProject.FullName)');
 
         if ($null -eq $file) {
@@ -19,6 +25,10 @@ steps:
 
           # Set version
           $version = "$($xml.Project.PropertyGroup.Version)"?.Trim();
+          if ([string]::IsNullOrWhiteSpace($version)) {
+            $version = '0.1.0';
+            mark-task-issue "Version could not be obtained from project file '$($file.FullName)'. Defaulting to '$version'.";
+          }
           write-output "Version: $version";
           write-output "##vso[task.setvariable variable=MainProject.Version]$version";
             
@@ -26,5 +36,9 @@ steps:
           $description = "$($xml.Project.PropertyGroup.Description)"?.Trim();
           write-output "Description: $description";
           write-output "##vso[task.setvariable variable=MainProject.Description]$description";
+        }
+
+        if ($taskHasIssues) {
+          write-output "##vso[task.complete result=SucceededWithIssues;]Get main project properties completed with warnings.";
         }
     displayName: Get main project properties

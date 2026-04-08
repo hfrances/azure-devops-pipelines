@@ -2,6 +2,9 @@ parameters:
   - name: workingDirectory
     type: string
     default: '$(Build.SourcesDirectory)'
+  - name: condition
+    type: string
+    default: succeeded()
 
 steps:
   - task: PowerShell@2
@@ -35,3 +38,4 @@ steps:
         write-output "##vso[task.setvariable variable=BuildParameters.OutputDirectory]$outputDirectory";
       workingDirectory: '${{ parameters.workingDirectory }}'
     displayName: 'Set output filename'
+    condition: ${{ parameters.condition }}
