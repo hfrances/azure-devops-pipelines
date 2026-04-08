@@ -67,7 +67,7 @@ steps:
           write-output "Main project found: $($file.FullName)";
           write-output "##vso[task.setvariable variable=MainProject.FullName]$($file.FullName)";
         }
-        write-output
+        write-output ""
 
         # Find the nuget config file:
         $nugetConfigPath = Join-Path $solution.Directory 'nuget.config';
