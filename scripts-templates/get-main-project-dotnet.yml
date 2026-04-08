@@ -67,11 +67,18 @@ steps:
           write-output "Main project found: $($file.FullName)";
           write-output "##vso[task.setvariable variable=MainProject.FullName]$($file.FullName)";
         }
+        write-output
 
         # Find the nuget config file:
         $nugetConfigPath = Join-Path $solution.Directory 'nuget.config';
-        if (Test-Path $nugetConfigPath) {
+        if (-not [string]::IsNullOrWhiteSpace($env:ExternalFeed)) {
+          write-output "External feed specified: $env:ExternalFeed";
+          write-output "##vso[task.setvariable variable=Solution.NugetFeedToUse]select";
+          write-output "##vso[task.setvariable variable=Solution.NugetConfig]";
+        }
+        elseif (Test-Path $nugetConfigPath) {
           $nugetConfig = (Get-Item $nugetConfigPath);
+          write-output "Nuget config file found: $($nugetConfig.FullName)";
           write-output "##vso[task.setvariable variable=Solution.NugetFeedToUse]config";
           write-output "##vso[task.setvariable variable=Solution.NugetConfig]$($nugetConfig.FullName)";
         } 
