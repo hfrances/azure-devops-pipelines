@@ -1,7 +1,13 @@
 parameters:
+  - name: prefix
+    type: string
+    default: ''
   - name: tag
     type: string
     default: published
+  - name: suffix
+    type: string
+    default: ''
   - name: condition
     type: string
     default: succeeded()
@@ -12,7 +18,14 @@ steps:
       pwsh: true
       targetType: inline
       script: |
-        Write-Output "##vso[build.addbuildtag]${{ parameters.tag }}";
-        Write-Output "##vso[task.setvariable variable=BuildParameters.${{ parameters.tag }}]true";
+        $finalTag = "${{ parameters.tag }}"
+        if (-not [string]::IsNullOrWhiteSpace("${{ parameters.suffix }}")) {
+          $finalTag = "$finalTag-${{ parameters.suffix }}"
+        }
+        if (-not [string]::IsNullOrWhiteSpace("${{ parameters.prefix }}")) {
+          $finalTag = "${{ parameters.prefix }}:$finalTag"
+        }
+        Write-Output "##vso[build.addbuildtag]$finalTag";
+        Write-Output "##vso[task.setvariable variable=BuildParameters.$finalTag]true";
     displayName: Mark build as ${{ parameters.tag }}
     condition: ${{ parameters.condition }}
