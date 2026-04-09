@@ -4,7 +4,7 @@ See also:
 - `docs/features/change-detection-parity.md` (maintenance/parity rules between `dotnet` and `git` detectors)
 
 Templates:
-- `.NET`: `jobs-templates/prepare-dotnet.yml` + `scripts-templates/detect-publishable-changes-dotnet.yml`
+- `.NET`: `jobs-templates/prepare-dotnet-job.yml` + `scripts-templates/detect-publishable-changes-dotnet.yml`
 - `git`: `jobs-templates/prepare-path-change-git.yml` + `scripts-templates/detect-publishable-changes-git.yml`
 
 ## What It Does
@@ -42,7 +42,7 @@ The detection step publishes these outputs:
 
 In the standard .NET templates they are produced in the `Prepare` job and then mapped into the `Build` job variables before any gated task runs.
 
-`prepare-dotnet.yml` also supports:
+`prepare-dotnet-job.yml` also supports:
 - `jobName`
 - `displayName`
 - `workingDirectory`
@@ -52,7 +52,7 @@ In the standard .NET templates they are produced in the `Prepare` job and then m
 
 When `workingDirectory` is set:
 - git diff is scoped to that subtree before build/publish decisions are made
-- `solutionPattern` in `prepare-dotnet.yml` is evaluated from that directory, so it must be relative to `workingDirectory`
+- `solutionPattern` in `prepare-dotnet-job.yml` is evaluated from that directory, so it must be relative to `workingDirectory`
 - ASP.NET extra publish path rules are evaluated relative to `workingDirectory`
 
 ## .NET Build Decision

@@ -110,7 +110,7 @@ steps:
 #     the change set for the current artifact.
 #   - parameter solutionPath:
 #     solution used by dotnet-affected. When `workingDirectory` is set in
-#     `prepare-dotnet.yml`, the solution pattern may be resolved relative to that folder
+#     `prepare-dotnet-job.yml`, the solution pattern may be resolved relative to that folder
 #     before it reaches this detector.
 #   - parameter tagSuffix:
 #     optional suffix appended to the compiled/published tags. Examples:

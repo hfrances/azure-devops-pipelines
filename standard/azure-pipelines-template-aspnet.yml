@@ -125,7 +125,7 @@ variables:
     value: $[iif(ne(variables['ExternalFeed'], ''), variables['ExternalFeed'], '')]
 
 jobs:
-  - template: ../jobs-templates/prepare-dotnet.yml@azure-pipelines-repo
+  - template: ../jobs-templates/prepare-dotnet-job.yml@azure-pipelines-repo
     parameters:
       solutionPattern: '$(BuildParameters.Solution)'
       publishChangeDetection: ${{ parameters.PublishChangeDetection }}
