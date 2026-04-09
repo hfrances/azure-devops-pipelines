@@ -8,6 +8,9 @@ parameters:
   - name: tagSuffix
     type: string
     default: ''
+  - name: tagPrefix
+    type: string
+    default: ''
   - name: includedPatterns
     type: object
     default: []
@@ -44,7 +47,7 @@ steps:
         function cfg($wd,$patterns,$expatterns){$r=[ordered]@{Include=@();Exclude=@()};if($patterns.Count){$r.Include=@($patterns)}else{$r.Include=@('**')};$r.Exclude=if($expatterns.Count){@($expatterns)}else{@('README*','**/README*','docs/**','.github/**','.azuredevops/**','azure-pipelines*.yml','**/azure-pipelines*.yml')};$f=if([string]::IsNullOrWhiteSpace($wd)){Join-Path $env:BUILD_SOURCESDIRECTORY '.azuredevops/publish-extra-paths.txt'}else{Join-Path (Join-Path $env:BUILD_SOURCESDIRECTORY $wd) '.azuredevops/publish-extra-paths.txt'};if(!(Test-Path $f)){$f=Join-Path $env:BUILD_SOURCESDIRECTORY '.azuredevops/publish-extra-paths.txt'};if(!(Test-Path $f)){return [pscustomobject]$r};Write-Output "Publish extra config file: $f";$sec='';$in=@();$ex=@();foreach($l in Get-Content $f){$t=$l.Trim();if(!$t -or $t.StartsWith('#')){continue};if($t-match'^\[(.+)\]$'){$sec=$matches[1].ToLowerInvariant();continue};if($sec -eq 'include'){$in+=$t}elseif($sec -eq 'exclude'){$ex+=$t}};if($in.Count){$r.Include=$in};if($ex.Count){$r.Exclude=$ex};[pscustomobject]$r}
         function suffixname($name,$suffix){if([string]::IsNullOrWhiteSpace($suffix)){return $name};$base=[System.IO.Path]::GetFileNameWithoutExtension($name);$ext=[System.IO.Path]::GetExtension($name);"$base-$suffix$ext"}
         function report($name,$base,$files,$reason,$suffix,$commits){$drop=Join-Path $env:BUILD_ARTIFACTSTAGINGDIRECTORY 'drop';if(!(Test-Path $drop)){ni -ItemType Directory -Path $drop -Force|Out-Null};$p=Join-Path $drop (suffixname $name $suffix);$b=if($base){$base}else{'<none>'};$lines=@("# current: $env:BUILD_SOURCEVERSION","# baseline: $b","# files: $($files.Count)","# changes: $($commits.Count)");if($reason){$lines+="# reason: $reason"};$lines+='';$lines+="## changes ($($commits.Count))";if($commits.Count){$lines+=@($commits|%{"- $_"})}else{$lines+='- <none>'};$lines+='';$lines+="## files ($($files.Count))";if($files.Count){$lines+=@($files|%{"- $_"})}else{$lines+='- <none>'};Set-Content $p $lines;Write-Output "Changed files report: $p"}
-        $enabled=bool "${{ parameters.enabled }}" $true;$wd=norm "${{ parameters.workingDirectory }}";$suffix='${{ parameters.tagSuffix }}';$compiledTag=if([string]::IsNullOrWhiteSpace($suffix)){'compiled'}else{"compiled-$suffix"};$publishedTag=if([string]::IsNullOrWhiteSpace($suffix)){'published'}else{"published-$suffix"}
+        $enabled=bool "${{ parameters.enabled }}" $true;$wd=norm "${{ parameters.workingDirectory }}";$suffix='${{ parameters.tagSuffix }}';$tagPrefix='${{ parameters.tagPrefix }}';$compiledTag=if([string]::IsNullOrWhiteSpace($suffix)){'compiled'}else{"compiled-$suffix"};if(-not[string]::IsNullOrWhiteSpace($tagPrefix)){$compiledTag="$tagPrefix/$compiledTag"};$publishedTag=if([string]::IsNullOrWhiteSpace($suffix)){'published'}else{"published-$suffix"};if(-not[string]::IsNullOrWhiteSpace($tagPrefix)){$publishedTag="$tagPrefix/$publishedTag"}
         $patterns=@();$expatterns=@();if($env:INCLUDED_PATTERNS_JSON){$patterns=@((ConvertFrom-Json -InputObject $env:INCLUDED_PATTERNS_JSON)|%{norm "$_"})};if($env:EXCLUDED_PATTERNS_JSON){$expatterns=@((ConvertFrom-Json -InputObject $env:EXCLUDED_PATTERNS_JSON)|%{norm "$_"})};$cfg=cfg $wd $patterns $expatterns;$buildCfg=$cfg
         $cb='';$pb='';$bskip='';$pskip='';$bskipType='info';$pskipType='info';$build=$true;$publish=$true;$bfiles=@();$pfiles=@();$bcommits=@();$pcommits=@()
         section 'Baseline comparison'

@@ -23,7 +23,7 @@ steps:
           $finalTag = "$finalTag-${{ parameters.suffix }}"
         }
         if (-not [string]::IsNullOrWhiteSpace("${{ parameters.prefix }}")) {
-          $finalTag = "${{ parameters.prefix }}:$finalTag"
+          $finalTag = "${{ parameters.prefix }}/$finalTag"
         }
         Write-Output "##vso[build.addbuildtag]$finalTag";
         Write-Output "##vso[task.setvariable variable=BuildParameters.$finalTag]true";

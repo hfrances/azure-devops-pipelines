@@ -5,6 +5,9 @@ parameters:
   - name: calculateAssemblyVersion
     type: boolean
     default: true
+  - name: prefix
+    type: string
+    default: ''
   - name: condition
     type: string
     default: succeeded()
@@ -89,14 +92,14 @@ steps:
             $releaseAssemblyVersion = "$major.$minor.$patch.$(Build.BuildId)";
             # Set variables
             write-output "##vso[task.setvariable variable=BuildParameters.ReleaseAssemblyVersion]$releaseAssemblyVersion";
-            write-output "##vso[build.addbuildtag]$releaseAssemblyVersion";
+            write-output "##vso[build.addbuildtag]${tagPrefix}$releaseAssemblyVersion";
           }
           # Set variables
           write-output "##vso[task.setvariable variable=BuildParameters.ReleaseVersion]$releaseVersion";
           write-output "##vso[task.setvariable variable=BuildParameters.DockerVersion]$dockerVersion";
           write-output "##vso[task.setvariable variable=BuildParameters.DockerAlias]$dockerAlias";
-          write-output "##vso[build.addbuildtag]$dockerVersion";
-          write-output "##vso[build.addbuildtag]$dockerAlias";
+          write-output "##vso[build.addbuildtag]${tagPrefix}$dockerVersion";
+          write-output "##vso[build.addbuildtag]${tagPrefix}$dockerAlias";
           # Display variables
           write-output "Release version: $releaseVersion"
           if ($calculateAssemblyVersion) {
