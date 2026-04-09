@@ -87,6 +87,11 @@ steps:
             $dockerVersion = "$version-$($branchNameClean).$(Build.BuildId)";
             $dockerAlias = "$branchNameClean";
           }
+
+          $tagPrefix = "${{ parameters.prefix }}"
+          if (-not [string]::IsNullOrWhiteSpace($tagPrefix) -and -not $tagPrefix.EndsWith('/')) {
+            $tagPrefix = "$tagPrefix/"
+          }
           if ($calculateAssemblyVersion) {
             # Calculate AssemblyVersion
             $releaseAssemblyVersion = "$major.$minor.$patch.$(Build.BuildId)";
