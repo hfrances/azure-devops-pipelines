@@ -117,7 +117,7 @@ jobs:
   - checkout: none
 
   - task: AzureCLI@2
-    displayName: 'Prepare Azure CLI for ACA deployment'
+    displayName: 'Prepare Azure CLI'
     inputs:
       azureSubscription: ${{ parameters.azureServiceConnection }}
       visibleAzLogin: false
@@ -131,7 +131,7 @@ jobs:
         az extension add --name containerapp --upgrade --yes --only-show-errors --output none
 
   - task: AzureCLI@2
-    displayName: 'Validate ACA deployment parameters'
+    displayName: 'Validate parameters'
     inputs:
       azureSubscription: ${{ parameters.azureServiceConnection }}
       visibleAzLogin: false
@@ -140,8 +140,19 @@ jobs:
       inlineScript: |
         set -euo pipefail
 
+        echo "Validation input summary:"
+        echo "  acaIngressType='${{ parameters.acaIngressType }}'"
+        echo "  caeManaged='${{ parameters.caeManaged }}'"
+        echo "  caeLocation='${{ parameters.caeLocation }}'"
+        echo "  useSubnet='${{ parameters.useSubnet }}'"
+        echo "  resourceGroupVNet='${{ parameters.resourceGroupVNet }}'"
+        echo "  vnetName='${{ parameters.vnetName }}'"
+        echo "  subnetName='${{ parameters.subnetName }}'"
+
+        echo "Rule check: acaIngressType must be internal|external"
         case "${{ parameters.acaIngressType }}" in
           internal|external)
+            echo "  OK"
             ;;
           *)
             echo "##vso[task.logissue type=error]ERROR: Invalid value for acaIngressType='${{ parameters.acaIngressType }}'. Use 'internal' or 'external'."
@@ -149,21 +160,31 @@ jobs:
             ;;
         esac
 
+        echo "Rule check: if caeManaged=true then caeLocation is required"
         if [ "${{ parameters.caeManaged }}" = "True" ] && [ -z "${{ parameters.caeLocation }}" ]; then
           echo "##vso[task.logissue type=error]ERROR: caeManaged=true requires caeLocation."
           exit 1
+        else
+          echo "  OK"
         fi
 
+        echo "Rule check: if caeManaged=true and useSubnet=true then VNet/subnet fields are required"
         if [ "${{ parameters.caeManaged }}" = "True" ] && [ "${{ parameters.useSubnet }}" = "True" ]; then
           if [ -z "${{ parameters.resourceGroupVNet }}" ] || [ -z "${{ parameters.vnetName }}" ] || [ -z "${{ parameters.subnetName }}" ]; then
             echo "##vso[task.logissue type=error]ERROR: caeManaged=true and useSubnet=true require resourceGroupVNet, vnetName, and subnetName."
             exit 1
+          else
+            echo "  OK"
           fi
+        else
+          echo "  SKIPPED (condition not met)"
         fi
+
+        echo "Parameter validation completed."
 
   - ${{ if and(eq(parameters.caeManaged, true), eq(parameters.useSubnet, true)) }}:
     - task: AzureCLI@2
-      displayName: 'Validate subnet for ACA'
+      displayName: 'Validate subnet'
       inputs:
         azureSubscription: ${{ parameters.azureServiceConnection }}
         visibleAzLogin: false
@@ -323,7 +344,7 @@ jobs:
         fi
 
   - task: AzureCLI@2
-    displayName: 'Deploy and validate ACA app'
+    displayName: 'Deploy ACA'
     name: deploy
     inputs:
       azureSubscription: ${{ parameters.azureServiceConnection }}
@@ -372,6 +393,25 @@ jobs:
 
         if az containerapp show -n "${{ parameters.acaName }}" -g "${{ parameters.resourceGroup }}" >/dev/null 2>&1; then
           echo "The app already exists. Applying update."
+          APP_PROVISIONING_STATE=$(az containerapp show -n "${{ parameters.acaName }}" -g "${{ parameters.resourceGroup }}" --query "properties.provisioningState" -o tsv || true)
+          echo "Current provisioning state: ${APP_PROVISIONING_STATE:-<unknown>}"
+          if [ "${APP_PROVISIONING_STATE:-}" = "Failed" ]; then
+            echo "App is in failed provisioning state. Restarting latest revision before update..."
+            LATEST_REVISION=$(az containerapp show -n "${{ parameters.acaName }}" -g "${{ parameters.resourceGroup }}" --query "properties.latestRevisionName" -o tsv || true)
+            if [ -n "${LATEST_REVISION:-}" ]; then
+              az containerapp revision restart \
+                --name "${{ parameters.acaName }}" \
+                --resource-group "${{ parameters.resourceGroup }}" \
+                --revision "$LATEST_REVISION" \
+                --only-show-errors \
+                --output none || true
+              echo "Revision restart requested: $LATEST_REVISION"
+              sleep 15
+            else
+              echo "##vso[task.logissue type=warning]WARNING: App is in Failed state but latestRevisionName is empty; skipping pre-update restart."
+            fi
+          fi
+
           az containerapp identity assign \
             --name "${{ parameters.acaName }}" \
             --resource-group "${{ parameters.resourceGroup }}" \
