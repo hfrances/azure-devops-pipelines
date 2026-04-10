@@ -530,11 +530,14 @@ jobs:
 #
 # - Main behavior:
 #   1. Prepare Azure CLI and install/update the `containerapp` extension.
-#   2. Validate ingress and environment parameters.
+#   2. Validate ingress and environment parameters, and print an input/rule trace
+#      in logs (`OK` / `SKIPPED`) to simplify troubleshooting.
 #   3. If `caeManaged=true` and `useSubnet=true`, validate the subnet and apply the
 #      required ACA delegation when the subnet is empty.
 #   4. If `caeManaged=true`, create or validate the Container Apps Environment.
 #   5. Create or update the Container App.
+#      When the app already exists and `provisioningState=Failed`, restart the latest
+#      revision before attempting `containerapp update`.
 #   6. Re-apply ingress settings and validate the deployed application.
 #   7. Export outputs for downstream jobs.
 #
