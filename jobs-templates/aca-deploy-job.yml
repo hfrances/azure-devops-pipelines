@@ -394,7 +394,11 @@ jobs:
         if az containerapp show -n "${{ parameters.acaName }}" -g "${{ parameters.resourceGroup }}" >/dev/null 2>&1; then
           echo "The app already exists. Applying update."
           APP_PROVISIONING_STATE=$(az containerapp show -n "${{ parameters.acaName }}" -g "${{ parameters.resourceGroup }}" --query "properties.provisioningState" -o tsv || true)
-          echo "Current provisioning state: ${APP_PROVISIONING_STATE:-<unknown>}"
+          if [ "${APP_PROVISIONING_STATE:-}" = "Failed" ]; then
+            echo "##vso[task.logissue type=error]Current provisioning state: Failed"
+          else
+            echo "Current provisioning state: ${APP_PROVISIONING_STATE:-<unknown>}"
+          fi
           if [ "${APP_PROVISIONING_STATE:-}" = "Failed" ]; then
             echo "App is in failed provisioning state. Restarting latest revision before update..."
             LATEST_REVISION=$(az containerapp show -n "${{ parameters.acaName }}" -g "${{ parameters.resourceGroup }}" --query "properties.latestRevisionName" -o tsv || true)
@@ -409,6 +413,7 @@ jobs:
               sleep 15
             else
               echo "##vso[task.logissue type=warning]WARNING: App is in Failed state but latestRevisionName is empty; skipping pre-update restart."
+              echo "##vso[task.logissue type=warning]WARNING: Recovery is likely blocked in this state. You may need to delete '${{ parameters.acaName }}' manually in Azure Portal and let the pipeline create it again."
             fi
           fi
 
