@@ -11,9 +11,14 @@ parameters:
   - name: condition
     type: string
     default: succeeded()
+  - name: buildId
+    type: string
+    default: ''
 
 steps:
   - task: PowerShell@2
+    env:
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
     inputs:
       pwsh: true
       targetType: inline
@@ -25,7 +30,22 @@ steps:
         if (-not [string]::IsNullOrWhiteSpace("${{ parameters.prefix }}")) {
           $finalTag = "${{ parameters.prefix }}/$finalTag"
         }
-        Write-Output "##vso[build.addbuildtag]$finalTag";
+
+        $targetBuildId = "${{ parameters.buildId }}"
+        if ([string]::IsNullOrWhiteSpace($targetBuildId)) {
+          Write-Output "##vso[build.addbuildtag]$finalTag";
+        } else {
+          if ([string]::IsNullOrWhiteSpace($env:SYSTEM_ACCESSTOKEN)) {
+            throw "System.AccessToken no disponible. Habilita OAuth token para scripts para etiquetar otro build."
+          }
+          $encodedTag = [uri]::EscapeDataString($finalTag)
+          $uri = "{0}{1}/_apis/build/builds/{2}/tags/{3}?api-version=7.1" -f "$(System.TeamFoundationCollectionUri)", "$(System.TeamProject)", $targetBuildId, $encodedTag
+          $headers = @{
+            Authorization = "Bearer $env:SYSTEM_ACCESSTOKEN"
+            Accept = "application/json; api-version=7.1"
+          }
+          Invoke-RestMethod -Method Put -Uri $uri -Headers $headers | Out-Null
+        }
         Write-Output "##vso[task.setvariable variable=BuildParameters.$finalTag]true";
     displayName: Mark build as ${{ parameters.tag }}
     condition: ${{ parameters.condition }}
