@@ -5,7 +5,7 @@ parameters:
   - name: calculateAssemblyVersion
     type: boolean
     default: true
-  - name: prefix
+  - name: tagPrefix
     type: string
     default: ''
   - name: condition
@@ -55,7 +55,7 @@ steps:
           $prerelease = $matches['prerelease'];
 
           if ($prerelease) {
-            # The version already has its own sufix.
+            # The version already has its own suffix.
             $prereleaseClean = -join ("$prerelease" -split '[^a-zA-Z0-9-]');
             $releaseVersion = "$ProjectVersion+$(Build.BuildId)";
             $dockerVersion = "$version-$($prereleaseClean)";
@@ -88,7 +88,7 @@ steps:
             $dockerAlias = "$branchNameClean";
           }
 
-          $tagPrefix = "${{ parameters.prefix }}"
+          $tagPrefix = "${{ parameters.tagPrefix }}"
           if (-not [string]::IsNullOrWhiteSpace($tagPrefix) -and -not $tagPrefix.EndsWith('/')) {
             $tagPrefix = "$tagPrefix/"
           }

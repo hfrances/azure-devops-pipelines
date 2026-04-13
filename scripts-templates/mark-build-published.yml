@@ -1,10 +1,10 @@
 parameters:
   - name: tag
     type: string
-  - name: prefix
+  - name: tagPrefix
     type: string
     default: ''
-  - name: suffix
+  - name: tagSuffix
     type: string
     default: ''
   - name: buildId
@@ -23,11 +23,11 @@ steps:
       targetType: inline
       script: |
         $finalTag = "${{ parameters.tag }}"
-        if (-not [string]::IsNullOrWhiteSpace("${{ parameters.suffix }}")) {
-          $finalTag = "$finalTag-${{ parameters.suffix }}"
+        if (-not [string]::IsNullOrWhiteSpace("${{ parameters.tagSuffix }}")) {
+          $finalTag = "$finalTag-${{ parameters.tagSuffix }}"
         }
-        if (-not [string]::IsNullOrWhiteSpace("${{ parameters.prefix }}")) {
-          $finalTag = "${{ parameters.prefix }}/$finalTag"
+        if (-not [string]::IsNullOrWhiteSpace("${{ parameters.tagPrefix }}")) {
+          $finalTag = "${{ parameters.tagPrefix }}/$finalTag"
         }
 
         $targetBuildId = "${{ parameters.buildId }}"

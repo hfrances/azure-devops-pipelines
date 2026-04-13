@@ -1,10 +1,16 @@
 parameters:
   - name: jobName
     type: string
-    default: Prepare
+    default: '' # Prepare
   - name: displayName
     type: string
     default: Prepare
+  - name: prefix
+    type: string
+    default: ''
+  - name: suffix
+    type: string
+    default: ''
   - name: solutionPattern
     type: string
     default: '$(BuildParameters.Solution)'
@@ -20,9 +26,6 @@ parameters:
   - name: publishChangeDetection
     type: boolean
     default: true
-  - name: tagSuffix
-    type: string
-    default: ''
   - name: publishExtraMode
     type: string
     default: none
@@ -31,7 +34,7 @@ parameters:
       - aspnet
 
 jobs:
-  - job: ${{ parameters.jobName }}
+  - job: ${{ coalesce(parameters.jobName, replace(replace(replace(format('{0}{1}_{2}', 'Prepare', replace(replace(replace(replace(replace(coalesce(parameters.prefix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), replace(replace(replace(replace(replace(coalesce(parameters.suffix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_')), '~_~', ''), '~_', '_'), '_~', '') ) }}
     displayName: ${{ parameters.displayName }}
     steps:
       - checkout: self
@@ -49,10 +52,13 @@ jobs:
 
       - template: ../scripts-templates/detect-publishable-changes-dotnet.yml@azure-pipelines-repo
         parameters:
+          taskName: DetectPublishableChanges
+          definitionName: ''
           enabled: ${{ parameters.publishChangeDetection }}
           workingDirectory: '${{ parameters.workingDirectory }}'
           solutionPath: '$(Solution.FullName)'
-          tagSuffix: ${{ parameters.tagSuffix }}
+          tagPrefix: ${{ parameters.prefix }}
+          tagSuffix: ${{ parameters.suffix }}
           includedPatterns: ${{ parameters.includedPatterns }}
           excludedPatterns: ${{ parameters.excludedPatterns }}
           publishExtraMode: ${{ parameters.publishExtraMode }}

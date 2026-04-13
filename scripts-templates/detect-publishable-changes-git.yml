@@ -1,4 +1,10 @@
 parameters:
+  - name: taskName
+    type: string
+    default: '' # DetectPublishableChanges
+  - name: definitionName
+    type: string
+    default: ''
   - name: enabled
     type: boolean
     default: true
@@ -20,6 +26,7 @@ parameters:
 
 steps:
   - task: PowerShell@2
+    name: ${{ coalesce(parameters.taskName, format('{0}{1}{2}', 'DetectPublishableChanges', replace(replace(replace(replace(replace(coalesce(parameters.definitionName, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '~', ''), replace(replace(replace(format('{0}_{1}', replace(replace(replace(replace(replace(coalesce(parameters.tagPrefix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), replace(replace(replace(replace(replace(coalesce(parameters.tagSuffix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_')), '~_~', ''), '~_', ''), '_~', ''))) }}
     env:
       SYSTEM_ACCESSTOKEN: $(System.AccessToken)
       INCLUDED_PATTERNS_JSON: '${{ convertToJson(parameters.includedPatterns) }}'

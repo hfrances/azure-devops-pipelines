@@ -16,13 +16,13 @@ steps:
         $packageName = "$(MainProject.PackageName)";
         $version = "$(BuildParameters.DockerVersion)";
         if ($version) {
-          $sufix = ".v$version";
+          $suffix = ".v$version";
         }
         else {
-          $sufix = "";
+          $suffix = "";
         }
-        write-output "Output filename: $packageName$sufix.tar.gz";
-        write-output "##vso[task.setvariable variable=BuildParameters.OutputFile]$packageName$sufix.tar.gz";
+        write-output "Output filename: $packageName$suffix.tar.gz";
+        write-output "##vso[task.setvariable variable=BuildParameters.OutputFile]$packageName$suffix.tar.gz";
         
         # Set output directory
         if ($env:BUILDPARAMETERS_OUTPUTDIRECTORY -eq '<dir>')

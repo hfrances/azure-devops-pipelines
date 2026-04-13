@@ -172,8 +172,8 @@ jobs:
       - template: ../scripts-templates/calculate-release-version.yml@azure-pipelines-repo
         parameters:
           projectVersion: '$(MainProject.Version)'
-          condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
           calculateAssemblyVersion: true
+          condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
 
       - template: ../scripts-templates/apply-release-version-dotnet.yml@azure-pipelines-repo
         parameters:
