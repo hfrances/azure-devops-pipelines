@@ -17,7 +17,7 @@ parameters:
 
 steps:
   - task: PowerShell@2
-    name: ${{ coalesce(parameters.taskName, format('{0}{1}{2}', 'DetectDeployableBuilds', replace(replace(replace(replace(replace(coalesce(parameters.definitionName, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '~', ''), replace(replace(replace(format('{0}_{1}', replace(replace(replace(replace(replace(coalesce(parameters.tagPrefix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), replace(replace(replace(replace(replace(coalesce(parameters.tagSuffix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_')), '~_~', ''), '~_', ''), '_~', ''))) }}
+    name: ${{ coalesce(parameters.taskName, format('{0}{1}{2}', 'DetectDeployableBuilds', replace(replace(replace(replace(replace(replace(coalesce(parameters.definitionName, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '~', ''), replace(replace(replace(format('{0}_{1}', replace(replace(replace(replace(replace(coalesce(parameters.tagPrefix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), replace(replace(replace(replace(replace(coalesce(parameters.tagSuffix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_')), '~_~', ''), '~_', ''), '_~', ''))) }}
     displayName: ${{ parameters.displayName }}
     env:
       SYSTEM_ACCESSTOKEN: $(System.AccessToken)
