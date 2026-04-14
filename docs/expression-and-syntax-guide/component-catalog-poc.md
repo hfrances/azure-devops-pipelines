@@ -35,7 +35,7 @@ Eso no nos interesa porque:
 
 ## 3) Decision de diseño
 Usamos este patron:
-- En el YAML raiz solo dejamos parametros de control (`Publish`, `PublishChangeDetection`).
+- En el YAML raiz solo dejamos parametros de control (`Publish`, `Deployable`, `PublishChangeDetection`).
 - En el YAML raiz mantenemos el catalogo `components` visible en codigo (para lectura rapida).
 - El catalogo se pasa a un template orquestador: `components-pipeline-stages.yml`.
 - El template orquestador genera los 3 stages y reparte `components` a los jobs/templates de cada fase.
@@ -63,7 +63,7 @@ No es obligatorio para todos los pipelines, pero para pipelines multi-componente
 ## 6) Flujo de ejecucion
 - `Preparation`: calcula flags por componente y exporta agregados de stage (`hasAnyBuildCandidate`, `hasAnyDeployCandidate`).
 - `BuildAndPush`: itera componentes, compila cuando `ShouldBuild=true`, publica cuando `ShouldPublish=true`, y exporta `SetOutputs.ComponentShouldDeploy` por job.
-- `Deploy`: itera componentes y ejecuta solo cuando el output del job de build correspondiente indica `ComponentShouldDeploy=true`.
+- `Deploy`: el stage entra solo si `Publish != false` y `Deployable == true`; dentro del stage, cada job ejecuta solo cuando el output del job de build correspondiente indica `ComponentShouldDeploy=true`.
 
 Todos consumen el mismo contrato de `components`.
 
@@ -167,6 +167,10 @@ parameters:
     type: string
     values: [auto, true, false]
     default: true
+  - name: Deployable
+    displayName: Deploy (if possible)
+    type: boolean
+    default: true
   - name: PublishChangeDetection
     type: boolean
     default: true
@@ -175,6 +179,7 @@ stages:
   - template: templates/components-pipeline-stages.yml
     parameters:
       Publish: ${{ parameters.Publish }}
+      Deployable: ${{ parameters.Deployable }}
       PublishChangeDetection: ${{ parameters.PublishChangeDetection }}
       components:
         - name: app1
