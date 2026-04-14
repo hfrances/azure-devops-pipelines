@@ -536,6 +536,13 @@ jobs:
         if [ "$HAS_WARNINGS" = "true" ]; then
           echo "##vso[task.complete result=SucceededWithIssues;]External ingress is enabled but the ACA FQDN is empty."
         fi
+
+  - template: ../scripts-templates/mark-build-published.yml@azure-pipelines-repo
+    parameters:
+      tag: deployed
+      tagPrefix: ${{ parameters.prefix }}
+      tagSuffix: ${{ parameters.suffix }}
+
 # Documentation
 # - Purpose:
 #   Deploy or update an Azure Container App, optionally managing the Container Apps
@@ -552,7 +559,7 @@ jobs:
 #      When the app already exists and `provisioningState=Failed`, restart the latest
 #      revision before attempting `containerapp update`.
 #   6. Re-apply ingress settings and validate the deployed application.
-#   7. Export outputs for downstream jobs.
+#   7. Mark the build as deployed with the specified prefix/suffix tags.
 #
 # - Outputs:
 #   The deploy step is named `deploy` and exports:
