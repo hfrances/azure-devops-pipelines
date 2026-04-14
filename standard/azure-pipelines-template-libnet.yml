@@ -99,7 +99,7 @@ variables:
   - name: Analyze
     value: ${{ parameters.Analyze }}
   - name: SonarQubeEnabled
-    value: $[or(eq(variables.Analyze, 'true'), and(eq(variables.Analyze, 'auto'), contains(format('\n{0}\n', variables['SonarQubeEnabledBranches']), format('\n{0}\n', variables['Build.SourceBranch']))))] # TODO: Remove 'refs/heads/feature/net10' when not needed
+    value: $[iif(or(eq(variables.Analyze, 'true'), and(eq(variables.Analyze, 'auto'), contains(format('\\n{0}\\n', variables['SonarQubeEnabledBranches']), format('\\n{0}\\n', variables['Build.SourceBranch'])))), 'true', 'false')] # TODO: Remove 'refs/heads/feature/net10' when not needed
   - name: TestEnabled
     value: $[ne('${{ parameters.Test }}', 'disabled')]
   - name: SupportedFrameworks
@@ -110,7 +110,7 @@ variables:
     value: $[iif(ne(variables['ExternalFeed'], ''), variables['ExternalFeed'], '')]
 
 jobs:
-  - template: ../jobs-templates/prepare-dotnet-job.yml@azure-pipelines-repo
+  - template: ../jobs-templates/prepare-dotnet-job.yml@hf-azure-pipelines-repo
     parameters:
       solutionPattern: '$(BuildParameters.Solution)'
       publishChangeDetection: ${{ parameters.PublishChangeDetection }}
@@ -119,7 +119,7 @@ jobs:
   - job: Build
     displayName: Build and push
     dependsOn: Prepare
-    condition: and(succeeded(), eq(dependencies.Prepare.outputs['ExportPreparation.BuildParameters.HasAffectedBuildProjects'], 'true'))
+    condition: and(succeeded(), or(eq(dependencies.Prepare.outputs['ExportPreparation.BuildParameters.HasAffectedBuildProjects'], 'true'), eq(dependencies.Prepare.outputs['ExportPreparation.BuildParameters.HasAffectedPublishProjects'], 'true')))
     variables:
       - name: Solution.FullName
         value: $[ dependencies.Prepare.outputs['ExportPreparation.SolutionFullName'] ]
@@ -139,40 +139,42 @@ jobs:
         value: $[ dependencies.Prepare.outputs['ExportPreparation.BuildParameters.HasAffectedBuildProjects'] ]
       - name: BuildParameters.HasAffectedPublishProjects
         value: $[ dependencies.Prepare.outputs['ExportPreparation.BuildParameters.HasAffectedPublishProjects'] ]
+      - name: NeedsBuild
+        value: $[ or(eq(dependencies.Prepare.outputs['ExportPreparation.BuildParameters.HasAffectedBuildProjects'], 'true'), eq(dependencies.Prepare.outputs['ExportPreparation.BuildParameters.HasAffectedPublishProjects'], 'true')) ]
     steps:
       - checkout: self
         fetchDepth: 0
         persistCredentials: true
 
-      - template: ../scripts-templates/create-drop-folder.yml@azure-pipelines-repo
+      - template: ../scripts-templates/create-drop-folder.yml@hf-azure-pipelines-repo
 
-      - template: ../scripts-templates/calculate-target-frameworks-dotnet.yml@azure-pipelines-repo
+      - template: ../scripts-templates/calculate-target-frameworks-dotnet.yml@hf-azure-pipelines-repo
         parameters:
           supportedFrameworks: '$(SupportedFrameworks)'
           solutionPattern: '$(BuildParameters.Solution)'
           testProjects: '$(BuildParameters.TestProjects)'
           testEnabled: $(TestEnabled)
-          condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
+          condition: and(succeeded(), eq(variables['NeedsBuild'], 'True'))
 
-      - template: ../scripts-templates/calculate-release-version.yml@azure-pipelines-repo
+      - template: ../scripts-templates/calculate-release-version.yml@hf-azure-pipelines-repo
         parameters:
           projectVersion: '$(MainProject.Version)'
           calculateAssemblyVersion: true
-          condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
+          condition: and(succeeded(), eq(variables['NeedsBuild'], 'True'))
 
-      - template: ../scripts-templates/apply-release-version-dotnet.yml@azure-pipelines-repo
+      - template: ../scripts-templates/apply-release-version-dotnet.yml@hf-azure-pipelines-repo
         parameters:
           workingDirectory: '$(Build.SourcesDirectory)'
           solutionPattern: '$(BuildParameters.Solution)'
           forceVersion: '$(ForceVersion)'
-          condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
+          condition: and(succeeded(), eq(variables['NeedsBuild'], 'True'))
 
-      - template: ../scripts-templates/set-output-filename.yml@azure-pipelines-repo
+      - template: ../scripts-templates/set-output-filename.yml@hf-azure-pipelines-repo
         parameters:
           workingDirectory: '$(Build.SourcesDirectory)'
-          condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
+          condition: and(succeeded(), eq(variables['NeedsBuild'], 'True'))
 
-      - template: ../scripts-templates/export-variable-list.yml@azure-pipelines-repo
+      - template: ../scripts-templates/export-variable-list.yml@hf-azure-pipelines-repo
 
       - task: FileTransform@2
         inputs:
@@ -180,7 +182,7 @@ jobs:
           enableXmlTransform: false
           xmlTransformationRules: ''
           jsonTargetFiles: '**/appsettings.json'
-        condition: and(succeeded(), or(eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'), eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true')), eq(variables['FileTransformEnabled'], 'true'))
+        condition: and(succeeded(), eq(variables['NeedsBuild'], 'True'), eq(variables['FileTransformEnabled'], 'true'))
         continueOnError: true
 
       - ${{ each framework in split(variables.SupportedFrameworks, ';') }}:
@@ -190,7 +192,7 @@ jobs:
             version: '${{ framework }}.x'
             includePreviewVersions: false
           displayName: 'UseDotNet ${{ framework }}'
-          condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'), ne(variables['BuildParameters.TargetFramework_${{framework}}'], ''))
+          condition: and(succeeded(), eq(variables['NeedsBuild'], 'True'), ne(variables['BuildParameters.TargetFramework_${{framework}}'], ''))
 
       - task: DotNetCoreCLI@2
         displayName: Restore
@@ -200,12 +202,12 @@ jobs:
           feedsToUse: '$(Solution.NugetFeedToUse)'
           nugetConfigPath: '$(Solution.NugetConfig)'
           externalFeedCredentials: '$(ExternalFeedValue)'
-        condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
+        condition: and(succeeded(), eq(variables['NeedsBuild'], 'True'))
 
-      - template: ../scripts-templates/audit-cancellation-dotnet.yml@azure-pipelines-repo
+      - template: ../scripts-templates/audit-cancellation-dotnet.yml@hf-azure-pipelines-repo
         parameters:
           sourcesDirectory: '$(Build.SourcesDirectory)'
-          condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
+          condition: and(succeeded(), eq(variables['NeedsBuild'], 'True'))
 
       - ${{ if ne(parameters.Analyze, 'disabled') }} :
         - task: SonarCloudPrepare@3
@@ -225,14 +227,14 @@ jobs:
               sonar.cs.vscoveragexml.reportsPaths=**/*.coveragexml
               sonar.cs.dotcover.reportsPaths=**/*.html
               sonar.cs.vstest.reportsPaths=$(Agent.TempDirectory)/**/*.trx
-          condition: and(eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'), eq(variables.SonarQubeEnabled, 'true'), ne(variables['SonarCloudOrganization'], ''))
+          condition: and(eq(variables['NeedsBuild'], 'True'), eq(variables.SonarQubeEnabled, 'true'), ne(variables['SonarCloudOrganization'], ''))
 
       - task: DotNetCoreCLI@2
         displayName: Build
         inputs:
           projects: '$(BuildParameters.RestoreBuildProjects)'
           arguments: '--configuration $(BuildConfiguration) --no-restore'
-        condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
+        condition: and(succeeded(), eq(variables['NeedsBuild'], 'True'))
 
       - ${{ if ne(parameters.Test, 'disabled') }} :
         - task: DotNetCoreCLI@2
@@ -245,7 +247,7 @@ jobs:
           condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
 
       - ${{ if ne(parameters.Test, 'disabled') }} :
-        - template: ../scripts-templates/check-test-projects-dotnet.yml@azure-pipelines-repo
+        - template: ../scripts-templates/check-test-projects-dotnet.yml@hf-azure-pipelines-repo
           parameters:
             testResultsDirectory: '$(Build.SourcesDirectory)/TestResults'
             condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
@@ -260,7 +262,7 @@ jobs:
           displayName: 'Coverage: Parse format'
 
       - ${{ if ne(parameters.Test, 'disabled') }} :
-        - template: ../scripts-templates/collect-coverage-files.yml@azure-pipelines-repo
+        - template: ../scripts-templates/collect-coverage-files.yml@hf-azure-pipelines-repo
           parameters:
             condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
 
@@ -275,16 +277,16 @@ jobs:
 
       - ${{ if ne(parameters.Analyze, 'disabled') }} :
         - task: SonarCloudAnalyze@3
-          condition: and(eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'), eq(variables.SonarQubeEnabled, 'true'), ne(variables['SonarCloudOrganization'], ''))
+          condition: and(eq(variables['NeedsBuild'], 'True'), eq(variables.SonarQubeEnabled, 'true'), ne(variables['SonarCloudOrganization'], ''))
         - task: SonarCloudPublish@3
           inputs:
             pollingTimeoutSec: '300'
-          condition: and(eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'), eq(variables.SonarQubeEnabled, 'true'), ne(variables['SonarCloudOrganization'], ''))
+          condition: and(eq(variables['NeedsBuild'], 'True'), eq(variables.SonarQubeEnabled, 'true'), ne(variables['SonarCloudOrganization'], ''))
 
-      - template: ../scripts-templates/mark-build-published.yml@azure-pipelines-repo
+      - template: ../scripts-templates/mark-build-published.yml@hf-azure-pipelines-repo
         parameters:
           tag: compiled
-          condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
+          condition: and(succeeded(), eq(variables['NeedsBuild'], 'True'))
 
       - task: DotNetCoreCLI@2
         inputs:
@@ -320,7 +322,7 @@ jobs:
         continueOnError: false
         condition: and(succeeded(), eq('${{ parameters.SupportsNuget }}', 'true'), eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true'), eq(variables['PublishEnabled'], 'true'))
 
-      - template: ../scripts-templates/mark-build-published.yml@azure-pipelines-repo
+      - template: ../scripts-templates/mark-build-published.yml@hf-azure-pipelines-repo
         parameters:
           tag: published
           condition: and(succeeded(), eq('${{ parameters.SupportsNuget }}', 'true'), eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true'), eq(variables['PublishEnabled'], 'true'))
