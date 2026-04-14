@@ -1,0 +1,226 @@
+# Component Catalog PoC for Azure Pipelines
+
+## Tabla de contenido
+- [1) Idea base (nivel inicial)](#1-idea-base-nivel-inicial)
+- [2) Problema que resolvemos](#2-problema-que-resolvemos)
+- [3) Decision de diseño](#3-decision-de-diseno)
+- [4) Regla practica del equipo](#4-regla-practica-del-equipo)
+- [5) Estructura aplicada en la PoC](#5-estructura-aplicada-en-la-poc)
+- [6) Flujo de ejecucion](#6-flujo-de-ejecucion)
+- [7) Ejemplo recomendado (root visible, UX limpia)](#7-ejemplo-recomendado-root-visible-ux-limpia)
+- [8) Guia por perfil](#8-guia-por-perfil)
+- [9) Casos de uso](#9-casos-de-uso)
+- [10) Limites y riesgos](#10-limites-y-riesgos)
+- [11) Siguientes pasos](#11-siguientes-pasos)
+- [12) Anexo tecnico (informacion ampliada)](#12-anexo-tecnico-informacion-ampliada)
+- [13) Ejemplos de consumo por nivel (detalle)](#13-ejemplos-de-consumo-por-nivel-detalle)
+
+## 1) Idea base (nivel inicial)
+Queremos declarar los componentes (`app1`, `app2`, `api`, `ui`, etc.) **una sola vez** y usar esa misma definicion para:
+- `Preparation`
+- `BuildAndPush`
+- `Deploy`
+
+Objetivo: evitar copy/paste y mantener una fuente de verdad unica.
+
+## 2) Problema que resolvemos
+En Azure DevOps, si declaras `components` en `parameters:` del YAML raiz, aparece en la ventana de **Run pipeline** como parametro editable.
+
+Eso no nos interesa porque:
+- ensucia la UX de ejecucion manual,
+- permite cambios ad-hoc sobre una estructura que deberia ser estable,
+- introduce riesgo operativo.
+
+## 3) Decision de diseño
+Usamos este patron:
+- En el YAML raiz solo dejamos parametros de control (`Deploy`, `PublishChangeDetection`).
+- En el YAML raiz mantenemos el catalogo `components` visible en codigo (para lectura rapida).
+- El catalogo se pasa a un template orquestador: `components-pipeline-stages.yml`.
+- El template orquestador genera los 3 stages y reparte `components` a los jobs/templates de cada fase.
+
+Resultado:
+- `components` se ve en el fichero root (bueno para mantenimiento).
+- `components` no aparece editable en UX (bueno para operacion).
+- no hay duplicacion del mismo bloque en varios stages (bueno para calidad).
+
+## 4) Regla practica del equipo
+Si un pipeline usa catalogo de componentes, recomendamos esta regla:
+- **Pipeline root**: control de ejecucion + declaracion visible del catalogo.
+- **Template de stages**: orquestacion comun (`Preparation`, `BuildAndPush`, `Deploy`).
+- **Templates de job**: logica tecnica por fase.
+
+No es obligatorio para todos los pipelines, pero para pipelines multi-componente es el patron mas limpio.
+
+## 5) Estructura aplicada en la PoC
+- `.azuredevops/azure-pipelines-components-poc.yml`
+- `.azuredevops/templates/components-pipeline-stages.yml`
+- `.azuredevops/templates/prepare-components-job.yml`
+- `.azuredevops/templates/build-components-jobs.yml`
+- `.azuredevops/templates/deploy-components-jobs.yml`
+
+## 6) Flujo de ejecucion
+- `Preparation`: genera manifest unificado de componentes.
+- `BuildAndPush`: itera componentes, compila cuando `shouldBuild=true`, publica cuando `shouldPublish=true` y marca tags canonicos (`compiled`/`published`) por componente con `mark-build-published.yml`.
+- `Deploy`: itera componentes y despliega ACA por componente.
+
+Todos consumen el mismo contrato de `components`.
+
+
+### Deteccion de build/publish en la PoC
+La PoC usa la plantilla canonica `detect-publishable-changes-git.yml` por componente.
+- Si hay cambios dentro de `workingDirectory` del componente, se marca:
+  - `shouldBuild=true`
+  - `shouldPublish=true`
+  - `shouldDeploy=true`
+- Si no hay cambios, esos flags quedan en `false`.
+
+Fallback controlado:
+- La plantilla canonica aplica fail-open si la deteccion falla (no bloquea la pipeline).
+- El flag `PublishChangeDetection` permite activar/desactivar esta deteccion.
+## 7) Ejemplo recomendado (root visible, UX limpia)
+```yaml
+parameters:
+  - name: Deploy
+    type: string
+    values: [auto, true, false]
+    default: true
+  - name: PublishChangeDetection
+    type: boolean
+    default: true
+
+stages:
+  - template: templates/components-pipeline-stages.yml
+    parameters:
+      Deploy: ${{ parameters.Deploy }}
+      PublishChangeDetection: ${{ parameters.PublishChangeDetection }}
+      components:
+        - name: app1
+          prefix: app1
+          workingDirectory: src/services/dummy-test-app-1
+          imageRepository: dummy/mi-proyecto-test-app-1
+          dockerfilePath: $(Build.SourcesDirectory)/src/services/dummy-test-app-1/Dockerfile
+          dockerBuildContext: $(Build.SourcesDirectory)/src/services/dummy-test-app-1
+          acaName: ca-hmy-dummy-test-app-1
+        - name: app2
+          prefix: app2
+          workingDirectory: src/services/dummy-test-app-2
+          imageRepository: dummy/mi-proyecto-test-app-2
+          dockerfilePath: $(Build.SourcesDirectory)/src/services/dummy-test-app-2/Dockerfile
+          dockerBuildContext: $(Build.SourcesDirectory)/src/services/dummy-test-app-2
+          acaName: ca-hmy-dummy-test-app-2
+```
+
+## 8) Guia por perfil
+### Para una persona junior
+- Piensa en `components` como una lista de apps.
+- La escribes una vez.
+- El sistema reutiliza esa lista para preparar, compilar y desplegar.
+- Si anades `app3`, no copias 3 bloques grandes de YAML: actualizas el catalogo.
+
+### Para un perfil de infra/operacion
+- Se reduce superficie de error manual en ejecucion.
+- Se mantiene gobernanza: parametros operativos visibles, catalogo tecnico estable.
+- Menos drift entre etapas porque todas consumen el mismo objeto.
+
+### Para otro modelo de IA
+- Contrato recomendado: `components[]` como objeto canonico compile-time.
+- Patrón de expansion: `${{ each component in parameters.components }}`.
+- Evitar `components` como runtime parameter del root cuando se quiera UX no editable.
+- Separacion de responsabilidades: root (entrada), stage wrapper (orquestacion), job templates (implementacion).
+
+## 9) Casos de uso
+- Monocomponente: lista con un unico elemento.
+- Multicomponente: `api/ui`, `app1/app2`, etc.
+- Escalado: alta de componente por datos, no por duplicacion de estructura.
+
+## 10) Limites y riesgos
+- Es una PoC: falta validar completamente todos los casos runtime en pipelines reales.
+- Si se abusa del wrapper sin convenciones claras, puede esconder complejidad.
+- Conviene documentar contrato minimo obligatorio de `components`.
+
+## 11) Siguientes pasos
+- Definir validaciones de contrato (`name`, `prefix`, `imageRepository`, `acaName`, etc.).
+- Introducir flags por componente (`enabled`, `deployEnabled`).
+- Elevar el patron a templates compartidas cuando se confirme estable.
+
+## 12) Anexo tecnico (informacion ampliada)
+
+### Patron no soportado directamente por Azure Pipelines
+El siguiente formato no es un patron soportado como DSL general dentro de `parameters.components`:
+
+```yaml
+components:
+  - template: ...
+```
+
+Por eso usamos `components` como `object` y lo expandimos con `${{ each ... }}`.
+
+### Contrato minimo sugerido para `components[]`
+Campos recomendados por componente:
+- `name`
+- `prefix`
+- `workingDirectory`
+- `imageRepository`
+- `dockerfilePath`
+- `dockerBuildContext`
+- `acaName`
+
+Campos opcionales habituales (segun necesidad):
+- `enabled`
+- `deployEnabled`
+- `envVars`
+- `healthPath`
+- `deployMode`
+
+### Nota operativa sobre UX y seguridad
+- Si `components` va en `parameters:` del root, aparece editable en "Run pipeline".
+- Si se quiere evitar esa edicion manual, mantener `components` fuera de runtime parameters del root.
+- El patron recomendado de esta PoC mantiene `components` visible en codigo, pero no expuesto como parametro editable de UX.
+
+## 13) Ejemplos de consumo por nivel (detalle)
+
+### A nivel de stage
+```yaml
+stages:
+  - ${{ each component in parameters.components }}:
+    - stage: ${{ format('Deploy_{0}', component.prefix) }}
+      displayName: ${{ format('Deploy {0}', component.name) }}
+      jobs:
+        - job: Deploy
+          steps:
+            - script: echo "Deploy de ${{ component.name }}"
+```
+
+### A nivel de job
+```yaml
+stages:
+  - stage: BuildAndPush
+    jobs:
+      - ${{ each component in parameters.components }}:
+        - job: ${{ format('Build_{0}', component.prefix) }}
+          displayName: ${{ format('Build {0}', component.name) }}
+          steps:
+            - script: echo "Build de ${{ component.imageRepository }}"
+```
+
+### A nivel de task (dentro de un job)
+```yaml
+stages:
+  - stage: Validation
+    jobs:
+      - job: ValidateCatalog
+        steps:
+          - ${{ each component in parameters.components }}:
+            - task: PowerShell@2
+              displayName: ${{ format('Validate {0}', component.name) }}
+              inputs:
+                pwsh: true
+                targetType: inline
+                script: |
+                  Write-Host "name=${{ component.name }}"
+                  Write-Host "prefix=${{ component.prefix }}"
+                  Write-Host "acaName=${{ component.acaName }}"
+```
+
+
+
