@@ -32,6 +32,9 @@ parameters:
     values:
       - none
       - aspnet
+  - name: repoAlias
+    type: string
+    default: 'azure-pipelines-repo'
 
 jobs:
   - job: ${{ coalesce(parameters.jobName, replace(replace(replace(format('{0}{1}_{2}', 'Prepare', replace(replace(replace(replace(replace(coalesce(parameters.prefix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), replace(replace(replace(replace(replace(coalesce(parameters.suffix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_')), '~_~', ''), '~_', '_'), '_~', '') ) }}
@@ -41,16 +44,16 @@ jobs:
         fetchDepth: 0
         persistCredentials: true
 
-      - template: ../scripts-templates/create-drop-folder.yml@azure-pipelines-repo
+      - template: ../scripts-templates/create-drop-folder.yml@${{ parameters.repoAlias }}
 
-      - template: ../scripts-templates/get-main-project-dotnet.yml@azure-pipelines-repo
+      - template: ../scripts-templates/get-main-project-dotnet.yml@${{ parameters.repoAlias }}
         parameters:
           solutionPattern: '${{ parameters.solutionPattern }}'
           workingDirectory: '$(Build.SourcesDirectory)/${{ parameters.workingDirectory }}'
 
-      - template: ../scripts-templates/get-project-properties-dotnet.yml@azure-pipelines-repo
+      - template: ../scripts-templates/get-project-properties-dotnet.yml@${{ parameters.repoAlias }}
 
-      - template: ../scripts-templates/detect-publishable-changes-dotnet.yml@azure-pipelines-repo
+      - template: ../scripts-templates/detect-publishable-changes-dotnet.yml@${{ parameters.repoAlias }}
         parameters:
           taskName: DetectPublishableChanges
           definitionName: ''
@@ -96,7 +99,7 @@ jobs:
             Write-Output "BuildParameters.HasAffectedPublishProjects: $(BuildParameters.HasAffectedPublishProjects)"
             export-output 'BuildParameters.HasAffectedPublishProjects' '$(BuildParameters.HasAffectedPublishProjects)'
             
-      - template: ../scripts-templates/export-variable-list.yml@azure-pipelines-repo
+      - template: ../scripts-templates/export-variable-list.yml@${{ parameters.repoAlias }}
 
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifact: drop-prepare'

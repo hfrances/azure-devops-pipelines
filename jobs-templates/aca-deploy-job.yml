@@ -109,6 +109,9 @@ parameters:
   - name: condition
     type: string
     default: ''
+  - name: repoAlias
+    type: string
+    default: 'azure-pipelines-repo'
 
 jobs:
 - job: ${{ coalesce(parameters.jobName, replace(replace(replace(format('{0}{1}_{2}', 'DeployToACA', replace(replace(replace(replace(replace(coalesce(parameters.prefix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), replace(replace(replace(replace(replace(coalesce(parameters.suffix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_')), '~_~', ''), '~_', '_'), '_~', '') ) }}
@@ -537,7 +540,7 @@ jobs:
           echo "##vso[task.complete result=SucceededWithIssues;]External ingress is enabled but the ACA FQDN is empty."
         fi
 
-  - template: ../scripts-templates/mark-build-published.yml@azure-pipelines-repo
+  - template: ../scripts-templates/mark-build-published.yml@${{ parameters.repoAlias }}
     parameters:
       tag: deployed
       tagPrefix: ${{ parameters.prefix }}
