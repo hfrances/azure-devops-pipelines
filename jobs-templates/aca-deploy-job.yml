@@ -108,12 +108,7 @@ parameters:
   # Optional job condition. If empty, no explicit condition is applied.
   - name: condition
     type: string
-    default: ''
-  - name: innerRepository
-    type: string
-    default: 'azure-pipelines-repo'
-
-jobs:
+    default: ''jobs:
 - job: ${{ coalesce(parameters.jobName, replace(replace(replace(format('{0}{1}_{2}', 'DeployToACA', replace(replace(replace(replace(replace(coalesce(parameters.prefix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), replace(replace(replace(replace(replace(coalesce(parameters.suffix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_')), '~_~', ''), '~_', '_'), '_~', '') ) }}
   displayName: ${{ parameters.displayName }}
   ${{ if gt(length(parameters.dependsOn), 0) }}:
@@ -540,7 +535,7 @@ jobs:
           echo "##vso[task.complete result=SucceededWithIssues;]External ingress is enabled but the ACA FQDN is empty."
         fi
 
-  - template: ../scripts-templates/mark-build-published.yml@${{ parameters.innerRepository }}
+  - template: ../scripts-templates/mark-build-published.yml@hf-azure-pipelines-repo
     parameters:
       tag: deployed
       tagPrefix: ${{ parameters.prefix }}

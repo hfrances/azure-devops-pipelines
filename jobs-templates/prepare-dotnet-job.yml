@@ -31,12 +31,7 @@ parameters:
     default: none
     values:
       - none
-      - aspnet
-  - name: innerRepository
-    type: string
-    default: 'azure-pipelines-repo'
-
-jobs:
+      - aspnetjobs:
   - job: ${{ coalesce(parameters.jobName, replace(replace(replace(format('{0}{1}_{2}', 'Prepare', replace(replace(replace(replace(replace(coalesce(parameters.prefix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), replace(replace(replace(replace(replace(coalesce(parameters.suffix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_')), '~_~', ''), '~_', '_'), '_~', '') ) }}
     displayName: ${{ parameters.displayName }}
     steps:
@@ -44,16 +39,16 @@ jobs:
         fetchDepth: 0
         persistCredentials: true
 
-      - template: ../scripts-templates/create-drop-folder.yml@${{ parameters.innerRepository }}
+      - template: ../scripts-templates/create-drop-folder.yml@hf-azure-pipelines-repo
 
-      - template: ../scripts-templates/get-main-project-dotnet.yml@${{ parameters.innerRepository }}
+      - template: ../scripts-templates/get-main-project-dotnet.yml@hf-azure-pipelines-repo
         parameters:
           solutionPattern: '${{ parameters.solutionPattern }}'
           workingDirectory: '$(Build.SourcesDirectory)/${{ parameters.workingDirectory }}'
 
-      - template: ../scripts-templates/get-project-properties-dotnet.yml@${{ parameters.innerRepository }}
+      - template: ../scripts-templates/get-project-properties-dotnet.yml@hf-azure-pipelines-repo
 
-      - template: ../scripts-templates/detect-publishable-changes-dotnet.yml@${{ parameters.innerRepository }}
+      - template: ../scripts-templates/detect-publishable-changes-dotnet.yml@hf-azure-pipelines-repo
         parameters:
           taskName: DetectPublishableChanges
           definitionName: ''
@@ -99,7 +94,7 @@ jobs:
             Write-Output "BuildParameters.HasAffectedPublishProjects: $(BuildParameters.HasAffectedPublishProjects)"
             export-output 'BuildParameters.HasAffectedPublishProjects' '$(BuildParameters.HasAffectedPublishProjects)'
             
-      - template: ../scripts-templates/export-variable-list.yml@${{ parameters.innerRepository }}
+      - template: ../scripts-templates/export-variable-list.yml@hf-azure-pipelines-repo
 
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifact: drop-prepare'

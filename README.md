@@ -23,17 +23,21 @@ Reference this repository from the consumer pipeline:
 ```yaml
 resources:
   repositories:
-    - repository: azure-devops-pipelines
+    - repository: hf-azure-pipelines-repo
       type: git
       name: https://github.com/hfrances/azure-devops-pipelines
       ref: refs/heads/master  # or a specific tag/branch
 
 extends:
-  template: standard/azure-pipelines-template-aspnet.yml@azure-devops-pipelines
+  template: standard/azure-pipelines-template-aspnet.yml@hf-azure-pipelines-repo
   parameters:
     param1: value1
     param2: value2
 ```
+
+Canonical alias policy:
+- Use `hf-azure-pipelines-repo` as the repository alias for this template repository.
+- Do not use alternative aliases if you want nested template calls to resolve consistently.
 
 For template behavior, branch rules, required variables, and optional files such as `.azuredevops/publish-extra-paths.txt`, use the docs linked above.
 

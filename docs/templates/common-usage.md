@@ -5,13 +5,13 @@
 ```yaml
 resources:
   repositories:
-    - repository: azure-devops-pipelines
+    - repository: hf-azure-pipelines-repo
       type: git
       name: https://github.com/hfrances/azure-devops-pipelines
       ref: refs/tags/3.3.0
 
 extends:
-  template: standard/azure-pipelines-template-aspnet.yml@azure-devops-pipelines
+  template: standard/azure-pipelines-template-aspnet.yml@hf-azure-pipelines-repo
   parameters:
     Deploy: auto
     Analyze: disabled
@@ -26,13 +26,13 @@ extends:
 ```yaml
 resources:
   repositories:
-    - repository: azure-devops-pipelines
+    - repository: hf-azure-pipelines-repo
       type: git
       name: https://github.com/hfrances/azure-devops-pipelines
       ref: refs/tags/3.3.0
 
 extends:
-  template: standard/azure-pipelines-template-libnet.yml@azure-devops-pipelines
+  template: standard/azure-pipelines-template-libnet.yml@hf-azure-pipelines-repo
   parameters:
     Deploy: auto
     Analyze: auto

@@ -22,7 +22,7 @@ parameters:
     default: auto
 
 # Pasar a plantilla
-- template: stages-templates/deploy-stage-template-stage.yml@azure-pipelines-repo
+- template: stages-templates/deploy-stage-template-stage.yml@hf-azure-pipelines-repo
   parameters:
     deploy: ${{ parameters.Deploy }}
 ```
@@ -31,7 +31,7 @@ parameters:
 
 ```yaml
 # Intentar pasar como macro substitution
-- template: stages-templates/deploy-stage-template-stage.yml@azure-pipelines-repo
+- template: stages-templates/deploy-stage-template-stage.yml@hf-azure-pipelines-repo
   parameters:
     deploy: $(Deploy)  # ❌ No funciona, $(Deploy) no existe
 ```
