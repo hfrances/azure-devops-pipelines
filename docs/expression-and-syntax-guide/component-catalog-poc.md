@@ -15,6 +15,7 @@
 - [12) Siguientes pasos](#12-siguientes-pasos)
 - [13) Anexo tecnico (informacion ampliada)](#13-anexo-tecnico-informacion-ampliada)
 - [14) Ejemplos de consumo por nivel (detalle)](#14-ejemplos-de-consumo-por-nivel-detalle)
+- [15) Reglas de resolucion de rutas Docker](#15-reglas-de-resolucion-de-rutas-docker)
 
 ## 1) Idea base (nivel inicial)
 Queremos declarar los componentes (`app1`, `app2`, `api`, `ui`, etc.) **una sola vez** y usar esa misma definicion para:
@@ -138,9 +139,13 @@ Es incremental respecto al prepare del componente:
 ### Regla de seleccion de componente
 En escenarios multicomponente, la resolucion del elemento usa:
 1. `name` (preferente)
-2. `prefix` (fallback tecnico)
+2. `component` (fallback funcional)
+3. `prefix` (fallback tecnico)
 
 Esto evita ambiguedades de nomenclatura cuando `name` es la identidad funcional del componente.
+
+En templates de task/job, cuando se consume una propiedad `component` para resolver outputs/tokens, se debe pasar ya como valor resuelto:
+- `coalesce(component.name, component.component, component.prefix, '')`
 
 ### Nota de concurrencia
 No se actualiza un unico fichero compartido en paralelo.
@@ -295,6 +300,38 @@ stages:
                   Write-Host "name=${{ component.name }}"
                   Write-Host "prefix=${{ component.prefix }}"
                   Write-Host "acaName=${{ component.acaName }}"
+```
+
+## 15) Reglas de resolucion de rutas Docker
+En esta PoC, el build resuelve rutas Docker por componente con reglas estables:
+
+- `workingDirectory`
+  - Base funcional del componente.
+  - Si es relativo, se interpreta respecto a `$(Build.SourcesDirectory)`.
+
+- `dockerBuildContext`
+  - Si viene vacio, usa `workingDirectory`.
+  - Si es relativo, se interpreta respecto a `$(Build.SourcesDirectory)`.
+  - Si es absoluto, se usa tal cual.
+
+- `dockerfilePath`
+  - Si viene vacio, usa `Dockerfile` dentro del `dockerBuildContext` resuelto.
+  - Si es relativo, se interpreta respecto al `dockerBuildContext` resuelto.
+  - Si es absoluto, se usa tal cual.
+
+Ademas, antes de ejecutar `Docker@2 build`, se valida que existan:
+- contexto Docker resuelto;
+- ruta de Dockerfile resuelta.
+
+Ejemplo minimo:
+
+```yaml
+components:
+  - component: app1
+    workingDirectory: src/services/dummy-test-app-1
+    imageRepository: dummy/mi-proyecto-test-app-1
+    dockerBuildContext: ''   # usa workingDirectory
+    dockerfilePath: ''       # usa <dockerBuildContext>/Dockerfile
 ```
 
 

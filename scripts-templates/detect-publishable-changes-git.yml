@@ -4,7 +4,7 @@ parameters:
     default: '' # DetectPublishableChanges
   - name: displayName
     type: string
-    default: Detect compiled and published changes
+    default: Detect built and published changes
   - name: definitionName
     type: string
     default: ''
@@ -57,13 +57,13 @@ steps:
         function cfg($wd,$patterns,$expatterns){$r=[ordered]@{Include=@();Exclude=@()};if($patterns.Count){$r.Include=@($patterns)}else{$r.Include=@('**')};$r.Exclude=if($expatterns.Count){@($expatterns)}else{@('README*','**/README*','docs/**','.github/**','.azuredevops/**','azure-pipelines*.yml','**/azure-pipelines*.yml')};$f=if([string]::IsNullOrWhiteSpace($wd)){Join-Path $env:BUILD_SOURCESDIRECTORY '.azuredevops/publish-extra-paths.txt'}else{Join-Path (Join-Path $env:BUILD_SOURCESDIRECTORY $wd) '.azuredevops/publish-extra-paths.txt'};if(!(Test-Path $f)){$f=Join-Path $env:BUILD_SOURCESDIRECTORY '.azuredevops/publish-extra-paths.txt'};if(!(Test-Path $f)){return [pscustomobject]$r};Write-Output "Publish extra config file: $f";$sec='';$in=@();$ex=@();foreach($l in Get-Content $f){$t=$l.Trim();if(!$t -or $t.StartsWith('#')){continue};if($t-match'^\[(.+)\]$'){$sec=$matches[1].ToLowerInvariant();continue};if($sec -eq 'include'){$in+=$t}elseif($sec -eq 'exclude'){$ex+=$t}};if($in.Count){$r.Include=$in};if($ex.Count){$r.Exclude=$ex};[pscustomobject]$r}
         function suffixname($name,$suffix){if([string]::IsNullOrWhiteSpace($suffix)){return $name};$base=[System.IO.Path]::GetFileNameWithoutExtension($name);$ext=[System.IO.Path]::GetExtension($name);"$base-$suffix$ext"}
         function report($name,$base,$files,$reason,$suffix,$commits){$drop=Join-Path $env:BUILD_ARTIFACTSTAGINGDIRECTORY 'drop';if(!(Test-Path $drop)){ni -ItemType Directory -Path $drop -Force|Out-Null};$p=Join-Path $drop (suffixname $name $suffix);$b=if($base){$base}else{'<none>'};$lines=@("# current: $env:BUILD_SOURCEVERSION","# baseline: $b","# files: $($files.Count)","# changes: $($commits.Count)");if($reason){$lines+="# reason: $reason"};$lines+='';$lines+="## changes ($($commits.Count))";if($commits.Count){$lines+=@($commits|%{"- $_"})}else{$lines+='- <none>'};$lines+='';$lines+="## files ($($files.Count))";if($files.Count){$lines+=@($files|%{"- $_"})}else{$lines+='- <none>'};Set-Content $p $lines;Write-Output "Changed files report: $p"}
-        $enabled=bool "${{ parameters.enabled }}" $true;$wd=norm "${{ parameters.workingDirectory }}";$suffix='${{ parameters.tagSuffix }}';$tagPrefix='${{ parameters.tagPrefix }}';if(-not [string]::IsNullOrWhiteSpace($tagPrefix) -and -not $tagPrefix.EndsWith('/')){$tagPrefix="$tagPrefix/"};$compiledTag=if([string]::IsNullOrWhiteSpace($suffix)){'compiled'}else{"compiled-$suffix"};if(-not[string]::IsNullOrWhiteSpace($tagPrefix)){$compiledTag="$tagPrefix$compiledTag"};$publishedTag=if([string]::IsNullOrWhiteSpace($suffix)){'published'}else{"published-$suffix"};if(-not[string]::IsNullOrWhiteSpace($tagPrefix)){$publishedTag="$tagPrefix$publishedTag"}
+        $enabled=bool "${{ parameters.enabled }}" $true;$wd=norm "${{ parameters.workingDirectory }}";$suffix='${{ parameters.tagSuffix }}';$tagPrefix='${{ parameters.tagPrefix }}';if(-not [string]::IsNullOrWhiteSpace($tagPrefix) -and -not $tagPrefix.EndsWith('/')){$tagPrefix="$tagPrefix/"};$builtTag=if([string]::IsNullOrWhiteSpace($suffix)){'built'}else{"built-$suffix"};if(-not[string]::IsNullOrWhiteSpace($tagPrefix)){$builtTag="$tagPrefix$builtTag"};$publishedTag=if([string]::IsNullOrWhiteSpace($suffix)){'published'}else{"published-$suffix"};if(-not[string]::IsNullOrWhiteSpace($tagPrefix)){$publishedTag="$tagPrefix$publishedTag"}
         $patterns=@();$expatterns=@();if($env:INCLUDED_PATTERNS_JSON){$patterns=@((ConvertFrom-Json -InputObject $env:INCLUDED_PATTERNS_JSON)|%{norm "$_"})};if($env:EXCLUDED_PATTERNS_JSON){$expatterns=@((ConvertFrom-Json -InputObject $env:EXCLUDED_PATTERNS_JSON)|%{norm "$_"})};$cfg=cfg $wd $patterns $expatterns;$buildCfg=$cfg
         $cb='';$pb='';$bskip='';$pskip='';$bskipType='info';$pskipType='info';$build=$true;$publish=$true;$bfiles=@();$pfiles=@();$bcommits=@();$pcommits=@()
         section 'Baseline comparison'
         Write-Output "Current commit: $env:BUILD_SOURCEVERSION"
         try{
-          if($enabled){if(!$env:SYSTEM_ACCESSTOKEN){throw 'System.AccessToken is not available.'};$h=@{Authorization="Bearer $($env:SYSTEM_ACCESSTOKEN)"};$cbld=baseline $h $compiledTag;$pbld=baseline $h $publishedTag;if($cbld){$cb="$($cbld.sourceVersion)";Write-Output "Compiled baseline build: $($cbld.id)";Write-Output "Compiled baseline commit: $cb";Write-Output "Compiled comparison: $cb -> $env:BUILD_SOURCEVERSION"}else{Write-Output 'Compiled baseline build: <none>';Write-Output 'Compiled baseline commit: <none>'};if($pbld){$pb="$($pbld.sourceVersion)";Write-Output "Published baseline build: $($pbld.id)";Write-Output "Published baseline commit: $pb";Write-Output "Published comparison: $pb -> $env:BUILD_SOURCEVERSION"}else{Write-Output 'Published baseline build: <none>';Write-Output 'Published baseline commit: <none>'};if($cb){& git cat-file -e "$cb^{commit}" 2>$null;$e=$LASTEXITCODE;$global:LASTEXITCODE=0;if($e -ne 0){throw "Compiled baseline commit '$cb' is not available locally. Ensure checkout uses fetchDepth: 0."}};if($pb){& git cat-file -e "$pb^{commit}" 2>$null;$e=$LASTEXITCODE;$global:LASTEXITCODE=0;if($e -ne 0){throw "Published baseline commit '$pb' is not available locally. Ensure checkout uses fetchDepth: 0."}};if($cb -and $cb -eq $env:BUILD_SOURCEVERSION){$build=$false;$bskip='Current commit matches the last compiled build.'}elseif($cb){$bfiles=@(gitok "git diff --name-only `"$cb...$env:BUILD_SOURCEVERSION`"" "git diff failed for baseline '$cb'."|?{inwd $_ $wd});$bcommits=@(gitlines "git log --format=`"%s`" `"$cb..$env:BUILD_SOURCEVERSION`"" "git log failed for baseline '$cb'.");$build=hasbuildchanges $bfiles $wd $buildCfg;if(!$build){$bskip='No file changes since the last compiled build.'}};if($pb -and $pb -eq $env:BUILD_SOURCEVERSION){$publish=$false;$pskip='Current commit matches the last published build.'}elseif($pb){$pfiles=@(gitok "git diff --name-only `"$pb...$env:BUILD_SOURCEVERSION`"" "git diff failed for baseline '$pb'."|?{inwd $_ $wd});$pcommits=@(gitlines "git log --format=`"%s`" `"$pb..$env:BUILD_SOURCEVERSION`"" "git log failed for baseline '$pb'.");$publish=haspublishinputchanges $pfiles $wd $buildCfg;if(!$publish){$publish=$false;$pskip='No relevant file changes since the last published build.'}}}
+          if($enabled){if(!$env:SYSTEM_ACCESSTOKEN){throw 'System.AccessToken is not available.'};$h=@{Authorization="Bearer $($env:SYSTEM_ACCESSTOKEN)"};$cbld=baseline $h $builtTag;$pbld=baseline $h $publishedTag;if($cbld){$cb="$($cbld.sourceVersion)";Write-Output "built baseline build: $($cbld.id)";Write-Output "built baseline commit: $cb";Write-Output "built comparison: $cb -> $env:BUILD_SOURCEVERSION"}else{Write-Output 'built baseline build: <none>';Write-Output 'built baseline commit: <none>'};if($pbld){$pb="$($pbld.sourceVersion)";Write-Output "Published baseline build: $($pbld.id)";Write-Output "Published baseline commit: $pb";Write-Output "Published comparison: $pb -> $env:BUILD_SOURCEVERSION"}else{Write-Output 'Published baseline build: <none>';Write-Output 'Published baseline commit: <none>'};if($cb){& git cat-file -e "$cb^{commit}" 2>$null;$e=$LASTEXITCODE;$global:LASTEXITCODE=0;if($e -ne 0){throw "built baseline commit '$cb' is not available locally. Ensure checkout uses fetchDepth: 0."}};if($pb){& git cat-file -e "$pb^{commit}" 2>$null;$e=$LASTEXITCODE;$global:LASTEXITCODE=0;if($e -ne 0){throw "Published baseline commit '$pb' is not available locally. Ensure checkout uses fetchDepth: 0."}};if($cb -and $cb -eq $env:BUILD_SOURCEVERSION){$build=$false;$bskip='Current commit matches the last built build.'}elseif($cb){$bfiles=@(gitok "git diff --name-only `"$cb...$env:BUILD_SOURCEVERSION`"" "git diff failed for baseline '$cb'."|?{inwd $_ $wd});$bcommits=@(gitlines "git log --format=`"%s`" `"$cb..$env:BUILD_SOURCEVERSION`"" "git log failed for baseline '$cb'.");$build=hasbuildchanges $bfiles $wd $buildCfg;if(!$build){$bskip='No file changes since the last built build.'}};if($pb -and $pb -eq $env:BUILD_SOURCEVERSION){$publish=$false;$pskip='Current commit matches the last published build.'}elseif($pb){$pfiles=@(gitok "git diff --name-only `"$pb...$env:BUILD_SOURCEVERSION`"" "git diff failed for baseline '$pb'."|?{inwd $_ $wd});$pcommits=@(gitlines "git log --format=`"%s`" `"$pb..$env:BUILD_SOURCEVERSION`"" "git log failed for baseline '$pb'.");$publish=haspublishinputchanges $pfiles $wd $buildCfg;if(!$publish){$publish=$false;$pskip='No relevant file changes since the last published build.'}}}
           else{Write-Output 'Change detection disabled. Keeping default affected flags (build=true, publish=true).'}
           section 'Changed files'
           report 'changed-files-build.txt' $cb $bfiles $bskip $suffix $bcommits;report 'changed-files-deploy.txt' $pb $pfiles $pskip $suffix $pcommits; if($bcommits.Count){Write-Output "Build commits: $($bcommits.Count)";$bcommits|%{Write-Output " - commit: $_"}}; if($pcommits.Count){Write-Output "Publish commits: $($pcommits.Count)";$pcommits|%{Write-Output " - commit: $_"}}; if($cb){Write-Output "Build changed files: $($bfiles.Count)"}; if($pb){Write-Output "Publish changed files: $($pfiles.Count)"}
@@ -72,13 +72,13 @@ steps:
         Write-Output "##vso[task.setvariable variable=BuildParameters.HasAffectedPublishProjects]$($publish.ToString().ToLowerInvariant())"
         section 'Final decision'
         Write-Output "BuildParameters.HasAffectedBuildProjects: $build";Write-Output "BuildParameters.HasAffectedPublishProjects: $publish"
-        if((-not $build) -and $bskip){log $bskipType "Build skip reason: $bskip"};if((-not $publish) -and $pskip){log $pskipType "Publish skip reason: $pskip"};if($taskHasIssues){Write-Output "##vso[task.complete result=SucceededWithIssues;]Detect compiled and published changes completed with warnings."};$global:LASTEXITCODE=0
+        if((-not $build) -and $bskip){log $bskipType "Build skip reason: $bskip"};if((-not $publish) -and $pskip){log $pskipType "Publish skip reason: $pskip"};if($taskHasIssues){Write-Output "##vso[task.complete result=SucceededWithIssues;]Detect built and published changes completed with warnings."};$global:LASTEXITCODE=0
     displayName: ${{ parameters.displayName }}
 
 # Documentation
 # - Purpose:
 #   Decide independently whether the current pipeline run must rebuild and/or republish,
-#   using the last successful build tagged as "compiled" and "published" for the same
+#   using the last successful build tagged as "built" and "published" for the same
 #   pipeline definition and branch.
 #
 # - Parity note:
@@ -98,10 +98,10 @@ steps:
 #     This is especially useful in monorepos so unrelated components do not contaminate
 #     the change set for the current artifact.
 #   - parameter tagSuffix:
-#     optional suffix appended to the compiled/published tags. Examples:
-#     - `compiled`
+#     optional suffix appended to the built/published tags. Examples:
+#     - `built`
 #     - `published`
-#     - `compiled-ui`
+#     - `built-ui`
 #     - `published-ui`
 #   - parameter includedPatterns:
 #     optional wildcard patterns for include matching.
@@ -110,7 +110,7 @@ steps:
 #
 # - Data sources:
 #   1. Azure DevOps REST API:
-#      finds the latest successful build tagged "compiled" and "published".
+#      finds the latest successful build tagged "built" and "published".
 #   2. Local git checkout:
 #      compares baseline commit -> current commit with `git diff --name-only`,
 #      optionally restricted to `workingDirectory`.
@@ -124,7 +124,7 @@ steps:
 #        [exclude]
 #
 # - High-level flow:
-#   1. Look up compiled/published baselines for the same pipeline + branch.
+#   1. Look up built/published baselines for the same pipeline + branch.
 #   2. If a baseline equals the current commit, skip that side immediately.
 #   3. Otherwise compute git changed files for build and publish, constrained to
 #      `workingDirectory` when provided.
@@ -137,7 +137,7 @@ steps:
 # - What counts for build:
 #   - Any file returned by `git diff` is considered a candidate change.
 #   - Build only becomes false when one of these is true:
-#     - current commit equals the compiled baseline commit
+#     - current commit equals the built baseline commit
 #     - there are no changed files matching include/exclude rules
 #
 # - What counts for publish:
