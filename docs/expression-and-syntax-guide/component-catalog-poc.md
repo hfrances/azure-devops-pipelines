@@ -7,13 +7,14 @@
 - [4) Regla practica del equipo](#4-regla-practica-del-equipo)
 - [5) Estructura aplicada en la PoC](#5-estructura-aplicada-en-la-poc)
 - [6) Flujo de ejecucion](#6-flujo-de-ejecucion)
-- [7) Ejemplo recomendado (root visible, UX limpia)](#7-ejemplo-recomendado-root-visible-ux-limpia)
-- [8) Guia por perfil](#8-guia-por-perfil)
-- [9) Casos de uso](#9-casos-de-uso)
-- [10) Limites y riesgos](#10-limites-y-riesgos)
-- [11) Siguientes pasos](#11-siguientes-pasos)
-- [12) Anexo tecnico (informacion ampliada)](#12-anexo-tecnico-informacion-ampliada)
-- [13) Ejemplos de consumo por nivel (detalle)](#13-ejemplos-de-consumo-por-nivel-detalle)
+- [7) Manifiestos: nomenclatura y contenido](#7-manifiestos-nomenclatura-y-contenido)
+- [8) Ejemplo recomendado (root visible, UX limpia)](#8-ejemplo-recomendado-root-visible-ux-limpia)
+- [9) Guia por perfil](#9-guia-por-perfil)
+- [10) Casos de uso](#10-casos-de-uso)
+- [11) Limites y riesgos](#11-limites-y-riesgos)
+- [12) Siguientes pasos](#12-siguientes-pasos)
+- [13) Anexo tecnico (informacion ampliada)](#13-anexo-tecnico-informacion-ampliada)
+- [14) Ejemplos de consumo por nivel (detalle)](#14-ejemplos-de-consumo-por-nivel-detalle)
 
 ## 1) Idea base (nivel inicial)
 Queremos declarar los componentes (`app1`, `app2`, `api`, `ui`, etc.) **una sola vez** y usar esa misma definicion para:
@@ -60,7 +61,7 @@ No es obligatorio para todos los pipelines, pero para pipelines multi-componente
 
 ## 6) Flujo de ejecucion
 - `Preparation`: genera manifest unificado de componentes.
-- `BuildAndPush`: itera componentes, compila cuando `shouldBuild=true`, publica cuando `shouldPublish=true` y marca tags canonicos (`compiled`/`published`) por componente con `mark-build-published.yml`.
+- `BuildAndPush`: itera componentes, compila cuando `shouldBuild=true`, publica cuando `shouldPublish=true`, marca tags canonicos (`compiled`/`published`) y genera `manifest-<component>.json` con datos extra por componente.
 - `Deploy`: itera componentes y despliega ACA por componente.
 
 Todos consumen el mismo contrato de `components`.
@@ -77,7 +78,81 @@ La PoC usa la plantilla canonica `detect-publishable-changes-git.yml` por compon
 Fallback controlado:
 - La plantilla canonica aplica fail-open si la deteccion falla (no bloquea la pipeline).
 - El flag `PublishChangeDetection` permite activar/desactivar esta deteccion.
-## 7) Ejemplo recomendado (root visible, UX limpia)
+## 7) Manifiestos: nomenclatura y contenido
+
+### Objetivo de los manifiestos
+En esta PoC usamos manifiestos para desacoplar fases:
+- `Prepare` decide el estado base por componente.
+- `BuildAndPush` añade metadatos de build/publicacion por componente.
+- `Deploy` consume decisiones sin asumir que todos los componentes se publicaron en el mismo run.
+
+### Nomenclatura
+
+#### 1) Manifest de Prepare (unico)
+- Nombre fijo: `manifest.prepare.json`
+- Ubicacion: artifact de `prepare`.
+- Es unico para el run (no se particiona por componente).
+
+#### 2) Manifest de Build (por componente)
+Regla de nombre:
+- Si hay `prefix`: `manifest-<prefix>.build.json`
+- Si no hay `prefix` y hay mas de un componente: `manifest-<name>.build.json`
+- Si no: `manifest.build.json`
+- Si hay `suffix`, se anade al final del nombre base:
+  - `manifest-<prefix>-<suffix>.build.json`
+  - `manifest-<name>-<suffix>.build.json`
+  - `manifest-<suffix>.build.json` (caso sin prefijo ni nombre aplicable)
+
+### Contenido
+
+#### `manifest.prepare.json`
+Incluye informacion base del run y la lista de componentes:
+- `buildId`
+- `sourceBranch`
+- `sourceVersion`
+- `components[]` con campos como:
+  - `name`
+  - `prefix`
+  - `suffix` (si aplica)
+  - `workingDirectory`
+  - `imageRepository`
+  - `dockerfilePath`
+  - `dockerBuildContext`
+  - `acaName`
+  - `shouldBuild`
+  - `shouldPublish`
+  - `shouldDeploy`
+  - `changeDetectionEnabled`
+
+#### `manifest*.build.json` (incremental)
+Es incremental respecto al prepare del componente:
+- Parte del objeto del componente que viene en `manifest.prepare.json`.
+- Anade datos propios de la fase build:
+  - `phase: "build"`
+  - `imageTag`
+  - `buildId`
+  - `buildNumber`
+  - `sourceVersion`
+  - flags finales de `shouldBuild`, `shouldPublish`, `shouldDeploy`
+
+### Regla de seleccion de componente
+En escenarios multicomponente, la resolucion del elemento usa:
+1. `name` (preferente)
+2. `prefix` (fallback tecnico)
+
+Esto evita ambiguedades de nomenclatura cuando `name` es la identidad funcional del componente.
+
+### Nota de concurrencia
+No se actualiza un unico fichero compartido en paralelo.
+Patron aplicado:
+- fichero base unico en `Prepare`;
+- fichero incremental por componente en `BuildAndPush`.
+
+Asi se evitan condiciones de carrera entre jobs paralelos.
+
+
+
+## 8) Ejemplo recomendado (root visible, UX limpia)
 ```yaml
 parameters:
   - name: Deploy
@@ -110,7 +185,7 @@ stages:
           acaName: ca-hmy-dummy-test-app-2
 ```
 
-## 8) Guia por perfil
+## 9) Guia por perfil
 ### Para una persona junior
 - Piensa en `components` como una lista de apps.
 - La escribes una vez.
@@ -128,22 +203,22 @@ stages:
 - Evitar `components` como runtime parameter del root cuando se quiera UX no editable.
 - Separacion de responsabilidades: root (entrada), stage wrapper (orquestacion), job templates (implementacion).
 
-## 9) Casos de uso
+## 10) Casos de uso
 - Monocomponente: lista con un unico elemento.
 - Multicomponente: `api/ui`, `app1/app2`, etc.
 - Escalado: alta de componente por datos, no por duplicacion de estructura.
 
-## 10) Limites y riesgos
+## 11) Limites y riesgos
 - Es una PoC: falta validar completamente todos los casos runtime en pipelines reales.
 - Si se abusa del wrapper sin convenciones claras, puede esconder complejidad.
 - Conviene documentar contrato minimo obligatorio de `components`.
 
-## 11) Siguientes pasos
+## 12) Siguientes pasos
 - Definir validaciones de contrato (`name`, `prefix`, `imageRepository`, `acaName`, etc.).
 - Introducir flags por componente (`enabled`, `deployEnabled`).
 - Elevar el patron a templates compartidas cuando se confirme estable.
 
-## 12) Anexo tecnico (informacion ampliada)
+## 13) Anexo tecnico (informacion ampliada)
 
 ### Patron no soportado directamente por Azure Pipelines
 El siguiente formato no es un patron soportado como DSL general dentro de `parameters.components`:
@@ -177,7 +252,7 @@ Campos opcionales habituales (segun necesidad):
 - Si se quiere evitar esa edicion manual, mantener `components` fuera de runtime parameters del root.
 - El patron recomendado de esta PoC mantiene `components` visible en codigo, pero no expuesto como parametro editable de UX.
 
-## 13) Ejemplos de consumo por nivel (detalle)
+## 14) Ejemplos de consumo por nivel (detalle)
 
 ### A nivel de stage
 ```yaml
@@ -221,6 +296,5 @@ stages:
                   Write-Host "prefix=${{ component.prefix }}"
                   Write-Host "acaName=${{ component.acaName }}"
 ```
-
 
 
