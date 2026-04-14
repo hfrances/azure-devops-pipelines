@@ -16,7 +16,14 @@ Flujo actual:
   - Marca tags canonicos (`compiled` / `published`).
   - Exporta `ComponentShouldDeploy` como output por job para consumo en Deploy.
 - `Deploy`:
-  - Se condiciona por outputs del stage Build, sin lectura de manifiestos.
+  - Se condiciona por outputs del stage Build (`SetOutputs.ComponentShouldDeploy`), sin lectura de manifiestos.
+
+Cambios recientes de contrato:
+- El parametro runtime principal pasa a llamarse `Publish` (antes `Deploy`) en la PoC con catalogo de componentes.
+- En niveles de `stage`/`job`, el contrato de `components[]` deja de usar `prefix`/`suffix` para identidad.
+- La identidad funcional del componente usa fallback: `name -> component -> ''`.
+- Solo para nombres internos de variables/output (tokens), si el nombre resuelto queda vacio, se aplica fallback tecnico: `default`.
+- `BuildAndPush` no entra si `Preparation` exporta `hasAnyBuildCandidate=false`.
 
 ## Diseño alternativo (documentado, no activo)
 La estrategia con manifests sigue documentada para poder reintroducirla en el futuro:

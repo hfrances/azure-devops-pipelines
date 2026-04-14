@@ -31,17 +31,21 @@ Para `stageName`/`jobName`/`taskName` tecnicos:
 - Reemplazar `/`, `-`, espacios, `.` y `:` por `_`.
 - Mantener solo caracteres validos para Azure (`[A-Za-z0-9_]`).
 
-## 2) Semantica de `prefix/suffix` vs `tagPrefix/tagSuffix`
+## 2) Semantica de identidad de componente vs `tagPrefix/tagSuffix`
 
-### Nombres tecnicos
-- En `stages` y `jobs` usar solo: `prefix`, `suffix`.
+### Nombres tecnicos de stage/job
+- En catalogos `components[]`, la identidad funcional del componente debe salir de:
+  - `name` (preferente)
+  - `component` (fallback funcional)
+  - `''` para valores visibles cuando ambos faltan.
+- Si hace falta un token tecnico no vacio para outputs/nombres internos, usar fallback tecnico `default`.
 
 ### Tags funcionales
-- En `tasks/scripts` que construyen tags usar solo: `tagPrefix`, `tagSuffix`.
+- En `tasks/scripts` que construyen tags usar `tagPrefix`, `tagSuffix` (o `prefix/suffix` si la task legacy lo exige).
 
 ### Regla de no-duplicidad
-- No mezclar `prefix/suffix` y `tagPrefix/tagSuffix` en el mismo punto de consumo.
-- Los wrappers deben resolver antes y pasar al consumidor final solo el par que le corresponde.
+- No mezclar en el mismo punto de consumo una identidad funcional (`name/component`) con un prefijo tecnico de tag.
+- Los wrappers deben resolver antes y pasar al consumidor final solo el dato que le corresponde.
 
 ## 3) Orden obligatorio de parametros
 
@@ -65,6 +69,7 @@ La misma disciplina aplica en las llamadas a templates.
 - Si un `job` o `stage` va a ser referenciado en `dependsOn`, `dependencies.*` o `stageDependencies.*`, conviene fijar nombre explicito para evitar roturas por renombrado automatico.
 - Si se usa nombre auto-generado y luego se referencia, la referencia debe usar exactamente el nombre resuelto.
 - Si se pasa `jobName` explicito, no debe alterarse concatenando `prefix/suffix`.
+- Si un output se exporta desde un step con `name: <StepName>`, la lectura debe usar exactamente `outputs['<StepName>.<Variable>']` (ejemplo: `SetOutputs.ComponentShouldDeploy`).
 
 ## 5) Reglas de repositorio de templates
 
@@ -145,18 +150,18 @@ En ese caso, no duplicar las mismas propiedades por componente.
 ## 7) Convencion para producto mono vs multi-componente
 
 ### Monocomponente
-- Dejar `prefix` y `suffix` vacios cuando no aporten diferenciacion.
+- Dejar la identidad funcional vacia (`name/component`) cuando no aporte diferenciacion visible.
 - Resultado: nombres estables por defecto (sin sufijos tecnicos innecesarios).
 
 ### Multicomponente
-- Usar `prefix` para componente (por ejemplo `api`, `ui`).
-- Usar `suffix` para entorno o variante (por ejemplo `test`, `pre`, `pro`, `public`).
+- Usar `name` (o `component` como fallback) para identificar cada componente.
+- Usar `suffix` solo donde realmente aplique como variante tecnica del job/stage.
 - Esto evita colisiones cuando conviven varios jobs/stages homonimos.
 
 ## 8) Checklist rapido antes de publicar cambios
 
 - No hay `sufix`/`tagSufix` legacy.
-- `prefix` aparece antes que `suffix` en declaraciones y llamadas.
+- La identidad funcional (`name/component`) no depende de `prefix`.
 - `jobName`/`taskName` explicitos no se recomponen.
 - No hay alias dinamicos de repositorio en templates (`@${{ ... }}`).
 - Las referencias `dependsOn`/`dependencies`/`stageDependencies` coinciden con nombres reales.

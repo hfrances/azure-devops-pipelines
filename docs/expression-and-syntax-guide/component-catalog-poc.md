@@ -35,7 +35,7 @@ Eso no nos interesa porque:
 
 ## 3) Decision de diseño
 Usamos este patron:
-- En el YAML raiz solo dejamos parametros de control (`Deploy`, `PublishChangeDetection`).
+- En el YAML raiz solo dejamos parametros de control (`Publish`, `PublishChangeDetection`).
 - En el YAML raiz mantenemos el catalogo `components` visible en codigo (para lectura rapida).
 - El catalogo se pasa a un template orquestador: `components-pipeline-stages.yml`.
 - El template orquestador genera los 3 stages y reparte `components` a los jobs/templates de cada fase.
@@ -61,9 +61,9 @@ No es obligatorio para todos los pipelines, pero para pipelines multi-componente
 - `.azuredevops/templates/deploy-components-jobs.yml`
 
 ## 6) Flujo de ejecucion
-- `Preparation`: genera manifest unificado de componentes.
-- `BuildAndPush`: itera componentes, compila cuando `shouldBuild=true`, publica cuando `shouldPublish=true`, marca tags canonicos (`compiled`/`published`) y genera `manifest-<component>.json` con datos extra por componente.
-- `Deploy`: itera componentes y despliega ACA por componente.
+- `Preparation`: calcula flags por componente y exporta agregados de stage (`hasAnyBuildCandidate`, `hasAnyDeployCandidate`).
+- `BuildAndPush`: itera componentes, compila cuando `ShouldBuild=true`, publica cuando `ShouldPublish=true`, y exporta `SetOutputs.ComponentShouldDeploy` por job.
+- `Deploy`: itera componentes y ejecuta solo cuando el output del job de build correspondiente indica `ComponentShouldDeploy=true`.
 
 Todos consumen el mismo contrato de `components`.
 
@@ -140,12 +140,15 @@ Es incremental respecto al prepare del componente:
 En escenarios multicomponente, la resolucion del elemento usa:
 1. `name` (preferente)
 2. `component` (fallback funcional)
-3. `prefix` (fallback tecnico)
+3. `''` (vacio) para valores visibles cuando no hay identidad declarada
 
 Esto evita ambiguedades de nomenclatura cuando `name` es la identidad funcional del componente.
 
 En templates de task/job, cuando se consume una propiedad `component` para resolver outputs/tokens, se debe pasar ya como valor resuelto:
-- `coalesce(component.name, component.component, component.prefix, '')`
+- `coalesce(component.name, component.component, '')`
+
+Nota:
+- Solo para nombres internos de variables/output (tokens), si la identidad queda vacia se usa fallback tecnico `default`.
 
 ### Nota de concurrencia
 No se actualiza un unico fichero compartido en paralelo.
@@ -160,7 +163,7 @@ Asi se evitan condiciones de carrera entre jobs paralelos.
 ## 8) Ejemplo recomendado (root visible, UX limpia)
 ```yaml
 parameters:
-  - name: Deploy
+  - name: Publish
     type: string
     values: [auto, true, false]
     default: true
@@ -171,18 +174,16 @@ parameters:
 stages:
   - template: templates/components-pipeline-stages.yml
     parameters:
-      Deploy: ${{ parameters.Deploy }}
+      Publish: ${{ parameters.Publish }}
       PublishChangeDetection: ${{ parameters.PublishChangeDetection }}
       components:
         - name: app1
-          prefix: app1
           workingDirectory: src/services/dummy-test-app-1
           imageRepository: dummy/mi-proyecto-test-app-1
           dockerfilePath: $(Build.SourcesDirectory)/src/services/dummy-test-app-1/Dockerfile
           dockerBuildContext: $(Build.SourcesDirectory)/src/services/dummy-test-app-1
           acaName: ca-hmy-dummy-test-app-1
         - name: app2
-          prefix: app2
           workingDirectory: src/services/dummy-test-app-2
           imageRepository: dummy/mi-proyecto-test-app-2
           dockerfilePath: $(Build.SourcesDirectory)/src/services/dummy-test-app-2/Dockerfile
@@ -219,7 +220,7 @@ stages:
 - Conviene documentar contrato minimo obligatorio de `components`.
 
 ## 12) Siguientes pasos
-- Definir validaciones de contrato (`name`, `prefix`, `imageRepository`, `acaName`, etc.).
+- Definir validaciones de contrato (`name`/`component`, `imageRepository`, `acaName`, etc.).
 - Introducir flags por componente (`enabled`, `deployEnabled`).
 - Elevar el patron a templates compartidas cuando se confirme estable.
 
@@ -238,7 +239,7 @@ Por eso usamos `components` como `object` y lo expandimos con `${{ each ... }}`.
 ### Contrato minimo sugerido para `components[]`
 Campos recomendados por componente:
 - `name`
-- `prefix`
+- `component` (opcional; fallback funcional de `name`)
 - `workingDirectory`
 - `imageRepository`
 - `dockerfilePath`
@@ -263,7 +264,7 @@ Campos opcionales habituales (segun necesidad):
 ```yaml
 stages:
   - ${{ each component in parameters.components }}:
-    - stage: ${{ format('Deploy_{0}', component.prefix) }}
+    - stage: ${{ format('Deploy_{0}', coalesce(component.name, component.component, 'default')) }}
       displayName: ${{ format('Deploy {0}', component.name) }}
       jobs:
         - job: Deploy
@@ -277,7 +278,7 @@ stages:
   - stage: BuildAndPush
     jobs:
       - ${{ each component in parameters.components }}:
-        - job: ${{ format('Build_{0}', component.prefix) }}
+        - job: ${{ format('Build_{0}', coalesce(component.name, component.component, 'default')) }}
           displayName: ${{ format('Build {0}', component.name) }}
           steps:
             - script: echo "Build de ${{ component.imageRepository }}"
@@ -298,7 +299,7 @@ stages:
                 targetType: inline
                 script: |
                   Write-Host "name=${{ component.name }}"
-                  Write-Host "prefix=${{ component.prefix }}"
+                  Write-Host "component=${{ component.component }}"
                   Write-Host "acaName=${{ component.acaName }}"
 ```
 
@@ -311,12 +312,12 @@ En esta PoC, el build resuelve rutas Docker por componente con reglas estables:
 
 - `dockerBuildContext`
   - Si viene vacio, usa `workingDirectory`.
-  - Si es relativo, se interpreta respecto a `$(Build.SourcesDirectory)`.
+  - Si es relativo, se interpreta respecto a `workingDirectory` resuelto (si existe), y si no respecto a `$(Build.SourcesDirectory)`.
   - Si es absoluto, se usa tal cual.
 
 - `dockerfilePath`
   - Si viene vacio, usa `Dockerfile` dentro del `dockerBuildContext` resuelto.
-  - Si es relativo, se interpreta respecto al `dockerBuildContext` resuelto.
+  - Si es relativo, primero se intenta respecto a `workingDirectory` resuelto; si no existe, se resuelve respecto al `dockerBuildContext` resuelto.
   - Si es absoluto, se usa tal cual.
 
 Ademas, antes de ejecutar `Docker@2 build`, se valida que existan:
