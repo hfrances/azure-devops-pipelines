@@ -109,7 +109,7 @@ parameters:
   - name: condition
     type: string
     default: ''
-  - name: repoAlias
+  - name: innerRepository
     type: string
     default: 'azure-pipelines-repo'
 
@@ -540,7 +540,7 @@ jobs:
           echo "##vso[task.complete result=SucceededWithIssues;]External ingress is enabled but the ACA FQDN is empty."
         fi
 
-  - template: ../scripts-templates/mark-build-published.yml@${{ parameters.repoAlias }}
+  - template: ../scripts-templates/mark-build-published.yml@${{ parameters.innerRepository }}
     parameters:
       tag: deployed
       tagPrefix: ${{ parameters.prefix }}

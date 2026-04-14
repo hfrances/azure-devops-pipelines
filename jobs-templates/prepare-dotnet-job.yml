@@ -32,7 +32,7 @@ parameters:
     values:
       - none
       - aspnet
-  - name: repoAlias
+  - name: innerRepository
     type: string
     default: 'azure-pipelines-repo'
 
@@ -44,16 +44,16 @@ jobs:
         fetchDepth: 0
         persistCredentials: true
 
-      - template: ../scripts-templates/create-drop-folder.yml@${{ parameters.repoAlias }}
+      - template: ../scripts-templates/create-drop-folder.yml@${{ parameters.innerRepository }}
 
-      - template: ../scripts-templates/get-main-project-dotnet.yml@${{ parameters.repoAlias }}
+      - template: ../scripts-templates/get-main-project-dotnet.yml@${{ parameters.innerRepository }}
         parameters:
           solutionPattern: '${{ parameters.solutionPattern }}'
           workingDirectory: '$(Build.SourcesDirectory)/${{ parameters.workingDirectory }}'
 
-      - template: ../scripts-templates/get-project-properties-dotnet.yml@${{ parameters.repoAlias }}
+      - template: ../scripts-templates/get-project-properties-dotnet.yml@${{ parameters.innerRepository }}
 
-      - template: ../scripts-templates/detect-publishable-changes-dotnet.yml@${{ parameters.repoAlias }}
+      - template: ../scripts-templates/detect-publishable-changes-dotnet.yml@${{ parameters.innerRepository }}
         parameters:
           taskName: DetectPublishableChanges
           definitionName: ''
@@ -99,7 +99,7 @@ jobs:
             Write-Output "BuildParameters.HasAffectedPublishProjects: $(BuildParameters.HasAffectedPublishProjects)"
             export-output 'BuildParameters.HasAffectedPublishProjects' '$(BuildParameters.HasAffectedPublishProjects)'
             
-      - template: ../scripts-templates/export-variable-list.yml@${{ parameters.repoAlias }}
+      - template: ../scripts-templates/export-variable-list.yml@${{ parameters.innerRepository }}
 
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifact: drop-prepare'
