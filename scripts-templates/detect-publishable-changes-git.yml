@@ -4,7 +4,7 @@ parameters:
     default: '' # DetectPublishableChanges
   - name: displayName
     type: string
-    default: Detect built and published changes
+    default: Detect changes
   - name: definitionName
     type: string
     default: ''

@@ -310,7 +310,7 @@ stages:
         steps:
           - ${{ each component in parameters.components }}:
             - task: PowerShell@2
-              displayName: ${{ format('Validate {0}', component.name) }}
+              displayName: ${{ trim(format('Validate {0}', component.name)) }}
               inputs:
                 pwsh: true
                 targetType: inline

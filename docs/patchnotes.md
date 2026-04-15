@@ -23,7 +23,7 @@ Main files:
 Status: previous working tree release notes.
 
 Highlights:
-- add publish change detection with baseline comparison and `dotnet-affected`
+- add `Enable change detection` with baseline comparison and `dotnet-affected`
 - add `mark-build-published.yml` and tag successful runs as `compiled` / `published`
 - update `aspnet` and `libnet` templates to skip build or publish work when nothing relevant changed
 - add conditional support to shared script templates

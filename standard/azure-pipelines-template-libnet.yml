@@ -6,6 +6,13 @@
 ########################################
 
 parameters:
+  # Indica si se debe comprobar si existen cambios afectados antes de compilar o publicar.
+  # - true: Busca la última ejecución compilada y publicada con éxito del mismo pipeline y rama, y usa dotnet-affected para decidir qué hacer.
+  # - false: No realiza comprobaciones y mantiene el comportamiento anterior.
+  - name: PublishChangeDetection
+    displayName: "Enable change detection"
+    type: boolean
+    default: true
   # Indica si se debe publicar el paquete en NuGet.
   # - auto: Se publica si la rama es master, main, staging o alpha.
   # - true: Se publica siempre.
@@ -52,13 +59,6 @@ parameters:
   # - false: No se empaqueta ni publica en NuGet.
   - name: SupportsNuget
     displayName: "Supports NuGet packages"
-    type: boolean
-    default: true
-  # Indica si se debe comprobar si existen cambios afectados antes de compilar o publicar.
-  # - true: Busca la última ejecución compilada y publicada con éxito del mismo pipeline y rama, y usa dotnet-affected para decidir qué hacer.
-  # - false: No realiza comprobaciones y mantiene el comportamiento anterior.
-  - name: PublishChangeDetection
-    displayName: "Publish change detection"
     type: boolean
     default: true
 
