@@ -67,6 +67,17 @@ No es obligatorio para todos los pipelines, pero para pipelines multi-componente
 
 Todos consumen el mismo contrato de `components`.
 
+Contratos adicionales en v2.0:
+- `component.templateType` es obligatorio y selecciona flujo tecnico (`pnpm | npm | aspnet`).
+- `component.dependsOn` permite definir orden entre componentes (build/deploy).
+- Los identificadores tecnicos (nombres de job, claves de output y referencias en `stageDependencies`) se sanean para evitar caracteres no validos en expresiones de Azure.
+  - Regla actual: se elimina `-` del identificador tecnico.
+  - Ejemplo: `ui-next` -> `uinext` (job tecnico `Build_uinext`).
+  - Esto aplica a:
+    - nombre del job de build/deploy generado
+    - tokens `ComponentShouldBuild_*` y `ComponentShouldPublish_*` exportados por `Prepare`
+    - acceso a outputs en condiciones (`stageDependencies.*.*.outputs[...]`)
+
 
 ### Deteccion de build/publish en la PoC
 La PoC usa la plantilla canonica `detect-publishable-changes-git.yml` por componente.
@@ -245,6 +256,7 @@ Por eso usamos `components` como `object` y lo expandimos con `${{ each ... }}`.
 Campos recomendados por componente:
 - `name`
 - `component` (opcional; fallback funcional de `name`)
+- `templateType` (**obligatorio**: `pnpm` o `npm` o `aspnet`)
 - `workingDirectory`
 - `imageRepository`
 - `dockerfilePath`

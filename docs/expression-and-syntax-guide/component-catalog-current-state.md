@@ -24,8 +24,15 @@ Cambios recientes de contrato:
 - Se anade parametro runtime `Deployable` (`displayName: Deploy (if possible)`, default `true`) para habilitar/deshabilitar toda la fase Deploy.
 - En niveles de `stage`/`job`, el contrato de `components[]` deja de usar `prefix`/`suffix` para identidad.
 - La identidad funcional del componente usa fallback: `name -> component -> ''`.
+- `component.templateType` pasa a ser obligatorio (sin default) y define el flujo de build: `pnpm | npm | aspnet`.
+- Se soporta `component.dependsOn` para encadenar componentes en build (y deploy cuando aplica).
 - Solo para nombres internos de variables/output (tokens), si el nombre resuelto queda vacio, se aplica fallback tecnico: `default`.
 - `BuildAndPush` no entra si `Preparation` exporta `hasAnyBuildCandidate=false`.
+
+Estado de migracion v2.0:
+- `dummy-aspnet`: migrado a catalogo de componentes (deploy internal only).
+- `dummy-reactjs`: migrado a catalogo de componentes (deploy internal only).
+- `dummy-combi`: migrado a catalogo de componentes con dependencias `ui/ui-next -> api`.
 
 ## Diseño alternativo (documentado, no activo)
 La estrategia con manifests sigue documentada para poder reintroducirla en el futuro:
