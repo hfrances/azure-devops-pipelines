@@ -108,7 +108,8 @@ parameters:
   # Optional job condition. If empty, no explicit condition is applied.
   - name: condition
     type: string
-    default: ''jobs:
+    default: ''
+jobs:
 - job: ${{ coalesce(parameters.jobName, replace(replace(replace(format('{0}{1}_{2}', 'DeployToACA', replace(replace(replace(replace(replace(coalesce(parameters.prefix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), replace(replace(replace(replace(replace(coalesce(parameters.suffix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_')), '~_~', ''), '~_', '_'), '_~', '') ) }}
   displayName: ${{ parameters.displayName }}
   ${{ if gt(length(parameters.dependsOn), 0) }}:
