@@ -8,6 +8,9 @@ Esta carpeta contiene documentación detallada sobre cómo funcionan las expresi
 - **[Validación de Parámetros en Plantillas](02-template-parameter-validation.md)**: Cómo y cuándo se validan los parámetros
 - **[Orden de Procesamiento del YAML](03-yaml-processing-order.md)**: El flujo completo de cómo Azure DevOps procesa un pipeline
 - **[Casos de Uso Comunes](04-common-use-cases.md)**: Patrones recomendados y antipatrones
+- **[Component Catalog PoC](component-catalog-poc.md)**: Patron de catalogo de componentes en root + templates de stages/jobs
+- **[Component Catalog Current State](component-catalog-current-state.md)**: Estado real de implementacion y migracion por repositorio
+- **[Component Catalog Variable Patterns](component-catalog-variable-patterns.md)**: Convenciones de `variables:` por grupos (`Docker`, `Platform`, `Container private/public`)
 
 ## Contexto
 

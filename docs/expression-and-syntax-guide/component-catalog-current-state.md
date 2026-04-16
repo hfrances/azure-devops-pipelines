@@ -30,9 +30,18 @@ Cambios recientes de contrato:
 - `BuildAndPush` no entra si `Preparation` exporta `hasAnyBuildCandidate=false`.
 
 Estado de migracion v2.0:
-- `dummy-aspnet`: migrado a catalogo de componentes (deploy internal only).
-- `dummy-reactjs`: migrado a catalogo de componentes (deploy internal only).
+- `dummy-aspnet`: migrado a catalogo de componentes (deploy private only).
+- `dummy-reactjs`: migrado a catalogo de componentes (deploy private only).
 - `dummy-combi`: migrado a catalogo de componentes con dependencias `ui/ui-next -> api`.
+- `dummy-certbot`: migrado a patron **single** con post-configuracion `allow-insecure` tras Deploy.
+- `dummy-live`: migrado a patron **single** (`templateType: aspnet`) y deploy private.
+- `dummy-test`: migrado a patron **combi** (`app1/app2`) con dependencia `app2 -> app1`.
+- `dummy-vue`: migrado a patron **single** con doble deploy (`private` y `public`) reutilizando la misma imagen.
+- `dummy-nextjs`: migrado a patron **single** con doble deploy (`private` y `public`) reutilizando la misma imagen.
+
+Resumen operativo de patrones:
+- **Single**: 1 componente en `components[]`, build/push unico y uno o varios deploy jobs derivados del mismo artefacto de imagen.
+- **Combi**: N componentes en `components[]`, con `component.dependsOn` para controlar orden de build/deploy.
 
 ## Diseño alternativo (documentado, no activo)
 La estrategia con manifests sigue documentada para poder reintroducirla en el futuro:

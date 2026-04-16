@@ -35,7 +35,7 @@ Eso no nos interesa porque:
 
 ## 3) Decision de diseño
 Usamos este patron:
-- En el YAML raiz solo dejamos parametros de control (`Publish`, `Deployable`, `PublishChangeDetection`).
+- En el YAML raiz solo dejamos parametros de control (`PublishChangeDetection`, `Publish`, `Deployable`).
 - En el YAML raiz mantenemos el catalogo `components` visible en codigo (para lectura rapida).
 - El catalogo se pasa a un template orquestador: `components-pipeline-stages.yml`.
 - El template orquestador genera los 3 stages y reparte `components` a los jobs/templates de cada fase.
@@ -77,6 +77,17 @@ Contratos adicionales en v2.0:
     - nombre del job de build/deploy generado
     - tokens `ComponentShouldBuild_*` y `ComponentShouldPublish_*` exportados por `Prepare`
     - acceso a outputs en condiciones (`stageDependencies.*.*.outputs[...]`)
+- Convencion para pipelines **single**:
+  - en `components[]`, usar `- component:` vacio (no poner nombre de componente).
+  - en `deploy-aca-job-wrapper`, no declarar `component.name`.
+- Convencion general:
+  - no declarar `dependsOn: []` cuando no hay dependencias.
+
+Adopcion en repos (single/combi):
+- `dummy-certbot`: **single** (`pnpm`) + etapa extra de post-deploy para `allow-insecure`.
+- `dummy-live`: **single** (`aspnet`) con deploy private.
+- `dummy-test`: **combi** (`app1/app2`) con dependencia `app2 -> app1`.
+- `dummy-vue`: **single** (`pnpm`) con doble deploy (`private` y `public`) desde la misma imagen.
 
 
 ### Deteccion de build/publish en la PoC
@@ -174,15 +185,16 @@ Asi se evitan condiciones de carrera entre jobs paralelos.
 ## 8) Ejemplo recomendado (root visible, UX limpia)
 ```yaml
 parameters:
+  - name: PublishChangeDetection
+    displayName: Enable change detection
+    type: boolean
+    default: true
   - name: Publish
     type: string
     values: [auto, true, false]
     default: true
   - name: Deployable
     displayName: Deploy (if possible)
-    type: boolean
-    default: true
-  - name: PublishChangeDetection
     type: boolean
     default: true
 
