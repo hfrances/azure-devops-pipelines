@@ -10,21 +10,32 @@ trigger:
       - feature/aca-deploy-job-*
 
 stages:
+  # Stage: prepara variables de prueba y outputs para el resto de tests.
   - stage: Preparation
     displayName: Preparation
     jobs:
+      # Job: construye el contexto base de validacion (outputs y no-outputs).
       - job: Prepare
         displayName: Prepare
         steps:
+          # Task: publica variables output (isTested, isBroken, out*) y una no-output (plainLocalOnly).
           - pwsh: |
               $isTested = 'true'
+              $isBroken = 'false'
               $outBuildId = '$(Build.BuildId)'
               $outDefinitionName = '$(Build.DefinitionName)'
               $outSourceBranch = '$(Build.SourceBranch)'
               $plainLocalOnly = 'local-only-value'
 
+              Write-Output ""
+
               Write-Output "isTested: $isTested (output=true)"
               Write-Output "##vso[task.setvariable variable=isTested;isOutput=true]$isTested"
+
+              Write-Output "isBroken: $isBroken (output=true)"
+              Write-Output "##vso[task.setvariable variable=isBroken;isOutput=true]$isBroken"
+
+              Write-Output ""
 
               Write-Output "outBuildId: $outBuildId (output=true)"
               Write-Output "##vso[task.setvariable variable=outBuildId;isOutput=true]$outBuildId"
@@ -40,19 +51,23 @@ stages:
             name: SetOutputs
             displayName: Set outputs
 
+  # Stage: ejecuta las pruebas de conditioned-job y conditioned-job-wrapper.
+  # Debe ejecutarse siempre para observar resultados incluso con fallos previos.
   - stage: TestSingle
     displayName: Test Single
     dependsOn: Preparation
-    condition: and(succeeded(), eq(dependencies.Preparation.outputs['Prepare.SetOutputs.isTested'], 'true'))
+    condition: always()
     jobs:
+      # Job test (directo): valida condicion por isTested y mapeo de outputs/no-outputs.
       - template: /scripts-templates/jobs/conditioned-job.yml
         parameters:
           jobName: ConditionedJobCheck
           displayName: Conditioned job check
-          conditionalStage: Preparation
-          conditionalJob: Prepare
-          conditionalTask: SetOutputs
-          conditionalVariable: isTested
+          parentStageName: Preparation
+          parentSummaryJobName: Prepare
+          parentSummaryTaskName: SetOutputs
+          parentSummaryVariableName: isTested
+          condition: always()
           mappingVariables:
             outBuildId: mappedOutBuildId
             outDefinitionName: mappedOutDefinitionName
@@ -63,6 +78,7 @@ stages:
             expectedDefinitionName: $(Build.DefinitionName)
             expectedSourceBranch: $(Build.SourceBranch)
           steps:
+            # Task test: comprueba que outputs llegan, no-outputs no llegan y reporta warnings.
             - pwsh: |
                 $hasIssues = $false
 
@@ -109,3 +125,163 @@ stages:
               name: ValidateMappings
               displayName: Validate mapped variables
               condition: and(succeeded(), eq(variables['isTested'], 'true'))
+
+      # Job test (wrapper): misma validacion que el job directo pero pasando por wrapper.
+      - template: /scripts-templates/jobs/conditioned-job-wrapper.yml
+        parameters:
+          template: /tests/templates/conditioned-wrapper-target-job.yml
+          parentStageName: Preparation
+          parentSummaryJobName: Prepare
+          parentSummaryTaskName: SetOutputs
+          parentSummaryVariableName: isTested
+          condition: always()
+          dependsOn:
+            - ConditionedJobCheck
+          mappingVariables:
+            outBuildId: wrapperMappedOutBuildId
+            outDefinitionName: wrapperMappedOutDefinitionName
+            outSourceBranch: wrapperMappedOutSourceBranch
+            plainLocalOnly: wrapperMappedPlainLocalOnly
+          additionalVariables:
+            expectedBuildId: $(Build.BuildId)
+            expectedDefinitionName: $(Build.DefinitionName)
+            expectedSourceBranch: $(Build.SourceBranch)
+          parameters:
+            jobName: ConditionedJobWrapperCheck
+            displayName: Conditioned job wrapper check
+            steps:
+              # Task test: valida condicion y mapeos en la ruta wrapper.
+              - pwsh: |
+                  $hasIssues = $false
+
+                  function Warn([string]$message) {
+                    Write-Output "##vso[task.logissue type=warning]$message"
+                    $script:hasIssues = $true
+                  }
+
+                  function CheckExpected([string]$key, [string]$actual, [string]$expected) {
+                    Write-Output "${key}: $actual"
+                    if ([string]::IsNullOrWhiteSpace($actual)) {
+                      Warn "${key} should have value but arrived empty."
+                      return
+                    }
+                    if ($actual -ne $expected) {
+                      Warn "${key} expected '$expected' but got '$actual'."
+                    }
+                  }
+
+                  function CheckMustBeEmpty([string]$key, [string]$actual) {
+                    Write-Output "${key}: $actual"
+                    if (-not [string]::IsNullOrWhiteSpace($actual)) {
+                      Warn "${key} should be empty because source variable was not output."
+                    }
+                  }
+
+                  Write-Output "isTested: $(isTested)"
+                  if ('$(isTested)' -ne 'true') {
+                    Warn "Conditional variable isTested should be true."
+                  }
+
+                  CheckExpected 'wrapperMappedOutBuildId' '$(wrapperMappedOutBuildId)' '$(expectedBuildId)'
+                  CheckExpected 'wrapperMappedOutDefinitionName' '$(wrapperMappedOutDefinitionName)' '$(expectedDefinitionName)'
+                  CheckExpected 'wrapperMappedOutSourceBranch' '$(wrapperMappedOutSourceBranch)' '$(expectedSourceBranch)'
+                  CheckMustBeEmpty 'wrapperMappedPlainLocalOnly' '$(wrapperMappedPlainLocalOnly)'
+
+                  if ($hasIssues) {
+                    Write-Output "##vso[task.logissue type=warning]Validation finished with warnings."
+                    Write-Output "##vso[task.complete result=SucceededWithIssues;]DONE"
+                    exit 0
+                  }
+
+                  Write-Output "All validations passed."
+                name: ValidateMappingsViaWrapper
+                displayName: Validate mapped variables via wrapper
+                condition: and(succeeded(), eq(variables['isTested'], 'true'))
+
+      # Job test negativo (directo): con isBroken=false debe quedar Skipped por condicion.
+      - template: /scripts-templates/jobs/conditioned-job.yml
+        parameters:
+          jobName: ConditionedJobBrokenCheck
+          displayName: Conditioned job broken check
+          parentStageName: Preparation
+          parentSummaryJobName: Prepare
+          parentSummaryTaskName: SetOutputs
+          parentSummaryVariableName: isBroken
+          condition: always()
+          dependsOn:
+            - ConditionedJobWrapperCheck
+          steps:
+            # Task: solo fallaria si isBroken=true; en este escenario no deberia ejecutarse.
+            - pwsh: |
+                Write-Output "isBroken: $(isBroken)"
+                if ('$(isBroken)' -eq 'true') {
+                  Write-Output "##vso[task.logissue type=error]isBroken is true. Failing as expected by test rule."
+                  exit 1
+                }
+              name: ValidateBrokenDirect
+              displayName: Validate broken variable (direct)
+
+      # Job test negativo (wrapper): mismo escenario de isBroken=false, tambien debe quedar Skipped.
+      - template: /scripts-templates/jobs/conditioned-job-wrapper.yml
+        parameters:
+          template: /tests/templates/conditioned-wrapper-target-job.yml
+          parentStageName: Preparation
+          parentSummaryJobName: Prepare
+          parentSummaryTaskName: SetOutputs
+          parentSummaryVariableName: isBroken
+          condition: always()
+          dependsOn:
+            - ConditionedJobBrokenCheck
+          parameters:
+            jobName: ConditionedJobWrapperBrokenCheck
+            displayName: Conditioned job wrapper broken check
+            steps:
+              # Task: espejo del test negativo en la ruta wrapper.
+              - pwsh: |
+                  Write-Output "isBroken: $(isBroken)"
+                  if ('$(isBroken)' -eq 'true') {
+                    Write-Output "##vso[task.logissue type=error]isBroken is true. Failing as expected by test rule."
+                    exit 1
+                  }
+                name: ValidateBrokenViaWrapper
+                displayName: Validate broken variable (wrapper)
+
+      # Job de verificacion final: asegura que los jobs esperados corrieron/skippearon sin errores.
+      - job: VerifyConditionedExecution
+        displayName: Verify conditioned jobs execution
+        dependsOn:
+          - ConditionedJobCheck
+          - ConditionedJobWrapperCheck
+          - ConditionedJobBrokenCheck
+          - ConditionedJobWrapperBrokenCheck
+        condition: always()
+        variables:
+          resConditionedJobCheck: $[ dependencies.ConditionedJobCheck.result ]
+          resConditionedJobWrapperCheck: $[ dependencies.ConditionedJobWrapperCheck.result ]
+          resConditionedJobBrokenCheck: $[ dependencies.ConditionedJobBrokenCheck.result ]
+          resConditionedJobWrapperBrokenCheck: $[ dependencies.ConditionedJobWrapperBrokenCheck.result ]
+        steps:
+          # Task de aserciones finales de estado por job.
+          - pwsh: |
+              $hasErrors = $false
+
+              function CheckEqual([string]$key, [string]$actual, [string]$expected) {
+                Write-Output "${key}: $actual"
+                if ($actual -ne $expected) {
+                  Write-Output "##vso[task.logissue type=error]${key} expected '$expected' but got '$actual'."
+                  $script:hasErrors = $true
+                }
+              }
+
+              CheckEqual 'ConditionedJobCheck.result' '$(resConditionedJobCheck)' 'Succeeded'
+              CheckEqual 'ConditionedJobWrapperCheck.result' '$(resConditionedJobWrapperCheck)' 'Succeeded'
+              CheckEqual 'ConditionedJobBrokenCheck.result' '$(resConditionedJobBrokenCheck)' 'Skipped'
+              CheckEqual 'ConditionedJobWrapperBrokenCheck.result' '$(resConditionedJobWrapperBrokenCheck)' 'Skipped'
+
+              if ($hasErrors) {
+                exit 1
+              }
+
+              Write-Output "Execution/results verification passed."
+            name: VerifyExecutionResults
+            displayName: Verify execution results
