@@ -31,7 +31,7 @@ Este bloque prueba el mismo comportamiento, pero consumiendo outputs de un job d
 | `ConditionedJobWrapperCheckAlone` | `conditioned-job-wrapper.yml` | `isTested=true` | Validar paridad funcional del wrapper en Test Alone | `Succeeded` |
 | `ConditionedJobBrokenCheckAlone` | `conditioned-job.yml` | `isBroken=false` | Validar que no entra cuando la condicional es false en Test Alone | `Skipped` |
 | `ConditionedJobWrapperBrokenCheckAlone` | `conditioned-job-wrapper.yml` | `isBroken=false` | Misma prueba negativa vía wrapper en Test Alone | `Skipped` |
-| `VerifyConditionedExecutionAlone` | Job nativo | `succeededOrFailed()` | Asertar estados finales esperados de los 4 tests de Test Alone | `Succeeded` |
+| `VerifyConditionedExecutionAlone` | Job nativo | `not(canceled())` | Asertar estados finales esperados de los 4 tests de Test Alone | `Succeeded` |
 
 ## Matriz de tests (`TestSingle`)
 
@@ -53,7 +53,7 @@ Preparación incluida dentro del caso:
 | `ConditionedJobWrapperCheck` | `conditioned-job-wrapper.yml` | `isTested=true` | Validar paridad funcional del wrapper | `Succeeded` |
 | `ConditionedJobBrokenCheck` | `conditioned-job.yml` | `isBroken=false` | Validar que no entra cuando la condicional es false | `Skipped` |
 | `ConditionedJobWrapperBrokenCheck` | `conditioned-job-wrapper.yml` | `isBroken=false` | Misma prueba negativa vía wrapper | `Skipped` |
-| `VerifyConditionedExecution` | Job nativo | `succeededOrFailed()` | Asertar estados finales esperados de los 4 tests del caso | `Succeeded` |
+| `VerifyConditionedExecution` | Job nativo | `not(canceled())` | Asertar estados finales esperados de los 4 tests del caso | `Succeeded` |
 
 ## Matriz de tests (`TestCombi`)
 
@@ -77,7 +77,7 @@ Preparación incluida dentro del caso (`PrepareCombi`):
 | `ConditionedJobWrapperCheckB` | `conditioned-job-wrapper.yml` | `isTestedB=true` | Validar paridad wrapper para B | `Succeeded` |
 | `ConditionedJobBrokenCheckB` | `conditioned-job.yml` | `isBrokenB=false` | Validar que no entra en negativo de B | `Skipped` |
 | `ConditionedJobWrapperBrokenCheckB` | `conditioned-job-wrapper.yml` | `isBrokenB=false` | Negativo de B vía wrapper | `Skipped` |
-| `VerifyConditionedExecutionCombi` | Job nativo | `succeededOrFailed()` | Asertar estados finales esperados del caso A/B | `Succeeded` |
+| `VerifyConditionedExecutionCombi` | Job nativo | `not(canceled())` | Asertar estados finales esperados del caso A/B | `Succeeded` |
 
 ## Validaciones clave
 
@@ -86,7 +86,7 @@ Preparación incluida dentro del caso (`PrepareCombi`):
 - La ejecución condicional por variable (`isTested` / `isBroken`) funciona igual en:
   - `conditioned-job.yml`
   - `conditioned-job-wrapper.yml`
-- El stage de test se ejecuta con `succeededOrFailed()` para capturar regresiones aunque existan fallos previos.
+- El stage de test se ejecuta con `not(canceled())` para capturar regresiones aunque existan fallos previos.
 
 ## Criterio de fallo
 
@@ -95,3 +95,4 @@ El pipeline se considera incorrecto si ocurre cualquiera de estos casos:
 - Cualquier check positivo (`Check*`) no termina en `Succeeded`.
 - Cualquier check negativo (`BrokenCheck*`) no termina en `Skipped`.
 - Algún job de validación detecta discrepancias y reporta error.
+

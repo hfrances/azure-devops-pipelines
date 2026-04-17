@@ -20,7 +20,7 @@ stages:
   - stage: TestAlone
     displayName: Test Alone
     dependsOn: []
-    condition: succeededOrFailed()
+    condition: not(canceled())
     jobs:
       # Job productor local del stage: publica el mismo set de outputs/no-output para pruebas alone.
       - job: PrepareAlone
@@ -77,7 +77,7 @@ stages:
           conditionalJob: PrepareAlone
           conditionalTask: SetOutputsAlone
           conditionalVariable: isTested
-          condition: succeededOrFailed()
+          condition: not(canceled())
           mappingVariables:
             outBuildId: mappedOutBuildId
             outDefinitionName: mappedOutDefinitionName
@@ -143,7 +143,7 @@ stages:
           conditionalJob: PrepareAlone
           conditionalTask: SetOutputsAlone
           conditionalVariable: isTested
-          condition: succeededOrFailed()
+          condition: not(canceled())
           dependsOn:
             - ConditionedJobCheckAlone
           mappingVariables:
@@ -215,7 +215,7 @@ stages:
           conditionalJob: PrepareAlone
           conditionalTask: SetOutputsAlone
           conditionalVariable: isBroken
-          condition: succeededOrFailed()
+          condition: not(canceled())
           dependsOn:
             - ConditionedJobWrapperCheckAlone
           steps:
@@ -237,7 +237,7 @@ stages:
           conditionalJob: PrepareAlone
           conditionalTask: SetOutputsAlone
           conditionalVariable: isBroken
-          condition: succeededOrFailed()
+          condition: not(canceled())
           dependsOn:
             - ConditionedJobBrokenCheckAlone
           parameters:
@@ -262,7 +262,7 @@ stages:
           - ConditionedJobWrapperCheckAlone
           - ConditionedJobBrokenCheckAlone
           - ConditionedJobWrapperBrokenCheckAlone
-        condition: succeededOrFailed()
+        condition: not(canceled())
         variables:
           resConditionedJobCheckAlone: $[ dependencies.ConditionedJobCheckAlone.result ]
           resConditionedJobWrapperCheckAlone: $[ dependencies.ConditionedJobWrapperCheckAlone.result ]
@@ -298,7 +298,7 @@ stages:
   - stage: PreparationSingle
     displayName: Preparation Single
     dependsOn: []
-    condition: succeededOrFailed()
+    condition: not(canceled())
     jobs:
       # Job: construye el contexto base de validacion (outputs y no-outputs).
       - job: Prepare
@@ -352,7 +352,7 @@ stages:
   - stage: TestSingle
     displayName: Test Single
     dependsOn: PreparationSingle
-    condition: succeededOrFailed()
+    condition: not(canceled())
     jobs:
       # Job test (directo): valida condicion por isTested y mapeo de outputs/no-outputs.
       - template: /scripts-templates/jobs/conditioned-job.yml
@@ -363,7 +363,7 @@ stages:
           conditionalJob: Prepare
           conditionalTask: SetOutputs
           conditionalVariable: isTested
-          condition: succeededOrFailed()
+          condition: not(canceled())
           mappingVariables:
             outBuildId: mappedOutBuildId
             outDefinitionName: mappedOutDefinitionName
@@ -430,7 +430,7 @@ stages:
           conditionalJob: Prepare
           conditionalTask: SetOutputs
           conditionalVariable: isTested
-          condition: succeededOrFailed()
+          condition: not(canceled())
           dependsOn:
             - ConditionedJobCheck
           mappingVariables:
@@ -503,7 +503,7 @@ stages:
           conditionalJob: Prepare
           conditionalTask: SetOutputs
           conditionalVariable: isBroken
-          condition: succeededOrFailed()
+          condition: not(canceled())
           dependsOn:
             - ConditionedJobWrapperCheck
           steps:
@@ -526,7 +526,7 @@ stages:
           conditionalJob: Prepare
           conditionalTask: SetOutputs
           conditionalVariable: isBroken
-          condition: succeededOrFailed()
+          condition: not(canceled())
           dependsOn:
             - ConditionedJobBrokenCheck
           parameters:
@@ -552,7 +552,7 @@ stages:
           - ConditionedJobWrapperCheck
           - ConditionedJobBrokenCheck
           - ConditionedJobWrapperBrokenCheck
-        condition: succeededOrFailed()
+        condition: not(canceled())
         variables:
           resConditionedJobCheck: $[ dependencies.ConditionedJobCheck.result ]
           resConditionedJobWrapperCheck: $[ dependencies.ConditionedJobWrapperCheck.result ]
@@ -684,7 +684,7 @@ stages:
   - stage: TestCombi
     displayName: Test Combi
     dependsOn: PreparationCombi
-    condition: and(succeededOrFailed(), eq(dependencies.PreparationCombi.outputs['PrepareCombi.SetSummary.isTestedSummary'], 'true'))
+    condition: and(not(canceled()), eq(dependencies.PreparationCombi.outputs['PrepareCombi.SetSummary.isTestedSummary'], 'true'))
     jobs:
       # A positivos (directo + wrapper)
       - template: /scripts-templates/jobs/conditioned-job.yml
@@ -695,7 +695,7 @@ stages:
           conditionalJob: PrepareCombi
           conditionalTask: SetOutputsA
           conditionalVariable: isTestedA
-          condition: succeededOrFailed()
+          condition: not(canceled())
           mappingVariables:
             outBuildIdA: mappedOutBuildIdA
             outDefinitionNameA: mappedOutDefinitionNameA
@@ -736,7 +736,7 @@ stages:
           conditionalJob: PrepareCombi
           conditionalTask: SetOutputsA
           conditionalVariable: isTestedA
-          condition: succeededOrFailed()
+          condition: not(canceled())
           dependsOn:
             - ConditionedJobCheckA
           mappingVariables:
@@ -784,7 +784,7 @@ stages:
           conditionalJob: PrepareCombi
           conditionalTask: SetOutputsA
           conditionalVariable: isBrokenA
-          condition: succeededOrFailed()
+          condition: not(canceled())
           dependsOn:
             - ConditionedJobWrapperCheckA
           steps:
@@ -805,7 +805,7 @@ stages:
           conditionalJob: PrepareCombi
           conditionalTask: SetOutputsA
           conditionalVariable: isBrokenA
-          condition: succeededOrFailed()
+          condition: not(canceled())
           dependsOn:
             - ConditionedJobBrokenCheckA
           parameters:
@@ -831,7 +831,7 @@ stages:
           conditionalJob: PrepareCombi
           conditionalTask: SetOutputsB
           conditionalVariable: isTestedB
-          condition: succeededOrFailed()
+          condition: not(canceled())
           dependsOn:
             - ConditionedJobWrapperBrokenCheckA
           mappingVariables:
@@ -874,7 +874,7 @@ stages:
           conditionalJob: PrepareCombi
           conditionalTask: SetOutputsB
           conditionalVariable: isTestedB
-          condition: succeededOrFailed()
+          condition: not(canceled())
           dependsOn:
             - ConditionedJobCheckB
           mappingVariables:
@@ -922,7 +922,7 @@ stages:
           conditionalJob: PrepareCombi
           conditionalTask: SetOutputsB
           conditionalVariable: isBrokenB
-          condition: succeededOrFailed()
+          condition: not(canceled())
           dependsOn:
             - ConditionedJobWrapperCheckB
           steps:
@@ -943,7 +943,7 @@ stages:
           conditionalJob: PrepareCombi
           conditionalTask: SetOutputsB
           conditionalVariable: isBrokenB
-          condition: succeededOrFailed()
+          condition: not(canceled())
           dependsOn:
             - ConditionedJobBrokenCheckB
           parameters:
@@ -972,7 +972,7 @@ stages:
           - ConditionedJobWrapperCheckB
           - ConditionedJobBrokenCheckB
           - ConditionedJobWrapperBrokenCheckB
-        condition: succeededOrFailed()
+        condition: not(canceled())
         variables:
           resConditionedJobCheckA: $[ dependencies.ConditionedJobCheckA.result ]
           resConditionedJobWrapperCheckA: $[ dependencies.ConditionedJobWrapperCheckA.result ]
@@ -1011,3 +1011,4 @@ stages:
               Write-Output "Combi execution/results verification passed."
             name: VerifyExecutionResultsCombi
             displayName: Verify execution results combi
+
