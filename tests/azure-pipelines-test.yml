@@ -698,7 +698,7 @@ stages:
               $isBrokenA = '$(SetOutputsA.isBrokenA)'
               $isBrokenB = '$(SetOutputsB.isBrokenB)'
 
-              $isTestedSummary = if ($isTestedA -eq 'true' -and $isTestedB -eq 'true') { 'true' } else { 'false' }
+              $isTestedSummary = if ($isTestedA -eq 'true' -or $isTestedB -eq 'true') { 'true' } else { 'false' }
               $isBrokenSummary = if ($isBrokenA -eq 'true' -and $isBrokenB -eq 'true') { 'true' } else { 'false' }
 
               Write-Output "summary.isTestedA: $isTestedA"
