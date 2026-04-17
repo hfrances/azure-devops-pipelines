@@ -24,9 +24,7 @@ parameters:
 steps:
   - task: PowerShell@2
     name: |
-      ${{ coalesce(parameters.taskName, replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(
-      format('DetectPipelineTag_{0}_{1}_{2}', coalesce(parameters.definitionKey, '~'), coalesce(parameters.tagPrefix, '~'), coalesce(parameters.tagSuffix, '~')),
-      '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '(', '_'), ')', '_'), '{', '_'), '}', '_'), '[', '_'), ']', '_'), '@', '_'), '%', '_'), '$', '_'), '~_~', ''), '~_', ''), '_~', ''), '__', '_') }}
+          ${{ coalesce(parameters.taskName, replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(format('DetectPipelineTag_{0}_{1}_{2}', coalesce(parameters.definitionKey, '~'), coalesce(parameters.tagPrefix, '~'), coalesce(parameters.tagSuffix, '~')), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '(', '_'), ')', '_'), '{', '_'), '}', '_'), '[', '_'), ']', '_'), '@', '_'), '%', '_'), '$', '_'), '~_~', ''), '~_', ''), '_~', ''), '__', '_') }}
     displayName: ${{ parameters.displayName }}
     env:
       SYSTEM_ACCESSTOKEN: $(System.AccessToken)
