@@ -585,6 +585,25 @@ stages:
             name: VerifyExecutionResults
             displayName: Verify execution results
 
+  # Stage template del caso Single (dependiente de PreparationSingle).
+  - template: /scripts-templates/stages/conditioned-stage.yml
+    parameters:
+      stageName: StageSingle
+      displayName: Stage Single
+      conditionalStage: PreparationSingle
+      conditionalJob: Prepare
+      conditionalTask: SetOutputs
+      conditionalVariable: isTested
+      condition: not(canceled())
+      jobs:
+        - job: StageSingleMarker
+          displayName: Stage single marker
+          steps:
+            - pwsh: |
+                Write-Output "StageSingle ejecutado con isTested=true desde PreparationSingle."
+              name: Marker
+              displayName: Marker
+
   # Stage: prepara variables A/B y un Summary agregado para escenario Combi.
   - stage: PreparationCombi
     displayName: Preparation Combi
@@ -684,7 +703,7 @@ stages:
   - stage: TestCombi
     displayName: Test Combi
     dependsOn: PreparationCombi
-    condition: and(not(canceled()), eq(dependencies.PreparationCombi.outputs['PrepareCombi.SetSummary.isTestedSummary'], 'true'))
+    condition: not(canceled())
     jobs:
       # A positivos (directo + wrapper)
       - template: /scripts-templates/jobs/conditioned-job.yml
@@ -1012,3 +1031,21 @@ stages:
             name: VerifyExecutionResultsCombi
             displayName: Verify execution results combi
 
+  # Stage template del caso Combi (dependiente de PreparationCombi).
+  - template: /scripts-templates/stages/conditioned-stage.yml
+    parameters:
+      stageName: StageCombi
+      displayName: Stage Combi
+      conditionalStage: PreparationCombi
+      conditionalJob: PrepareCombi
+      conditionalTask: SetSummary
+      conditionalVariable: isTestedSummary
+      condition: not(canceled())
+      jobs:
+        - job: StageCombiMarker
+          displayName: Stage combi marker
+          steps:
+            - pwsh: |
+                Write-Output "StageCombi ejecutado con isTestedSummary=true desde PreparationCombi."
+              name: Marker
+              displayName: Marker
