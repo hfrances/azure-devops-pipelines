@@ -28,11 +28,12 @@ stages:
           - pwsh: |
               $isTested = 'true'
               $isBroken = 'false'
-              
+
               $invertConditionFlags = '${{ parameters.invertConditionFlags }}'
               if ($invertConditionFlags -eq 'True') {
-                $isTested = !$isTested
-                $isBroken = !$isBroken
+                $tmp = $isTested
+                $isTested = $isBroken
+                $isBroken = $tmp
               }
 
               $outBuildId = '$(Build.BuildId)'
@@ -43,7 +44,7 @@ stages:
               Write-Output ""
 
               Write-Output "invertConditionFlags: $invertConditionFlags"
-
+              
               Write-Output "isTested: $isTested (output=true)"
               Write-Output "##vso[task.setvariable variable=isTested;isOutput=true]$isTested"
 
