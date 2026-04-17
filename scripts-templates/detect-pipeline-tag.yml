@@ -117,6 +117,7 @@ steps:
         $candidateRunId = ''
         foreach ($b in $builds) {
           $tags = Get-BuildTags -buildId $b.id
+          Write-Host "Build $($b.id) tags: $($tags -join ',')"
           if ($tags -contains $requiredTag) {
             $candidateRunId = [string]$b.id
             break
@@ -124,7 +125,7 @@ steps:
         }
 
         $pending = if ($candidateRunId -ne '') { 'true' } else { 'false' }
-        Write-Host "Resolved tag: required=$requiredTag definitionKey=$definitionKey definitionBranch=$definitionBranch candidate=$candidateRunId pending=$pending definitionId=$definitionId"
+        Write-Host "Resolved tag: required=$requiredTag candidate=$candidateRunId pending=$pending definitionId=$definitionId definitionBranch=$definitionBranch"
 
         Write-Output "##vso[task.setvariable variable=DefinitionId]$definitionId"
         Write-Output "##vso[task.setvariable variable=RequiredTag]$requiredTag"
