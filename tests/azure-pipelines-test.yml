@@ -83,7 +83,7 @@ stages:
       - template: /scripts-templates/jobs/conditioned-job.yml
         parameters:
           jobName: ConditionedJobCheckAlone
-          displayName: Conditioned job check alone
+          displayName: Check Alone
           conditionalStage: ''
           conditionalJob: PrepareAlone
           conditionalTask: SetOutputsAlone
@@ -143,7 +143,7 @@ stages:
 
                 Write-Output "All validations passed."
               name: ValidateMappingsAlone
-              displayName: Validate mapped variables alone
+              displayName: Validate Alone
               condition: and(succeeded(), eq(variables['isTested'], 'true'))
 
       # Job test (wrapper): misma validacion via wrapper en alone.
@@ -168,7 +168,7 @@ stages:
             expectedSourceBranch: $(Build.SourceBranch)
           parameters:
             jobName: ConditionedJobWrapperCheckAlone
-            displayName: Conditioned job wrapper check alone
+            displayName: Wrapper Check Alone
             steps:
               - pwsh: |
                   $hasIssues = $false
@@ -214,14 +214,14 @@ stages:
 
                   Write-Output "All validations passed."
                 name: ValidateMappingsViaWrapperAlone
-                displayName: Validate mapped variables via wrapper alone
+                displayName: Validate Wrapper Alone
                 condition: and(succeeded(), eq(variables['isTested'], 'true'))
 
       # Job test negativo (directo): con isBroken=false debe quedar Skipped por condicion.
       - template: /scripts-templates/jobs/conditioned-job.yml
         parameters:
           jobName: ConditionedJobBrokenCheckAlone
-          displayName: Conditioned job broken check alone
+          displayName: Broken Check Alone
           conditionalStage: ''
           conditionalJob: PrepareAlone
           conditionalTask: SetOutputsAlone
@@ -238,7 +238,7 @@ stages:
                   exit 1
                 }
               name: ValidateBrokenDirectAlone
-              displayName: Validate broken variable direct alone
+              displayName: Validate Broken Alone
 
       # Job test negativo (wrapper): mismo escenario de isBroken=false, tambien debe quedar Skipped.
       - template: /scripts-templates/jobs/conditioned-job-wrapper.yml
@@ -253,7 +253,7 @@ stages:
             - ConditionedJobBrokenCheckAlone
           parameters:
             jobName: ConditionedJobWrapperBrokenCheckAlone
-            displayName: Conditioned job wrapper broken check alone
+            displayName: Wrapper Broken Alone
             steps:
               - pwsh: |
                   Write-Output "isBroken: $(isBroken)"
@@ -263,11 +263,11 @@ stages:
                   exit 1
                   }
                 name: ValidateBrokenViaWrapperAlone
-                displayName: Validate broken variable wrapper alone
+                displayName: Validate Broken Wrp Alone
 
       # Job de verificacion final alone: asegura estados esperados.
       - job: VerifyConditionedExecutionAlone
-        displayName: Verify conditioned jobs execution alone
+        displayName: Verify Jobs Alone
         dependsOn:
           - ConditionedJobCheckAlone
           - ConditionedJobWrapperCheckAlone
@@ -303,7 +303,7 @@ stages:
 
               Write-Output "alone execution/results verification passed."
             name: VerifyExecutionResultsAlone
-            displayName: Verify execution results alone
+            displayName: Verify Results Alone
 
   # Stage: prepara variables de prueba y outputs para el resto de tests.
   - stage: PreparationSingle
@@ -369,7 +369,7 @@ stages:
       - template: /scripts-templates/jobs/conditioned-job.yml
         parameters:
           jobName: ConditionedJobCheck
-          displayName: Conditioned job check
+          displayName: Check
           conditionalStage: PreparationSingle
           conditionalJob: Prepare
           conditionalTask: SetOutputs
@@ -430,7 +430,7 @@ stages:
 
                 Write-Output "All validations passed."
               name: ValidateMappings
-              displayName: Validate mapped variables
+              displayName: Validate
               condition: and(succeeded(), eq(variables['isTested'], 'true'))
 
       # Job test (wrapper): misma validacion que el job directo pero pasando por wrapper.
@@ -455,7 +455,7 @@ stages:
             expectedSourceBranch: $(Build.SourceBranch)
           parameters:
             jobName: ConditionedJobWrapperCheck
-            displayName: Conditioned job wrapper check
+            displayName: Wrapper Check
             steps:
               # Task test: valida condicion y mapeos en la ruta wrapper.
               - pwsh: |
@@ -502,14 +502,14 @@ stages:
 
                   Write-Output "All validations passed."
                 name: ValidateMappingsViaWrapper
-                displayName: Validate mapped variables via wrapper
+                displayName: Validate Wrapper
                 condition: and(succeeded(), eq(variables['isTested'], 'true'))
 
       # Job test negativo (directo): con isBroken=false debe quedar Skipped por condicion.
       - template: /scripts-templates/jobs/conditioned-job.yml
         parameters:
           jobName: ConditionedJobBrokenCheck
-          displayName: Conditioned job broken check
+          displayName: Broken Check
           conditionalStage: PreparationSingle
           conditionalJob: Prepare
           conditionalTask: SetOutputs
@@ -527,7 +527,7 @@ stages:
                   exit 1
                 }
               name: ValidateBrokenDirect
-              displayName: Validate broken variable (direct)
+              displayName: Validate Broken
 
       # Job test negativo (wrapper): mismo escenario de isBroken=false, tambien debe quedar Skipped.
       - template: /scripts-templates/jobs/conditioned-job-wrapper.yml
@@ -542,7 +542,7 @@ stages:
             - ConditionedJobBrokenCheck
           parameters:
             jobName: ConditionedJobWrapperBrokenCheck
-            displayName: Conditioned job wrapper broken check
+            displayName: Wrapper Broken
             steps:
               # Task: espejo del test negativo en la ruta wrapper.
               - pwsh: |
@@ -553,11 +553,11 @@ stages:
                   exit 1
                   }
                 name: ValidateBrokenViaWrapper
-                displayName: Validate broken variable (wrapper)
+                displayName: Validate Broken Wrp
 
       # Job de verificacion final: asegura que los jobs esperados corrieron/skippearon sin errores.
       - job: VerifyConditionedExecution
-        displayName: Verify conditioned jobs execution
+        displayName: Verify Jobs
         dependsOn:
           - ConditionedJobCheck
           - ConditionedJobWrapperCheck
@@ -594,7 +594,7 @@ stages:
 
               Write-Output "Execution/results verification passed."
             name: VerifyExecutionResults
-            displayName: Verify execution results
+            displayName: Verify Results
 
   # Stage template del caso Single (dependiente de PreparationSingle).
   - template: /scripts-templates/stages/conditioned-stage.yml
@@ -722,7 +722,7 @@ stages:
       - template: /scripts-templates/jobs/conditioned-job.yml
         parameters:
           jobName: ConditionedJobCheckA
-          displayName: Conditioned job check A
+          displayName: Check A
           conditionalStage: PreparationCombi
           conditionalJob: PrepareCombi
           conditionalTask: SetOutputsA
@@ -758,7 +758,7 @@ stages:
                 CheckMustBeEmpty 'mappedPlainLocalOnlyA' '$(mappedPlainLocalOnlyA)'
                 if ($hasIssues) { Write-Output "##vso[task.complete result=SucceededWithIssues;]DONE"; exit 0 }
               name: ValidateMappingsA
-              displayName: Validate mapped variables A
+              displayName: Validate A
               condition: and(succeeded(), eq(variables['isTestedA'], 'true'))
 
       - template: /scripts-templates/jobs/conditioned-job-wrapper.yml
@@ -782,7 +782,7 @@ stages:
             expectedSourceBranch: $(Build.SourceBranch)
           parameters:
             jobName: ConditionedJobWrapperCheckA
-            displayName: Conditioned job wrapper check A
+            displayName: Wrapper Check A
             steps:
               - pwsh: |
                   $hasIssues = $false
@@ -804,14 +804,14 @@ stages:
                   CheckMustBeEmpty 'wrapperMappedPlainLocalOnlyA' '$(wrapperMappedPlainLocalOnlyA)'
                   if ($hasIssues) { Write-Output "##vso[task.complete result=SucceededWithIssues;]DONE"; exit 0 }
                 name: ValidateMappingsViaWrapperA
-                displayName: Validate mapped variables via wrapper A
+                displayName: Validate Wrapper A
                 condition: and(succeeded(), eq(variables['isTestedA'], 'true'))
 
       # A negativos (directo + wrapper)
       - template: /scripts-templates/jobs/conditioned-job.yml
         parameters:
           jobName: ConditionedJobBrokenCheckA
-          displayName: Conditioned job broken check A
+          displayName: Broken Check A
           conditionalStage: PreparationCombi
           conditionalJob: PrepareCombi
           conditionalTask: SetOutputsA
@@ -828,7 +828,7 @@ stages:
                   exit 1
                 }
               name: ValidateBrokenDirectA
-              displayName: Validate broken variable direct A
+              displayName: Validate Broken A
 
       - template: /scripts-templates/jobs/conditioned-job-wrapper.yml
         parameters:
@@ -842,7 +842,7 @@ stages:
             - ConditionedJobBrokenCheckA
           parameters:
             jobName: ConditionedJobWrapperBrokenCheckA
-            displayName: Conditioned job wrapper broken check A
+            displayName: Wrapper Broken A
             steps:
               - pwsh: |
                   Write-Output "isBrokenA: $(isBrokenA)"
@@ -852,13 +852,13 @@ stages:
                   exit 1
                   }
                 name: ValidateBrokenViaWrapperA
-                displayName: Validate broken variable wrapper A
+                displayName: Validate Broken Wrp A
 
       # B positivos (directo + wrapper)
       - template: /scripts-templates/jobs/conditioned-job.yml
         parameters:
           jobName: ConditionedJobCheckB
-          displayName: Conditioned job check B
+          displayName: Check B
           conditionalStage: PreparationCombi
           conditionalJob: PrepareCombi
           conditionalTask: SetOutputsB
@@ -896,7 +896,7 @@ stages:
                 CheckMustBeEmpty 'mappedPlainLocalOnlyB' '$(mappedPlainLocalOnlyB)'
                 if ($hasIssues) { Write-Output "##vso[task.complete result=SucceededWithIssues;]DONE"; exit 0 }
               name: ValidateMappingsB
-              displayName: Validate mapped variables B
+              displayName: Validate B
               condition: and(succeeded(), eq(variables['isTestedB'], 'true'))
 
       - template: /scripts-templates/jobs/conditioned-job-wrapper.yml
@@ -920,7 +920,7 @@ stages:
             expectedSourceBranch: $(Build.SourceBranch)
           parameters:
             jobName: ConditionedJobWrapperCheckB
-            displayName: Conditioned job wrapper check B
+            displayName: Wrapper Check B
             steps:
               - pwsh: |
                   $hasIssues = $false
@@ -942,14 +942,14 @@ stages:
                   CheckMustBeEmpty 'wrapperMappedPlainLocalOnlyB' '$(wrapperMappedPlainLocalOnlyB)'
                   if ($hasIssues) { Write-Output "##vso[task.complete result=SucceededWithIssues;]DONE"; exit 0 }
                 name: ValidateMappingsViaWrapperB
-                displayName: Validate mapped variables via wrapper B
+                displayName: Validate Wrapper B
                 condition: and(succeeded(), eq(variables['isTestedB'], 'true'))
 
       # B negativos (directo + wrapper)
       - template: /scripts-templates/jobs/conditioned-job.yml
         parameters:
           jobName: ConditionedJobBrokenCheckB
-          displayName: Conditioned job broken check B
+          displayName: Broken Check B
           conditionalStage: PreparationCombi
           conditionalJob: PrepareCombi
           conditionalTask: SetOutputsB
@@ -966,7 +966,7 @@ stages:
                   exit 1
                 }
               name: ValidateBrokenDirectB
-              displayName: Validate broken variable direct B
+              displayName: Validate Broken B
 
       - template: /scripts-templates/jobs/conditioned-job-wrapper.yml
         parameters:
@@ -980,7 +980,7 @@ stages:
             - ConditionedJobBrokenCheckB
           parameters:
             jobName: ConditionedJobWrapperBrokenCheckB
-            displayName: Conditioned job wrapper broken check B
+            displayName: Wrapper Broken B
             steps:
               - pwsh: |
                   Write-Output "isBrokenB: $(isBrokenB)"
@@ -990,11 +990,11 @@ stages:
                   exit 1
                   }
                 name: ValidateBrokenViaWrapperB
-                displayName: Validate broken variable wrapper B
+                displayName: Validate Broken Wrp B
 
       # Verificador final Combi.
       - job: VerifyConditionedExecutionCombi
-        displayName: Verify conditioned jobs execution combi
+        displayName: Verify Jobs Combi
         dependsOn:
           - ConditionedJobCheckA
           - ConditionedJobWrapperCheckA
@@ -1042,7 +1042,7 @@ stages:
 
               Write-Output "Combi execution/results verification passed."
             name: VerifyExecutionResultsCombi
-            displayName: Verify execution results combi
+            displayName: Verify Results Combi
 
   # Stage template del caso Combi (dependiente de PreparationCombi).
   - template: /scripts-templates/stages/conditioned-stage.yml
@@ -1067,14 +1067,14 @@ stages:
 
   # Stage final: valida que StageSingle y StageCombi se han ejecutado realmente.
   - stage: VerifyTemplatedStages
-    displayName: Verify templated stages execution
+    displayName: Verify stages execution
     dependsOn:
       - StageSingle
       - StageCombi
     condition: not(canceled())
     jobs:
       - job: VerifyStagesExecution
-        displayName: Verify StageSingle and StageCombi
+        displayName: Verify Stages
         variables:
           stageSingleExecuted: $[ stageDependencies.StageSingle.StageSingleMarker.outputs['Marker.stageSingleExecuted'] ]
           stageCombiExecuted: $[ stageDependencies.StageCombi.StageCombiMarker.outputs['Marker.stageCombiExecuted'] ]
@@ -1112,4 +1112,6 @@ stages:
 
               Write-Output "Templated stages execution verification passed."
             name: VerifyTemplatedStagesExecution
-            displayName: Verify templated stages execution
+            displayName: Verify Templated
+
+
