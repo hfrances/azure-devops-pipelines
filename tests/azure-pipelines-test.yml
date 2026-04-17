@@ -72,7 +72,7 @@ stages:
   - stage: TestSingle
     displayName: Test Single
     dependsOn: Preparation
-    condition: always()
+    condition: succeeded()
     jobs:
       # Job test (directo): valida condicion por isTested y mapeo de outputs/no-outputs.
       - template: /scripts-templates/jobs/conditioned-job.yml
