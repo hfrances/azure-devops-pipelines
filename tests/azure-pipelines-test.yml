@@ -1,5 +1,13 @@
-trigger: none
-pr: none
+trigger:
+  batch: true
+  branches:
+    include:
+      - master
+      - main
+      - staging
+      - azure-pipelines
+      - azure-pipelines-*
+      - feature/aca-deploy-job-*
 
 stages:
   - stage: Preparation
@@ -41,10 +49,10 @@ stages:
         parameters:
           jobName: ConditionedJobCheck
           displayName: Conditioned job check
-          parentStageName: Preparation
-          parentSummaryJobName: Prepare
-          parentSummaryTaskName: SetOutputs
-          parentSummaryVariableName: isTested
+          conditionalStage: Preparation
+          conditionalJob: Prepare
+          conditionalTask: SetOutputs
+          conditionalVariable: isTested
           mappingVariables:
             outBuildId: mappedOutBuildId
             outDefinitionName: mappedOutDefinitionName
@@ -64,20 +72,20 @@ stages:
                 }
 
                 function CheckExpected([string]$key, [string]$actual, [string]$expected) {
-                  Write-Output "$key: $actual"
+                  Write-Output "${key}: $actual"
                   if ([string]::IsNullOrWhiteSpace($actual)) {
-                    Warn "$key should have value but arrived empty."
+                    Warn "${key} should have value but arrived empty."
                     return
                   }
                   if ($actual -ne $expected) {
-                    Warn "$key expected '$expected' but got '$actual'."
+                    Warn "${key} expected '$expected' but got '$actual'."
                   }
                 }
 
                 function CheckMustBeEmpty([string]$key, [string]$actual) {
-                  Write-Output "$key: $actual"
+                  Write-Output "${key}: $actual"
                   if (-not [string]::IsNullOrWhiteSpace($actual)) {
-                    Warn "$key should be empty because source variable was not output."
+                    Warn "${key} should be empty because source variable was not output."
                   }
                 }
 

@@ -5,15 +5,15 @@ parameters:
   - name: displayName
     type: string
     default: ''
-  - name: parentStageName
+  - name: conditionalStage
     type: string
     default: ''
-  - name: parentSummaryJobName
+  - name: conditionalJob
     type: string
-  - name: parentSummaryTaskName
+  - name: conditionalTask
     type: string
     default: 'SetOutputs'
-  - name: parentSummaryVariableName
+  - name: conditionalVariable
     type: string
   - name: mappingVariables
     type: object
@@ -41,34 +41,34 @@ jobs:
         - name: ${{ pair.key }}
           value: ${{ pair.value }}
       # 2. Dependency resolution (mappingVariables)
-      - ${{ if ne(parameters.parentStageName, '') }}:
+      - ${{ if ne(parameters.conditionalStage, '') }}:
         - ${{ each pair in parameters.mappingVariables }}:
           - name: ${{ pair.value }}
-            value: $[ stageDependencies.${{ parameters.parentStageName }}.${{ parameters.parentSummaryJobName }}.outputs['${{ parameters.parentSummaryTaskName }}.${{ pair.key }}'] ]
-      - ${{ if eq(parameters.parentStageName, '') }}:
+            value: $[ stageDependencies.${{ parameters.conditionalStage }}.${{ parameters.conditionalJob }}.outputs['${{ parameters.conditionalTask }}.${{ pair.key }}'] ]
+      - ${{ if eq(parameters.conditionalStage, '') }}:
         - ${{ each pair in parameters.mappingVariables }}:
           - name: ${{ pair.value }}
-            value: $[ dependencies.${{ parameters.parentSummaryJobName }}.outputs['${{ parameters.parentSummaryTaskName }}.${{ pair.key }}'] ]
+            value: $[ dependencies.${{ parameters.conditionalJob }}.outputs['${{ parameters.conditionalTask }}.${{ pair.key }}'] ]
       # 3. Parent Summary Variable
-      - ${{ if and(ne(parameters.parentSummaryVariableName, ''), ne(parameters.parentStageName, '')) }}:
-        - name: ${{ parameters.parentSummaryVariableName }}
-          value: $[ stageDependencies.${{ parameters.parentStageName }}.${{ parameters.parentSummaryJobName }}.outputs['${{ parameters.parentSummaryTaskName }}.${{ parameters.parentSummaryVariableName }}'] ]
-      - ${{ if and(ne(parameters.parentSummaryVariableName, ''), eq(parameters.parentStageName, '')) }}:
-        - name: ${{ parameters.parentSummaryVariableName }}
-          value: $[ dependencies.${{ parameters.parentSummaryJobName }}.outputs['${{ parameters.parentSummaryTaskName }}.${{ parameters.parentSummaryVariableName }}'] ]
+      - ${{ if and(ne(parameters.conditionalVariable, ''), ne(parameters.conditionalStage, '')) }}:
+        - name: ${{ parameters.conditionalVariable }}
+          value: $[ stageDependencies.${{ parameters.conditionalStage }}.${{ parameters.conditionalJob }}.outputs['${{ parameters.conditionalTask }}.${{ parameters.conditionalVariable }}'] ]
+      - ${{ if and(ne(parameters.conditionalVariable, ''), eq(parameters.conditionalStage, '')) }}:
+        - name: ${{ parameters.conditionalVariable }}
+          value: $[ dependencies.${{ parameters.conditionalJob }}.outputs['${{ parameters.conditionalTask }}.${{ parameters.conditionalVariable }}'] ]
 
     dependsOn:
-      - ${{ if eq(parameters.parentStageName, '') }}:
-        - ${{ parameters.parentSummaryJobName }}
+      - ${{ if eq(parameters.conditionalStage, '') }}:
+        - ${{ parameters.conditionalJob }}
       - ${{ each dep in parameters.dependsOn }}:
         - ${{ dep }}
 
     # Dynamic condition using direct dependency
-    ${{ if and(ne(parameters.parentSummaryVariableName, ''), ne(parameters.parentStageName, '')) }}:
-      condition: and(${{ parameters.condition }}, eq(stageDependencies.${{ parameters.parentStageName }}.${{ parameters.parentSummaryJobName }}.outputs['${{ parameters.parentSummaryTaskName }}.${{ parameters.parentSummaryVariableName }}'], 'true'))
-    ${{ if and(ne(parameters.parentSummaryVariableName, ''), eq(parameters.parentStageName, '')) }}:
-      condition: and(${{ parameters.condition }}, eq(dependencies.${{ parameters.parentSummaryJobName }}.outputs['${{ parameters.parentSummaryTaskName }}.${{ parameters.parentSummaryVariableName }}'], 'true'))
-    ${{ if eq(parameters.parentSummaryVariableName, '') }}:
+    ${{ if and(ne(parameters.conditionalVariable, ''), ne(parameters.conditionalStage, '')) }}:
+      condition: and(${{ parameters.condition }}, eq(stageDependencies.${{ parameters.conditionalStage }}.${{ parameters.conditionalJob }}.outputs['${{ parameters.conditionalTask }}.${{ parameters.conditionalVariable }}'], 'true'))
+    ${{ if and(ne(parameters.conditionalVariable, ''), eq(parameters.conditionalStage, '')) }}:
+      condition: and(${{ parameters.condition }}, eq(dependencies.${{ parameters.conditionalJob }}.outputs['${{ parameters.conditionalTask }}.${{ parameters.conditionalVariable }}'], 'true'))
+    ${{ if eq(parameters.conditionalVariable, '') }}:
       condition: ${{ parameters.condition }}
 
     # =========================================================

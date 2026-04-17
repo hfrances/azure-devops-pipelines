@@ -5,14 +5,14 @@ parameters:
   - name: displayName
     type: string
     default: ''
-  - name: parentStageName
+  - name: conditionalStage
     type: string
-  - name: parentSummaryJobName
+  - name: conditionalJob
     type: string
-  - name: parentSummaryTaskName
+  - name: conditionalTask
     type: string
     default: 'SetOutputs'
-  - name: parentSummaryVariableName
+  - name: conditionalVariable
     type: string
   - name: mappingVariables
     type: object
@@ -42,18 +42,18 @@ stages:
       # 2. Dependency resolution (mappingVariables)
       - ${{ each pair in parameters.mappingVariables }}:
         - name: ${{ pair.value }}
-          value: $[ stageDependencies.${{ parameters.parentStageName }}.${{ parameters.parentSummaryJobName }}.outputs['${{ parameters.parentSummaryTaskName }}.${{ pair.key }}'] ]
+          value: $[ stageDependencies.${{ parameters.conditionalStage }}.${{ parameters.conditionalJob }}.outputs['${{ parameters.conditionalTask }}.${{ pair.key }}'] ]
       # 3. Parent Summary Variable
-      - name: ${{ parameters.parentSummaryVariableName }}
-        value: $[ stageDependencies.${{ parameters.parentStageName }}.${{ parameters.parentSummaryJobName }}.outputs['${{ parameters.parentSummaryTaskName }}.${{ parameters.parentSummaryVariableName }}'] ]
+      - name: ${{ parameters.conditionalVariable }}
+        value: $[ stageDependencies.${{ parameters.conditionalStage }}.${{ parameters.conditionalJob }}.outputs['${{ parameters.conditionalTask }}.${{ parameters.conditionalVariable }}'] ]
 
     dependsOn:
-      - ${{ parameters.parentStageName }}
+      - ${{ parameters.conditionalStage }}
       - ${{ each dep in parameters.dependsOn }}:
         - ${{ dep }}
 
     # Dynamic condition using direct dependency
-    condition: and(${{ parameters.condition }}, eq(dependencies.${{ parameters.parentStageName }}.outputs['${{ parameters.parentSummaryJobName }}.${{ parameters.parentSummaryTaskName }}.${{ parameters.parentSummaryVariableName }}'], 'true'))
+    condition: and(${{ parameters.condition }}, eq(dependencies.${{ parameters.conditionalStage }}.outputs['${{ parameters.conditionalJob }}.${{ parameters.conditionalTask }}.${{ parameters.conditionalVariable }}'], 'true'))
 
     # =========================================================
     # Inject the real jobs
