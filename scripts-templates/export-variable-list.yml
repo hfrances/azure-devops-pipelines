@@ -2,6 +2,12 @@ parameters:
   - name: condition
     type: string
     default: succeededOrFailed()
+  - name: path
+    type: string
+    default: '$(Build.ArtifactStagingDirectory)/drop'
+  - name: fileName
+    type: string
+    default: ''
 
 steps:
   - task: PowerShell@2
@@ -12,11 +18,59 @@ steps:
         $var = (gci env:*).GetEnumerator() | Sort-Object Name
         $out = ""
         Foreach ($v in $var) {$out = $out + "`t{0,-28} = {1,-28}`n" -f $v.Name, $v.Value}
-      
-        $fileName = Join-Path "$env:BUILD_ARTIFACTSTAGINGDIRECTORY" "drop/variable-list-$env:SYSTEM_PHASENAME.md"
+
+        $paramPath = '${{ parameters.path }}'
+        if ([string]::IsNullOrEmpty($paramPath)) {
+          $path = '$(Build.ArtifactStagingDirectory)/drop'
+        } else {
+          $path = $paramPath
+        }
+        $path = $path -replace '\$\(Build\.ArtifactStagingDirectory\)', $env:BUILD_ARTIFACTSTAGINGDIRECTORY
+
+        if (!(Test-Path $path)) {
+          New-Item -itemType Directory -Path $path -Force | Out-Null
+        }
+
+        $paramFile = '${{ parameters.fileName }}'
+        if ([string]::IsNullOrEmpty($paramFile)) {
+          $fileBase = "variable-list-$env:SYSTEM_PHASENAME.md"
+        } else {
+          $fileBase = $paramFile
+          if ($fileBase -notlike '*.md') { $fileBase = $fileBase + '.md' }
+        }
+
+        $fileName = Join-Path $path $fileBase
         write-output "dump variables on $fileName"
         set-content $fileName $out
 
         write-output "##vso[task.addattachment type=Distributedtask.Core.Summary;name=Environment Variables ($env:SYSTEM_JOBDISPLAYNAME);]$fileName"
     displayName: 'Export variable list'
     condition: ${{ parameters.condition }}
+
+  # Documentation
+  # - Purpose:
+  #   Export all agent environment variables to a markdown file and attach it to the
+  #   pipeline summary. Keeps file naming and placement configurable via parameters.
+  # - Outputs:
+  #   - A markdown file written to the configured `path`.
+  #   - A pipeline summary attachment referencing the written file.
+  # - Inputs:
+  #   - parameter condition:
+  #     execution condition for the step (default: succeededOrFailed()).
+  #   - parameter path:
+  #     output folder path where the file is written (defaults to `$(Build.ArtifactStagingDirectory)/drop`).
+  #   - parameter fileName:
+  #     file name to write. If empty, defaults to `variable-list-$SYSTEM_PHASENAME.md`.
+  # - Behavior:
+  #   - Expands `$(Build.ArtifactStagingDirectory)` when present in `path`.
+  #   - Ensures the target directory exists (creates it if missing).
+  #   - Appends `.md` to `fileName` if it lacks the extension.
+  #   - File content: list of environment variables sorted by name.
+  #   - Adds a pipeline summary attachment named "Environment Variables (<job display name>)".
+  # - Data sources:
+  #   - The agent environment (PowerShell `Get-ChildItem Env:`).
+  # - High-level flow:
+  #   1. Build variables list sorted by name.
+  #   2. Resolve `path` and create directory if necessary.
+  #   3. Resolve `fileName` (or use fallback using `SYSTEM_PHASENAME`), ensure `.md`.
+  #   4. Write file and add pipeline summary attachment.
