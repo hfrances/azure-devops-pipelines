@@ -16,57 +16,6 @@ trigger:
       - feature/aca-deploy-job-*
 
 stages:
-  # Stage: prepara variables de prueba y outputs para el resto de tests.
-  - stage: Preparation
-    displayName: Preparation
-    jobs:
-      # Job: construye el contexto base de validacion (outputs y no-outputs).
-      - job: Prepare
-        displayName: Prepare
-        steps:
-          # Task: publica variables output (isTested, isBroken, out*) y una no-output (plainLocalOnly).
-          - pwsh: |
-              $isTested = 'true'
-              $isBroken = 'false'
-
-              $invertConditionFlags = '${{ parameters.invertConditionFlags }}'
-              if ($invertConditionFlags -eq 'True') {
-                $tmp = $isTested
-                $isTested = $isBroken
-                $isBroken = $tmp
-              }
-
-              $outBuildId = '$(Build.BuildId)'
-              $outDefinitionName = '$(Build.DefinitionName)'
-              $outSourceBranch = '$(Build.SourceBranch)'
-              $plainLocalOnly = 'local-only-value'
-
-              Write-Output ""
-
-              Write-Output "invertConditionFlags: $invertConditionFlags"
-              
-              Write-Output "isTested: $isTested (output=true)"
-              Write-Output "##vso[task.setvariable variable=isTested;isOutput=true]$isTested"
-
-              Write-Output "isBroken: $isBroken (output=true)"
-              Write-Output "##vso[task.setvariable variable=isBroken;isOutput=true]$isBroken"
-
-              Write-Output ""
-
-              Write-Output "outBuildId: $outBuildId (output=true)"
-              Write-Output "##vso[task.setvariable variable=outBuildId;isOutput=true]$outBuildId"
-
-              Write-Output "outDefinitionName: $outDefinitionName (output=true)"
-              Write-Output "##vso[task.setvariable variable=outDefinitionName;isOutput=true]$outDefinitionName"
-
-              Write-Output "outSourceBranch: $outSourceBranch (output=true)"
-              Write-Output "##vso[task.setvariable variable=outSourceBranch;isOutput=true]$outSourceBranch"
-
-              Write-Output "plainLocalOnly: $plainLocalOnly (output=false)"
-              Write-Output "##vso[task.setvariable variable=plainLocalOnly]$plainLocalOnly"
-            name: SetOutputs
-            displayName: Set outputs
-
   # Stage: replica de pruebas pero consumiendo outputs de un job del mismo stage (dependencies).
   - stage: TestAlone
     displayName: Test Alone
@@ -275,6 +224,7 @@ stages:
                 if ('$(isBroken)' -eq 'true') {
                   Write-Output "##vso[task.logissue type=error]isBroken is true. Failing as expected by test rule."
                   Write-Output "##vso[task.complete result=Failed;]DONE"
+                  exit 1
                 }
               name: ValidateBrokenDirectAlone
               displayName: Validate broken variable direct alone
@@ -299,6 +249,7 @@ stages:
                   if ('$(isBroken)' -eq 'true') {
                     Write-Output "##vso[task.logissue type=error]isBroken is true. Failing as expected by test rule."
                     Write-Output "##vso[task.complete result=Failed;]DONE"
+                  exit 1
                   }
                 name: ValidateBrokenViaWrapperAlone
                 displayName: Validate broken variable wrapper alone
@@ -336,26 +287,79 @@ stages:
 
               if ($hasErrors) {
                 Write-Output "##vso[task.complete result=Failed;]DONE"
+                  exit 1
               }
 
               Write-Output "alone execution/results verification passed."
             name: VerifyExecutionResultsAlone
             displayName: Verify execution results alone
 
+  # Stage: prepara variables de prueba y outputs para el resto de tests.
+  - stage: PreparationSingle
+    displayName: Preparation Single
+    dependsOn: []
+    condition: succeededOrFailed()
+    jobs:
+      # Job: construye el contexto base de validacion (outputs y no-outputs).
+      - job: Prepare
+        displayName: Prepare
+        steps:
+          # Task: publica variables output (isTested, isBroken, out*) y una no-output (plainLocalOnly).
+          - pwsh: |
+              $isTested = 'true'
+              $isBroken = 'false'
+
+              $invertConditionFlags = '${{ parameters.invertConditionFlags }}'
+              if ($invertConditionFlags -eq 'True') {
+                $tmp = $isTested
+                $isTested = $isBroken
+                $isBroken = $tmp
+              }
+
+              $outBuildId = '$(Build.BuildId)'
+              $outDefinitionName = '$(Build.DefinitionName)'
+              $outSourceBranch = '$(Build.SourceBranch)'
+              $plainLocalOnly = 'local-only-value'
+
+              Write-Output ""
+
+              Write-Output "invertConditionFlags: $invertConditionFlags"
+              
+              Write-Output "isTested: $isTested (output=true)"
+              Write-Output "##vso[task.setvariable variable=isTested;isOutput=true]$isTested"
+
+              Write-Output "isBroken: $isBroken (output=true)"
+              Write-Output "##vso[task.setvariable variable=isBroken;isOutput=true]$isBroken"
+
+              Write-Output ""
+
+              Write-Output "outBuildId: $outBuildId (output=true)"
+              Write-Output "##vso[task.setvariable variable=outBuildId;isOutput=true]$outBuildId"
+
+              Write-Output "outDefinitionName: $outDefinitionName (output=true)"
+              Write-Output "##vso[task.setvariable variable=outDefinitionName;isOutput=true]$outDefinitionName"
+
+              Write-Output "outSourceBranch: $outSourceBranch (output=true)"
+              Write-Output "##vso[task.setvariable variable=outSourceBranch;isOutput=true]$outSourceBranch"
+
+              Write-Output "plainLocalOnly: $plainLocalOnly (output=false)"
+              Write-Output "##vso[task.setvariable variable=plainLocalOnly]$plainLocalOnly"
+            name: SetOutputs
+            displayName: Set outputs
 
   # Stage: ejecuta las pruebas de conditioned-job y conditioned-job-wrapper.
   # Debe ejecutarse siempre para observar resultados incluso con fallos previos.
   - stage: TestSingle
     displayName: Test Single
-    dependsOn: Preparation
-    condition: succeeded()
+    dependsOn: PreparationSingle
+    condition: succeededOrFailed()
     jobs:
       # Job test (directo): valida condicion por isTested y mapeo de outputs/no-outputs.
       - template: /scripts-templates/jobs/conditioned-job.yml
         parameters:
           jobName: ConditionedJobCheck
           displayName: Conditioned job check
-          conditionalStage: Preparation
+          conditionalStage: PreparationSingle
           conditionalJob: Prepare
           conditionalTask: SetOutputs
           conditionalVariable: isTested
@@ -422,7 +426,7 @@ stages:
       - template: /scripts-templates/jobs/conditioned-job-wrapper.yml
         parameters:
           template: /tests/templates/conditioned-wrapper-target-job.yml
-          conditionalStage: Preparation
+          conditionalStage: PreparationSingle
           conditionalJob: Prepare
           conditionalTask: SetOutputs
           conditionalVariable: isTested
@@ -495,7 +499,7 @@ stages:
         parameters:
           jobName: ConditionedJobBrokenCheck
           displayName: Conditioned job broken check
-          conditionalStage: Preparation
+          conditionalStage: PreparationSingle
           conditionalJob: Prepare
           conditionalTask: SetOutputs
           conditionalVariable: isBroken
@@ -509,6 +513,7 @@ stages:
                 if ('$(isBroken)' -eq 'true') {
                   Write-Output "##vso[task.logissue type=error]isBroken is true. Failing as expected by test rule."
                   Write-Output "##vso[task.complete result=Failed;]DONE"
+                  exit 1
                 }
               name: ValidateBrokenDirect
               displayName: Validate broken variable (direct)
@@ -517,7 +522,7 @@ stages:
       - template: /scripts-templates/jobs/conditioned-job-wrapper.yml
         parameters:
           template: /tests/templates/conditioned-wrapper-target-job.yml
-          conditionalStage: Preparation
+          conditionalStage: PreparationSingle
           conditionalJob: Prepare
           conditionalTask: SetOutputs
           conditionalVariable: isBroken
@@ -534,6 +539,7 @@ stages:
                   if ('$(isBroken)' -eq 'true') {
                     Write-Output "##vso[task.logissue type=error]isBroken is true. Failing as expected by test rule."
                     Write-Output "##vso[task.complete result=Failed;]DONE"
+                  exit 1
                   }
                 name: ValidateBrokenViaWrapper
                 displayName: Validate broken variable (wrapper)
@@ -572,6 +578,7 @@ stages:
 
               if ($hasErrors) {
                 Write-Output "##vso[task.complete result=Failed;]DONE"
+                  exit 1
               }
 
               Write-Output "Execution/results verification passed."
@@ -581,6 +588,7 @@ stages:
   # Stage: prepara variables A/B y un Summary agregado para escenario Combi.
   - stage: PreparationCombi
     displayName: Preparation Combi
+    dependsOn: []
     jobs:
       - job: PrepareCombi
         displayName: Prepare combi
@@ -785,6 +793,7 @@ stages:
                 if ('$(isBrokenA)' -eq 'true') {
                   Write-Output "##vso[task.logissue type=error]isBrokenA is true. Failing as expected by test rule."
                   Write-Output "##vso[task.complete result=Failed;]DONE"
+                  exit 1
                 }
               name: ValidateBrokenDirectA
               displayName: Validate broken variable direct A
@@ -808,6 +817,7 @@ stages:
                   if ('$(isBrokenA)' -eq 'true') {
                     Write-Output "##vso[task.logissue type=error]isBrokenA is true. Failing as expected by test rule."
                     Write-Output "##vso[task.complete result=Failed;]DONE"
+                  exit 1
                   }
                 name: ValidateBrokenViaWrapperA
                 displayName: Validate broken variable wrapper A
@@ -921,6 +931,7 @@ stages:
                 if ('$(isBrokenB)' -eq 'true') {
                   Write-Output "##vso[task.logissue type=error]isBrokenB is true. Failing as expected by test rule."
                   Write-Output "##vso[task.complete result=Failed;]DONE"
+                  exit 1
                 }
               name: ValidateBrokenDirectB
               displayName: Validate broken variable direct B
@@ -944,6 +955,7 @@ stages:
                   if ('$(isBrokenB)' -eq 'true') {
                     Write-Output "##vso[task.logissue type=error]isBrokenB is true. Failing as expected by test rule."
                     Write-Output "##vso[task.complete result=Failed;]DONE"
+                  exit 1
                   }
                 name: ValidateBrokenViaWrapperB
                 displayName: Validate broken variable wrapper B
@@ -993,6 +1005,7 @@ stages:
 
               if ($hasErrors) {
                 Write-Output "##vso[task.complete result=Failed;]DONE"
+                  exit 1
               }
 
               Write-Output "Combi execution/results verification passed."
