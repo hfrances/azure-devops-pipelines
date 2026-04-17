@@ -1,6 +1,17 @@
 parameters:
-  # Si es true, invierte los valores de isTested e isBroken para forzar el escenario negativo.
+  # Si es true, invierte los valores de isTested e isBroken para forzar escenario negativo en Alone y Single.
   - name: invertConditionFlags
+    displayName: 'Invert variables (Alone and Single tests)'
+    type: boolean
+    default: false
+  # Si es true, invierte los valores de isTestedA e isBrokenA para Combi A.
+  - name: invertConditionFlagsCombiA
+    displayName: 'Invert variables (Combi A)'
+    type: boolean
+    default: false
+  # Si es true, invierte los valores de isTestedB e isBrokenB para Combi B.
+  - name: invertConditionFlagsCombiB
+    displayName: 'Invert variables (Combi B)'
     type: boolean
     default: false
 
@@ -619,7 +630,7 @@ stages:
               $isTestedA = 'true'
               $isBrokenA = 'false'
 
-              $invertConditionFlags = '${{ parameters.invertConditionFlags }}'
+              $invertConditionFlags = '${{ parameters.invertConditionFlagsCombiA }}'
               if ($invertConditionFlags -eq 'True') {
                 $tmp = $isTestedA
                 $isTestedA = $isBrokenA
@@ -631,7 +642,7 @@ stages:
               $outSourceBranchA = '$(Build.SourceBranch)'
               $plainLocalOnlyA = 'local-only-value-A'
 
-              Write-Output "testA.invertConditionFlags: $invertConditionFlags"
+              Write-Output "testA.invertConditionFlagsCombiA: $invertConditionFlags"
               Write-Output "testA.isTestedA: $isTestedA (output=true)"
               Write-Output "##vso[task.setvariable variable=isTestedA;isOutput=true]$isTestedA"
               Write-Output "testA.isBrokenA: $isBrokenA (output=true)"
@@ -652,7 +663,7 @@ stages:
               $isTestedB = 'true'
               $isBrokenB = 'false'
 
-              $invertConditionFlags = '${{ parameters.invertConditionFlags }}'
+              $invertConditionFlags = '${{ parameters.invertConditionFlagsCombiB }}'
               if ($invertConditionFlags -eq 'True') {
                 $tmp = $isTestedB
                 $isTestedB = $isBrokenB
@@ -664,7 +675,7 @@ stages:
               $outSourceBranchB = '$(Build.SourceBranch)'
               $plainLocalOnlyB = 'local-only-value-B'
 
-              Write-Output "testB.invertConditionFlags: $invertConditionFlags"
+              Write-Output "testB.invertConditionFlagsCombiB: $invertConditionFlags"
               Write-Output "testB.isTestedB: $isTestedB (output=true)"
               Write-Output "##vso[task.setvariable variable=isTestedB;isOutput=true]$isTestedB"
               Write-Output "testB.isBrokenB: $isBrokenB (output=true)"
@@ -1067,8 +1078,8 @@ stages:
         variables:
           stageSingleExecuted: $[ stageDependencies.StageSingle.StageSingleMarker.outputs['Marker.stageSingleExecuted'] ]
           stageCombiExecuted: $[ stageDependencies.StageCombi.StageCombiMarker.outputs['Marker.stageCombiExecuted'] ]
-          stageSingleResult: $[ dependencies.StageSingle.result ]
-          stageCombiResult: $[ dependencies.StageCombi.result ]
+          stageSingleMarkerResult: $[ stageDependencies.StageSingle.StageSingleMarker.result ]
+          stageCombiMarkerResult: $[ stageDependencies.StageCombi.StageCombiMarker.result ]
         steps:
           - pwsh: |
               $hasErrors = $false
@@ -1089,8 +1100,8 @@ stages:
                 }
               }
 
-              CheckSucceeded 'StageSingle.result' '$(stageSingleResult)'
-              CheckSucceeded 'StageCombi.result' '$(stageCombiResult)'
+              CheckSucceeded 'StageSingle.result' '$(stageSingleMarkerResult)'
+              CheckSucceeded 'StageCombi.result' '$(stageCombiMarkerResult)'
               CheckTrue 'stageSingleExecuted' '$(stageSingleExecuted)'
               CheckTrue 'stageCombiExecuted' '$(stageCombiExecuted)'
 
