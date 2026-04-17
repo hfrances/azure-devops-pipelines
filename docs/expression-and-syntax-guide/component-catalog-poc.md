@@ -79,7 +79,7 @@ Contratos adicionales en v2.0:
     - acceso a outputs en condiciones (`stageDependencies.*.*.outputs[...]`)
 - Convencion para pipelines **single**:
   - en `components[]`, usar `- component:` vacio (no poner nombre de componente).
-  - en `deploy-aca-job-wrapper`, no declarar `component.name`.
+  - en `deploy-job-wrapper`, no declarar `component.name`.
 - Convencion general:
   - no declarar `dependsOn: []` cuando no hay dependencias.
 

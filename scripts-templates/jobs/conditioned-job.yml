@@ -1,0 +1,77 @@
+parameters:
+  - name: jobName
+    type: string
+    default: Job
+  - name: displayName
+    type: string
+    default: ''
+  - name: parentStageName
+    type: string
+    default: ''
+  - name: parentSummaryJobName
+    type: string
+  - name: parentSummaryTaskName
+    type: string
+    default: 'SetOutputs'
+  - name: parentSummaryVariableName
+    type: string
+  - name: mappingVariables
+    type: object
+    default: {}
+  - name: additionalVariables
+    type: object
+    default: {}
+  - name: dependsOn
+    type: object
+    default: []
+  - name: condition
+    type: string
+    default: succeeded()
+  - name: steps
+    type: stepList
+    default: []
+
+jobs:
+  - job: ${{ parameters.jobName }}
+    displayName: ${{ coalesce(parameters.displayName, parameters.jobName) }}
+
+    variables:
+      # 1. Inject direct additional variables
+      - ${{ each pair in parameters.additionalVariables }}:
+        - name: ${{ pair.key }}
+          value: ${{ pair.value }}
+      # 2. Dependency resolution (mappingVariables)
+      - ${{ if ne(parameters.parentStageName, '') }}:
+        - ${{ each pair in parameters.mappingVariables }}:
+          - name: ${{ pair.value }}
+            value: $[ stageDependencies.${{ parameters.parentStageName }}.${{ parameters.parentSummaryJobName }}.outputs['${{ parameters.parentSummaryTaskName }}.${{ pair.key }}'] ]
+      - ${{ if eq(parameters.parentStageName, '') }}:
+        - ${{ each pair in parameters.mappingVariables }}:
+          - name: ${{ pair.value }}
+            value: $[ dependencies.${{ parameters.parentSummaryJobName }}.outputs['${{ parameters.parentSummaryTaskName }}.${{ pair.key }}'] ]
+      # 3. Parent Summary Variable
+      - ${{ if and(ne(parameters.parentSummaryVariableName, ''), ne(parameters.parentStageName, '')) }}:
+        - name: ${{ parameters.parentSummaryVariableName }}
+          value: $[ stageDependencies.${{ parameters.parentStageName }}.${{ parameters.parentSummaryJobName }}.outputs['${{ parameters.parentSummaryTaskName }}.${{ parameters.parentSummaryVariableName }}'] ]
+      - ${{ if and(ne(parameters.parentSummaryVariableName, ''), eq(parameters.parentStageName, '')) }}:
+        - name: ${{ parameters.parentSummaryVariableName }}
+          value: $[ dependencies.${{ parameters.parentSummaryJobName }}.outputs['${{ parameters.parentSummaryTaskName }}.${{ parameters.parentSummaryVariableName }}'] ]
+
+    dependsOn:
+      - ${{ if eq(parameters.parentStageName, '') }}:
+        - ${{ parameters.parentSummaryJobName }}
+      - ${{ each dep in parameters.dependsOn }}:
+        - ${{ dep }}
+
+    # Dynamic condition using direct dependency
+    ${{ if and(ne(parameters.parentSummaryVariableName, ''), ne(parameters.parentStageName, '')) }}:
+      condition: and(${{ parameters.condition }}, eq(stageDependencies.${{ parameters.parentStageName }}.${{ parameters.parentSummaryJobName }}.outputs['${{ parameters.parentSummaryTaskName }}.${{ parameters.parentSummaryVariableName }}'], 'true'))
+    ${{ if and(ne(parameters.parentSummaryVariableName, ''), eq(parameters.parentStageName, '')) }}:
+      condition: and(${{ parameters.condition }}, eq(dependencies.${{ parameters.parentSummaryJobName }}.outputs['${{ parameters.parentSummaryTaskName }}.${{ parameters.parentSummaryVariableName }}'], 'true'))
+    ${{ if eq(parameters.parentSummaryVariableName, '') }}:
+      condition: ${{ parameters.condition }}
+
+    # =========================================================
+    # Inject the real steps
+    # =========================================================
+    steps: ${{ parameters.steps }}

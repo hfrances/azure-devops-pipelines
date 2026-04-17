@@ -1,0 +1,61 @@
+parameters:
+  - name: stageName
+    type: string
+    default: Stage
+  - name: displayName
+    type: string
+    default: ''
+  - name: parentStageName
+    type: string
+  - name: parentSummaryJobName
+    type: string
+  - name: parentSummaryTaskName
+    type: string
+    default: 'SetOutputs'
+  - name: parentSummaryVariableName
+    type: string
+  - name: mappingVariables
+    type: object
+    default: {}
+  - name: additionalVariables
+    type: object
+    default: {}
+  - name: dependsOn
+    type: object
+    default: []
+  - name: condition
+    type: string
+    default: succeeded()
+  - name: jobs
+    type: jobList
+    default: []
+
+stages:
+  - stage: ${{ parameters.stageName }}
+    displayName: ${{ coalesce(parameters.displayName, parameters.stageName) }}
+
+    variables:
+      # 1. Inject direct additional variables
+      - ${{ each pair in parameters.additionalVariables }}:
+        - name: ${{ pair.key }}
+          value: ${{ pair.value }}
+      # 2. Dependency resolution (mappingVariables)
+      - ${{ each pair in parameters.mappingVariables }}:
+        - name: ${{ pair.value }}
+          value: $[ stageDependencies.${{ parameters.parentStageName }}.${{ parameters.parentSummaryJobName }}.outputs['${{ parameters.parentSummaryTaskName }}.${{ pair.key }}'] ]
+      # 3. Parent Summary Variable
+      - name: ${{ parameters.parentSummaryVariableName }}
+        value: $[ stageDependencies.${{ parameters.parentStageName }}.${{ parameters.parentSummaryJobName }}.outputs['${{ parameters.parentSummaryTaskName }}.${{ parameters.parentSummaryVariableName }}'] ]
+
+    dependsOn:
+      - ${{ parameters.parentStageName }}
+      - ${{ each dep in parameters.dependsOn }}:
+        - ${{ dep }}
+
+    # Dynamic condition using direct dependency
+    condition: and(${{ parameters.condition }}, eq(dependencies.${{ parameters.parentStageName }}.outputs['${{ parameters.parentSummaryJobName }}.${{ parameters.parentSummaryTaskName }}.${{ parameters.parentSummaryVariableName }}'], 'true'))
+
+    # =========================================================
+    # Inject the real jobs
+    # =========================================================    
+    jobs: ${{ parameters.jobs }}
