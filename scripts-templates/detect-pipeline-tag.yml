@@ -124,7 +124,7 @@ steps:
         }
 
         $pending = if ($candidateRunId -ne '') { 'true' } else { 'false' }
-        Write-Host "Resolved tag: required=$requiredTag definitionBranch=$definitionBranch candidate=$candidateRunId pending=$pending definitionId=$definitionId"
+        Write-Host "Resolved tag: required=$requiredTag definitionKey=$definitionKey definitionBranch=$definitionBranch candidate=$candidateRunId pending=$pending definitionId=$definitionId"
 
         Write-Output "##vso[task.setvariable variable=DefinitionId]$definitionId"
         Write-Output "##vso[task.setvariable variable=RequiredTag]$requiredTag"
