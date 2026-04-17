@@ -21,6 +21,7 @@ Plantilla auxiliar usada por el wrapper:
 - [Matriz de tests (`TestCombi`)](#matriz-de-tests-testcombi)
 - [Stages template (`StageSingle` y `StageCombi`)](#stages-template-stagesingle-y-stagecombi)
 - [Verificación final de stages](#verificación-final-de-stages)
+- [Parámetros de inversión](#parámetros-de-inversión)
 - [Validaciones clave](#validaciones-clave)
 - [Criterio de fallo](#criterio-de-fallo)
 
@@ -65,7 +66,7 @@ Preparación incluida dentro del caso (`PrepareCombi`):
 - `SetOutputsA`: genera outputs para A (`isTestedA`, `isBrokenA`, `out*A`) y un no-output (`plainLocalOnlyA`)
 - `SetOutputsB`: genera outputs para B (`isTestedB`, `isBrokenB`, `out*B`) y un no-output (`plainLocalOnlyB`)
 - `SetSummary`: calcula agregados para condicionar la entrada al caso:
-  - `isTestedSummary = isTestedA AND isTestedB`
+  - `isTestedSummary = isTestedA OR isTestedB`
   - `isBrokenSummary = isBrokenA AND isBrokenB`
 
 `TestCombi` ejecuta la paridad A/B usando las variables de `PreparationCombi`.
@@ -104,6 +105,20 @@ Stage `VerifyTemplatedStages` valida explícitamente que:
 - Los outputs de marker existen y valen `true`:
   - `stageSingleExecuted`
   - `stageCombiExecuted`
+
+## Parámetros de inversión
+
+El pipeline expone estos parámetros para forzar escenarios:
+
+- `invertConditionFlags`:
+  - Aplica a `TestAlone` y `TestSingle`.
+  - Invierte `isTested`/`isBroken`.
+- `invertConditionFlagsCombiA`:
+  - Aplica solo al bloque `A` de `PreparationCombi`.
+  - Invierte `isTestedA`/`isBrokenA`.
+- `invertConditionFlagsCombiB`:
+  - Aplica solo al bloque `B` de `PreparationCombi`.
+  - Invierte `isTestedB`/`isBrokenB`.
 
 ## Validaciones clave
 
