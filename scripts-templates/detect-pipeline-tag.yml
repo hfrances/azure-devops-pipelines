@@ -4,7 +4,7 @@ parameters:
     default: '' # DetectPipelineTag
   - name: displayName
     type: string
-    default: Resolve candidate run id from tags
+    default: '' # Resolve tag {tagPrefix/}tag{-tagSuffix}
   - name: tag
     type: string
     default: ''
@@ -23,8 +23,8 @@ parameters:
 
 steps:
   - task: PowerShell@2
-    name: ${{ coalesce(parameters.taskName, format('{0}{1}{2}', 'DetectPipelineTag', replace(replace(replace(replace(replace(replace(replace(replace(coalesce(parameters.definitionKey, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '(', '_'), ')', '_'), '~', ''), replace(replace(replace(format('{0}_{1}', replace(replace(replace(replace(replace(replace(replace(coalesce(parameters.tagPrefix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '(', '_'), ')', '_'), replace(replace(replace(replace(replace(replace(replace(coalesce(parameters.tagSuffix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '(', '_'), ')', '_')), '~_~', ''), '~_', ''), '_~', ''))) }}
-    displayName: ${{ parameters.displayName }}
+    name: ${{ coalesce(parameters.taskName, format('{0}{1}{2}', 'DetectPipelineTag', replace(replace(replace(replace(replace(replace(replace(replace(coalesce(parameters.definitionKey, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '(', '_'), ')', '_'), '~', ''), replace(replace(replace(format('{0}_{1}_{2}', replace(replace(replace(replace(replace(replace(replace(coalesce(parameters.tagPrefix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '(', '_'), ')', '_'), replace(replace(replace(replace(replace(replace(replace(coalesce(parameters.tag, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '(', '_'), ')', '_'), replace(replace(replace(replace(replace(replace(replace(coalesce(parameters.tagSuffix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '(', '_'), ')', '_')), '~_~', ''), '~_', ''), '_~', ''))) }}
+    displayName: ${{ coalesce(parameters.displayName, replace(replace(replace(format('Resolve tag {0}{1}{2}', format('{0}/', coalesce(parameters.tagPrefix, '~')), coalesce(parameters.tag, '~'), format('-{0}', coalesce(parameters.tagSuffix, '~'))), '~/', ''), '-~', ''), '~', '')) }}
     env:
       SYSTEM_ACCESSTOKEN: $(System.AccessToken)
     inputs:
