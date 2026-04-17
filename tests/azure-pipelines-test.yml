@@ -1,3 +1,9 @@
+parameters:
+  # Si es true, invierte los valores de isTested e isBroken para forzar el escenario negativo.
+  - name: invertConditionFlags
+    type: boolean
+    default: false
+
 trigger:
   batch: true
   branches:
@@ -22,12 +28,21 @@ stages:
           - pwsh: |
               $isTested = 'true'
               $isBroken = 'false'
+              
+              $invertConditionFlags = '${{ parameters.invertConditionFlags }}'
+              if ($invertConditionFlags -eq 'True') {
+                $isTested = !$isTested
+                $isBroken = !$isBroken
+              }
+
               $outBuildId = '$(Build.BuildId)'
               $outDefinitionName = '$(Build.DefinitionName)'
               $outSourceBranch = '$(Build.SourceBranch)'
               $plainLocalOnly = 'local-only-value'
 
               Write-Output ""
+
+              Write-Output "invertConditionFlags: $invertConditionFlags"
 
               Write-Output "isTested: $isTested (output=true)"
               Write-Output "##vso[task.setvariable variable=isTested;isOutput=true]$isTested"
