@@ -36,7 +36,7 @@ Job `Prepare` / Task `SetOutputs` publica variables para pruebas:
 | `ConditionedJobWrapperCheck` | `conditioned-job-wrapper.yml` | `isTested=true` | Validar paridad funcional del wrapper | `Succeeded` |
 | `ConditionedJobBrokenCheck` | `conditioned-job.yml` | `isBroken=false` | Validar que no entra cuando la condicional es false | `Skipped` |
 | `ConditionedJobWrapperBrokenCheck` | `conditioned-job-wrapper.yml` | `isBroken=false` | Misma prueba negativa vía wrapper | `Skipped` |
-| `VerifyConditionedExecution` | Job nativo | `always()` | Asertar estados finales esperados de los 4 tests anteriores | `Succeeded` |
+| `VerifyConditionedExecution` | Job nativo | `succeededOrFailed()` | Asertar estados finales esperados de los 4 tests anteriores | `Succeeded` |
 
 ## Matriz de tests (Stage `TestAlone`)
 
@@ -48,7 +48,7 @@ Este bloque prueba el mismo comportamiento, pero consumiendo outputs de un job d
 | `ConditionedJobWrapperCheckAlone` | `conditioned-job-wrapper.yml` | `isTested=true` | Validar paridad funcional del wrapper en Test Alone | `Succeeded` |
 | `ConditionedJobBrokenCheckAlone` | `conditioned-job.yml` | `isBroken=false` | Validar que no entra cuando la condicional es false en Test Alone | `Skipped` |
 | `ConditionedJobWrapperBrokenCheckAlone` | `conditioned-job-wrapper.yml` | `isBroken=false` | Misma prueba negativa vía wrapper en Test Alone | `Skipped` |
-| `VerifyConditionedExecutionAlone` | Job nativo | `always()` | Asertar estados finales esperados de los 4 tests de Test Alone | `Succeeded` |
+| `VerifyConditionedExecutionAlone` | Job nativo | `succeededOrFailed()` | Asertar estados finales esperados de los 4 tests de Test Alone | `Succeeded` |
 
 ## Validaciones clave
 
@@ -57,7 +57,7 @@ Este bloque prueba el mismo comportamiento, pero consumiendo outputs de un job d
 - La ejecución condicional por variable (`isTested` / `isBroken`) funciona igual en:
   - `conditioned-job.yml`
   - `conditioned-job-wrapper.yml`
-- El stage de test se ejecuta con `always()` para capturar regresiones aunque existan fallos previos.
+- El stage de test se ejecuta con `succeededOrFailed()` para capturar regresiones aunque existan fallos previos.
 
 ## Criterio de fallo
 
