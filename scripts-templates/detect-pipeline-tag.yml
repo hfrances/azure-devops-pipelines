@@ -1,0 +1,118 @@
+parameters:
+  - name: taskName
+    type: string
+    default: '' # DetectPipelineTag
+  - name: displayName
+    type: string
+    default: Resolve candidate run id from tags
+  - name: definitionName
+    type: string
+    default: ''
+  - name: tag
+    type: string
+    default: ''
+  - name: tagPrefix
+    type: string
+    default: ''
+  - name: tagSuffix
+    type: string
+    default: ''
+
+steps:
+  - task: PowerShell@2
+    name: ${{ coalesce(parameters.taskName, format('{0}{1}', 'DetectPipelineTag', replace(replace(replace(format('_{0}_{1}_{2}', replace(replace(replace(replace(replace(replace(replace(coalesce(parameters.tagPrefix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '(', '_'), ')', '_'), replace(replace(replace(replace(replace(replace(replace(coalesce(parameters.tag, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '(', '_'), ')', '_'), replace(replace(replace(replace(replace(replace(replace(coalesce(parameters.tagSuffix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '(', '_'), ')', '_')), '~_~_~', ''), '~_', ''), '_~', ''))) }}
+    displayName: ${{ parameters.displayName }}
+    env:
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+    inputs:
+      pwsh: true
+      targetType: inline
+      script: |
+        $ErrorActionPreference = 'Stop'
+        if ([string]::IsNullOrWhiteSpace($env:SYSTEM_ACCESSTOKEN)) {
+          throw "System.AccessToken is not available. Enable OAuth token access for scripts."
+        }
+
+        $collectionUri = "$(System.TeamFoundationCollectionUri)"
+        $project = "$(System.TeamProject)"
+        $headers = @{ Authorization = "Bearer $($env:SYSTEM_ACCESSTOKEN)" }
+
+        $tag = "${{ parameters.tag }}".Trim()
+        if ([string]::IsNullOrWhiteSpace($tag)) {
+          throw "Parameter tag is required."
+        }
+
+        $tagSuffix = "${{ parameters.tagSuffix }}".Trim()
+        $tagPrefix = "${{ parameters.tagPrefix }}".Trim()
+
+        $requiredTag = $tag
+        if (-not [string]::IsNullOrWhiteSpace($tagSuffix)) {
+          $requiredTag = "$requiredTag-$tagSuffix"
+        }
+        if (-not [string]::IsNullOrWhiteSpace($tagPrefix)) {
+          $requiredTag = "$tagPrefix/$requiredTag"
+        }
+
+        $definitionName = "${{ parameters.definitionName }}".Trim()
+        $definitionId = ''
+        if (-not [string]::IsNullOrWhiteSpace($definitionName)) {
+          $defUri = "$collectionUri$project/_apis/build/definitions?name=$([uri]::EscapeDataString($definitionName))&api-version=7.1"
+          $defs = Invoke-RestMethod -Method Get -Uri $defUri -Headers $headers
+          if (-not $defs.value -or $defs.value.Count -eq 0) {
+            throw "No build definition found for '$definitionName'."
+          }
+          $definitionId = [string]$defs.value[0].id
+        }
+        else {
+          $currentDefinitionId = "$(Build.DefinitionId)"
+          if (-not [string]::IsNullOrWhiteSpace($currentDefinitionId)) {
+            $definitionId = $currentDefinitionId
+          }
+          else {
+            $currentDefinitionName = "$(Build.DefinitionName)"
+            if ([string]::IsNullOrWhiteSpace($currentDefinitionName)) {
+              throw "Neither definitionName parameter nor Build.DefinitionId/Build.DefinitionName are available."
+            }
+            $defUri = "$collectionUri$project/_apis/build/definitions?name=$([uri]::EscapeDataString($currentDefinitionName))&api-version=7.1"
+            $defs = Invoke-RestMethod -Method Get -Uri $defUri -Headers $headers
+            if (-not $defs.value -or $defs.value.Count -eq 0) {
+              throw "No build definition found for current pipeline '$currentDefinitionName'."
+            }
+            $definitionId = [string]$defs.value[0].id
+          }
+        }
+
+        $buildsUri = "$collectionUri$project/_apis/build/builds?definitions=$definitionId&statusFilter=completed&resultFilter=succeeded&queryOrder=finishTimeDescending&`$top=200&api-version=7.1"
+        $buildsResponse = Invoke-RestMethod -Method Get -Uri $buildsUri -Headers $headers
+        $builds = @($buildsResponse.value)
+
+        $tagCache = @{}
+        function Get-BuildTags([int]$buildId) {
+          if ($tagCache.ContainsKey($buildId)) {
+            return $tagCache[$buildId]
+          }
+          $tagsUri = "$collectionUri$project/_apis/build/builds/$buildId/tags?api-version=7.1"
+          $tagsResponse = Invoke-RestMethod -Method Get -Uri $tagsUri -Headers $headers
+          $tags = @()
+          if ($tagsResponse.value) { $tags = @($tagsResponse.value) }
+          $tagCache[$buildId] = $tags
+          return $tags
+        }
+
+        $candidateRunId = ''
+        foreach ($b in $builds) {
+          $tags = Get-BuildTags -buildId $b.id
+          if ($tags -contains $requiredTag) {
+            $candidateRunId = [string]$b.id
+            break
+          }
+        }
+
+        $pending = if ($candidateRunId -ne '') { 'true' } else { 'false' }
+        Write-Host "Resolved tag: required=$requiredTag candidate=$candidateRunId pending=$pending definitionId=$definitionId"
+
+        Write-Output "##vso[task.setvariable variable=DefinitionId]$definitionId"
+        Write-Output "##vso[task.setvariable variable=RequiredTag]$requiredTag"
+        Write-Output "##vso[task.setvariable variable=ExcludedTag]"
+        Write-Output "##vso[task.setvariable variable=CandidateRunId]$candidateRunId"
+        Write-Output "##vso[task.setvariable variable=Pending]$pending"
