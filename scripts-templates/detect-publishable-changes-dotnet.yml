@@ -5,9 +5,6 @@ parameters:
   - name: displayName
     type: string
     default: Detect changes
-  - name: definitionName
-    type: string
-    default: ''
   - name: enabled
     type: boolean
     default: true
@@ -23,6 +20,12 @@ parameters:
   - name: tagPrefix
     type: string
     default: ''
+  - name: definitionKey
+    type: string
+    default: ''
+  - name: definitionBranch
+    type: string
+    default: '$(Build.SourceBranch)'
   - name: includedPatterns
     type: object
     default: []
@@ -38,7 +41,7 @@ parameters:
 
 steps:
   - task: PowerShell@2
-    name: ${{ coalesce(parameters.taskName, format('{0}{1}{2}', 'DetectPublishableChanges', replace(replace(replace(replace(replace(replace(coalesce(parameters.definitionName, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '~', ''), replace(replace(replace(format('{0}_{1}', replace(replace(replace(replace(replace(coalesce(parameters.tagPrefix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), replace(replace(replace(replace(replace(coalesce(parameters.tagSuffix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_')), '~_~', ''), '~_', ''), '_~', ''))) }}
+    name: ${{ coalesce(parameters.taskName, format('{0}{1}{2}', 'DetectPublishableChanges', replace(replace(replace(replace(replace(replace(replace(replace(coalesce(parameters.definitionKey, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '(', '_'), ')', '_'), '~', ''), replace(replace(replace(format('{0}_{1}', replace(replace(replace(replace(replace(replace(replace(coalesce(parameters.tagPrefix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '(', '_'), ')', '_'), replace(replace(replace(replace(replace(replace(replace(coalesce(parameters.tagSuffix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '(', '_'), ')', '_')), '~_~', ''), '~_', ''), '_~', ''))) }}
     env:
       SYSTEM_ACCESSTOKEN: $(System.AccessToken)
       INCLUDED_PATTERNS_JSON: '${{ convertToJson(parameters.includedPatterns) }}'
@@ -58,7 +61,8 @@ steps:
         function inwd($p,$wd){if([string]::IsNullOrWhiteSpace($wd)){return $true};$n=norm $p;$w=(norm $wd).TrimEnd('/');return $n.StartsWith("$w/",[System.StringComparison]::OrdinalIgnoreCase) -or $n.Equals($w,[System.StringComparison]::OrdinalIgnoreCase)}
         function relwd($p,$wd){$n=norm $p;if([string]::IsNullOrWhiteSpace($wd)){return $n};$w=(norm $wd).TrimEnd('/');if($n.Equals($w,[System.StringComparison]::OrdinalIgnoreCase)){return ''};if($n.StartsWith("$w/",[System.StringComparison]::OrdinalIgnoreCase)){return $n.Substring($w.Length+1)};return $n}
         function any($p,$ps){foreach($x in $ps){if(([System.Management.Automation.WildcardPattern]::new((norm $x),[System.Management.Automation.WildcardOptions]::IgnoreCase)).IsMatch($p)){return $true}};return $false}
-        function baseline($h,$tag){$o=$env:SYSTEM_COLLECTIONURI.TrimEnd('/');$p=[System.Uri]::EscapeDataString($env:SYSTEM_TEAMPROJECT);$d=$env:SYSTEM_DEFINITIONID;$b=[System.Uri]::EscapeDataString($env:BUILD_SOURCEBRANCH);$c=$env:BUILD_BUILDID;$u="$o/$p/_apis/build/builds?definitions=$d&branchName=$b&resultFilter=succeeded&queryOrder=finishTimeDescending&statusFilter=completed&tagFilters=$tag&`$top=25&api-version=7.1";(Invoke-RestMethod -Uri $u -Headers $h -Method Get).value|?{"$($_.id)" -ne "$c"}|select -First 1}
+        function defid($h,$k){if([string]::IsNullOrWhiteSpace($k)){return "$env:SYSTEM_DEFINITIONID"};$x=$k.Trim();if($x -match '^\d+$'){return $x};$o=$env:SYSTEM_COLLECTIONURI.TrimEnd('/');$p=[System.Uri]::EscapeDataString($env:SYSTEM_TEAMPROJECT);$n=[System.Uri]::EscapeDataString($x);$u="$o/$p/_apis/build/definitions?name=$n&api-version=7.1";$r=Invoke-RestMethod -Uri $u -Headers $h -Method Get;if(-not $r.value -or $r.value.Count -eq 0){throw "No build definition found for '$x'."};"$($r.value[0].id)"}
+        function baseline($h,$tag,$d,$b){$o=$env:SYSTEM_COLLECTIONURI.TrimEnd('/');$p=[System.Uri]::EscapeDataString($env:SYSTEM_TEAMPROJECT);$bb=[System.Uri]::EscapeDataString($b);$c=$env:BUILD_BUILDID;$u="$o/$p/_apis/build/builds?definitions=$d&branchName=$bb&resultFilter=succeeded&queryOrder=finishTimeDescending&statusFilter=completed&tagFilters=$tag&`$top=25&api-version=7.1";(Invoke-RestMethod -Uri $u -Headers $h -Method Get).value|?{"$($_.id)" -ne "$c"}|select -First 1}
         function gitok($cmd,$err){$r=@(iex $cmd|%{norm $_}|?{$_});$e=$LASTEXITCODE;$global:LASTEXITCODE=0;if($e -ne 0){throw $err};$r}
         function gitlines($cmd,$err){$r=@(iex $cmd|?{$_});$e=$LASTEXITCODE;$global:LASTEXITCODE=0;if($e -ne 0){throw $err};$r}
         function hasbuildchanges($files,$wd,$cfg){return @($files).Count -gt 0}
@@ -77,13 +81,13 @@ steps:
         function affected($tool,$base,$name,$sol){$dir=Join-Path $env:AGENT_TEMPDIRECTORY 'dotnet-affected-output';$file=Join-Path $dir "$name.proj";ni -ItemType Directory -Path $dir -Force|Out-Null;if(Test-Path $file){ri $file -Force};$out=& $tool --repository-path $env:BUILD_SOURCESDIRECTORY --solution-path $sol --from $base --to $env:BUILD_SOURCEVERSION --format traversal --output-dir $dir --output-name $name 2>&1;$code=$LASTEXITCODE;$global:LASTEXITCODE=0;$txt=@($out)-join[Environment]::NewLine;$r=[ordered]@{Ok=$false;Code=$code;File=$file;Projects=@();Out=$txt;Err=''};if($code -eq 166){$r.Ok=$true;return [pscustomobject]$r};if($code -ne 0){$r.Err="dotnet-affected failed for baseline '$base'.";return [pscustomobject]$r};if(!(Test-Path $file)){$r.Err="dotnet-affected did not generate '$file'.";return [pscustomobject]$r};[xml]$xml=Get-Content $file -Raw;$r.Projects=@($xml.Project.ItemGroup.ProjectReference|%{$_.Include}|?{$_}|%{$c=if([System.IO.Path]::IsPathRooted($_)){$_}else{Join-Path $env:BUILD_SOURCESDIRECTORY $_};norm([System.IO.Path]::GetRelativePath($env:BUILD_SOURCESDIRECTORY,(Resolve-Path $c).Path))});$r.Ok=$true;[pscustomobject]$r}
         function copydrop($src,$name,$suffix){if(Test-Path $src){$drop=Join-Path $env:BUILD_ARTIFACTSTAGINGDIRECTORY 'drop';if(!(Test-Path $drop)){ni -ItemType Directory -Path $drop -Force|Out-Null};$dst=Join-Path $drop (suffixname $name $suffix);Copy-Item -LiteralPath $src -Destination $dst -Force;Write-Output "Drop file exported: $dst"}}
         function ensuretool($dir,$ver){ni -ItemType Directory -Path $dir -Force|Out-Null;Write-Host '';Write-Host '=== dotnet-affected ===';Write-Host "Resolving tool version $ver";& dotnet tool update dotnet-affected --tool-path $dir --version $ver --verbosity quiet 2>&1 | Out-Null;if($LASTEXITCODE -ne 0){$global:LASTEXITCODE=0;& dotnet tool install dotnet-affected --tool-path $dir --version $ver --verbosity quiet 2>&1 | Out-Null;if($LASTEXITCODE -ne 0){throw 'Unable to install dotnet-affected.'};Write-Host 'dotnet-affected installed.'}else{Write-Host 'dotnet-affected updated.'};$global:LASTEXITCODE=0;$tool=Join-Path $dir 'dotnet-affected.exe';if(!(Test-Path $tool)){$tool=Join-Path $dir 'dotnet-affected'};if(!(Test-Path $tool)){throw "dotnet-affected executable not found in '$dir'."};return $tool}
-        $enabled=bool "${{ parameters.enabled }}" $true;$solution="${{ parameters.solutionPath }}";$wd=norm "${{ parameters.workingDirectory }}";$suffix='${{ parameters.tagSuffix }}';$tagPrefix='${{ parameters.tagPrefix }}';if(-not [string]::IsNullOrWhiteSpace($tagPrefix) -and -not $tagPrefix.EndsWith('/')){$tagPrefix="$tagPrefix/"};$builtTag=if([string]::IsNullOrWhiteSpace($suffix)){'built'}else{"built-$suffix"};if(-not[string]::IsNullOrWhiteSpace($tagPrefix)){$builtTag="$tagPrefix$builtTag"};$publishedTag=if([string]::IsNullOrWhiteSpace($suffix)){'published'}else{"published-$suffix"};if(-not[string]::IsNullOrWhiteSpace($tagPrefix)){$publishedTag="$tagPrefix$publishedTag"};$mode="${{ parameters.publishExtraMode }}";$ver='6.2.0';$patterns=@();$expatterns=@();$buildCfg=$null;if($env:INCLUDED_PATTERNS_JSON){$patterns=@((ConvertFrom-Json -InputObject $env:INCLUDED_PATTERNS_JSON)|%{norm "$_"})};if($env:EXCLUDED_PATTERNS_JSON){$expatterns=@((ConvertFrom-Json -InputObject $env:EXCLUDED_PATTERNS_JSON)|%{norm "$_"})}
+        $enabled=bool "${{ parameters.enabled }}" $true;$solution="${{ parameters.solutionPath }}";$wd=norm "${{ parameters.workingDirectory }}";$suffix='${{ parameters.tagSuffix }}';$tagPrefix='${{ parameters.tagPrefix }}';$definitionKey="${{ parameters.definitionKey }}";$definitionBranch="${{ parameters.definitionBranch }}";if([string]::IsNullOrWhiteSpace($definitionBranch) -or $definitionBranch -like '$(*'){$definitionBranch="$env:BUILD_SOURCEBRANCH"};if(-not [string]::IsNullOrWhiteSpace($tagPrefix) -and -not $tagPrefix.EndsWith('/')){$tagPrefix="$tagPrefix/"};$builtTag=if([string]::IsNullOrWhiteSpace($suffix)){'built'}else{"built-$suffix"};if(-not[string]::IsNullOrWhiteSpace($tagPrefix)){$builtTag="$tagPrefix$builtTag"};$publishedTag=if([string]::IsNullOrWhiteSpace($suffix)){'published'}else{"published-$suffix"};if(-not[string]::IsNullOrWhiteSpace($tagPrefix)){$publishedTag="$tagPrefix$publishedTag"};$mode="${{ parameters.publishExtraMode }}";$ver='6.2.0';$patterns=@();$expatterns=@();$buildCfg=$null;if($env:INCLUDED_PATTERNS_JSON){$patterns=@((ConvertFrom-Json -InputObject $env:INCLUDED_PATTERNS_JSON)|%{norm "$_"})};if($env:EXCLUDED_PATTERNS_JSON){$expatterns=@((ConvertFrom-Json -InputObject $env:EXCLUDED_PATTERNS_JSON)|%{norm "$_"})}
         $cb='';$pb='';$bskip='';$pskip='';$bskipType='info';$pskipType='info';$build=$true;$publish=$true;$bfiles=@();$pfiles=@();$bcommits=@();$pcommits=@()
         if(!(Test-Path $solution)){throw "Resolved solution path not found: $solution"}
         section 'Baseline comparison'
         Write-Output "Current commit: $env:BUILD_SOURCEVERSION"
         try{
-          if($enabled){if(!$env:SYSTEM_ACCESSTOKEN){throw 'System.AccessToken is not available.'};$h=@{Authorization="Bearer $($env:SYSTEM_ACCESSTOKEN)"};$cbld=baseline $h $builtTag;$pbld=baseline $h $publishedTag;if($cbld){$cb="$($cbld.sourceVersion)";Write-Output "built baseline build: $($cbld.id)";Write-Output "built baseline commit: $cb";Write-Output "built comparison: $cb -> $env:BUILD_SOURCEVERSION"}else{Write-Output 'built baseline build: <none>';Write-Output 'built baseline commit: <none>'};if($pbld){$pb="$($pbld.sourceVersion)";Write-Output "Published baseline build: $($pbld.id)";Write-Output "Published baseline commit: $pb";Write-Output "Published comparison: $pb -> $env:BUILD_SOURCEVERSION"}else{Write-Output 'Published baseline build: <none>';Write-Output 'Published baseline commit: <none>'};if($cb){& git cat-file -e "$cb^{commit}" 2>$null;$e=$LASTEXITCODE;$global:LASTEXITCODE=0;if($e -ne 0){throw "built baseline commit '$cb' is not available locally. Ensure checkout uses fetchDepth: 0."}};if($pb){& git cat-file -e "$pb^{commit}" 2>$null;$e=$LASTEXITCODE;$global:LASTEXITCODE=0;if($e -ne 0){throw "Published baseline commit '$pb' is not available locally. Ensure checkout uses fetchDepth: 0."}};if($cb -and $cb -eq $env:BUILD_SOURCEVERSION){$build=$false;$bskip='Current commit matches the last built build.'}elseif($cb){$bfiles=@(gitok "git diff --name-only `"$cb...$env:BUILD_SOURCEVERSION`"" "git diff failed for baseline '$cb'."|?{inwd $_ $wd});$bcommits=@(gitlines "git log --format=`"%s`" `"$cb..$env:BUILD_SOURCEVERSION`"" "git log failed for baseline '$cb'.");$build=hasbuildchanges $bfiles $wd $buildCfg;if(!$build){$bskip='No file changes since the last built build.'}};if($pb -and $pb -eq $env:BUILD_SOURCEVERSION){$publish=$false;$pskip='Current commit matches the last published build.'}elseif($pb){$pfiles=@(gitok "git diff --name-only `"$pb...$env:BUILD_SOURCEVERSION`"" "git diff failed for baseline '$pb'."|?{inwd $_ $wd});$pcommits=@(gitlines "git log --format=`"%s`" `"$pb..$env:BUILD_SOURCEVERSION`"" "git log failed for baseline '$pb'.");$publish=haspublishinputchanges $pfiles $wd $buildCfg;if(!$publish){$publish=$false;$pskip='No relevant file changes since the last published build.'}}}
+          if($enabled){if(!$env:SYSTEM_ACCESSTOKEN){throw 'System.AccessToken is not available.'};$h=@{Authorization="Bearer $($env:SYSTEM_ACCESSTOKEN)"};$d=defid $h $definitionKey;Write-Output "Detection definition id: $d";Write-Output "Detection branch: $definitionBranch";$cbld=baseline $h $builtTag $d $definitionBranch;$pbld=baseline $h $publishedTag $d $definitionBranch;if($cbld){$cb="$($cbld.sourceVersion)";Write-Output "built baseline build: $($cbld.id)";Write-Output "built baseline commit: $cb";Write-Output "built comparison: $cb -> $env:BUILD_SOURCEVERSION"}else{Write-Output 'built baseline build: <none>';Write-Output 'built baseline commit: <none>'};if($pbld){$pb="$($pbld.sourceVersion)";Write-Output "Published baseline build: $($pbld.id)";Write-Output "Published baseline commit: $pb";Write-Output "Published comparison: $pb -> $env:BUILD_SOURCEVERSION"}else{Write-Output 'Published baseline build: <none>';Write-Output 'Published baseline commit: <none>'};if($cb){& git cat-file -e "$cb^{commit}" 2>$null;$e=$LASTEXITCODE;$global:LASTEXITCODE=0;if($e -ne 0){throw "built baseline commit '$cb' is not available locally. Ensure checkout uses fetchDepth: 0."}};if($pb){& git cat-file -e "$pb^{commit}" 2>$null;$e=$LASTEXITCODE;$global:LASTEXITCODE=0;if($e -ne 0){throw "Published baseline commit '$pb' is not available locally. Ensure checkout uses fetchDepth: 0."}};if($cb -and $cb -eq $env:BUILD_SOURCEVERSION){$build=$false;$bskip='Current commit matches the last built build.'}elseif($cb){$bfiles=@(gitok "git diff --name-only `"$cb...$env:BUILD_SOURCEVERSION`"" "git diff failed for baseline '$cb'."|?{inwd $_ $wd});$bcommits=@(gitlines "git log --format=`"%s`" `"$cb..$env:BUILD_SOURCEVERSION`"" "git log failed for baseline '$cb'.");$build=hasbuildchanges $bfiles $wd $buildCfg;if(!$build){$bskip='No file changes since the last built build.'}};if($pb -and $pb -eq $env:BUILD_SOURCEVERSION){$publish=$false;$pskip='Current commit matches the last published build.'}elseif($pb){$pfiles=@(gitok "git diff --name-only `"$pb...$env:BUILD_SOURCEVERSION`"" "git diff failed for baseline '$pb'."|?{inwd $_ $wd});$pcommits=@(gitlines "git log --format=`"%s`" `"$pb..$env:BUILD_SOURCEVERSION`"" "git log failed for baseline '$pb'.");$publish=haspublishinputchanges $pfiles $wd $buildCfg;if(!$publish){$publish=$false;$pskip='No relevant file changes since the last published build.'}}}
           else{Write-Output 'Change detection disabled. Keeping default affected flags (build=true, publish=true).'}
           section 'Changed files'
           report 'changed-files-build.txt' $cb $bfiles $bskip $suffix $bcommits;report 'changed-files-deploy.txt' $pb $pfiles $pskip $suffix $pcommits; if($bcommits.Count){Write-Output "Build commits: $($bcommits.Count)";$bcommits|%{Write-Output " - commit: $_"}}; if($pcommits.Count){Write-Output "Publish commits: $($pcommits.Count)";$pcommits|%{Write-Output " - commit: $_"}}; if($cb){Write-Output "Build changed files: $($bfiles.Count)"}; if($pb){Write-Output "Publish changed files: $($pfiles.Count)"}
@@ -102,19 +106,27 @@ steps:
 #   Decide independently whether the current pipeline run must rebuild and/or republish,
 #   using the last successful build tagged as "built" and "published" for the same
 #   pipeline definition and branch.
+#   AI/maintainer note: read the parity note below before editing shared contract rules.
 #
-# - Parity note:
-#   This template is the canonical parity reference for:
-#   - `detect-publishable-changes-dotnet.yml`
-#   - `detect-publishable-changes-git.yml`
-#   Before changing shared logic/shape, read:
-#   `docs/features/change-detection-parity.md`
-#   This note is also intended for AI-assisted edits.
+# - Outputs:
+#   Exported task variables:
+#   - `BuildParameters.HasAffectedBuildProjects`
+#   - `BuildParameters.HasAffectedPublishProjects`
+#   Additional drop outputs:
+#   - changed-files report files
+#   - affected project graph files (dotnet detector)
 #
 # - Inputs:
 #   - parameter enabled:
 #     turns change detection on/off. When false, the template falls back to the legacy
 #     behavior: always build, and publish only if branch/config says so.
+#   - parameter definitionKey:
+#     optional pipeline definition selector for baseline lookup.
+#     - if numeric, it is treated as `definitionId`
+#     - otherwise, it is treated as `definitionName`
+#     - if empty, uses the current running definition id/name
+#   - parameter definitionBranch:
+#     branch used for baseline lookup. Defaults to `$(Build.SourceBranch)`.
 #   - parameter workingDirectory:
 #     optional subtree used to scope `git diff` before any build/publish decision is made.
 #     This is especially useful in monorepos so unrelated components do not contaminate
@@ -137,16 +149,35 @@ steps:
 #     before any override file is applied.
 #   - parameter publishExtraMode:
 #     "aspnet" enables extra publish-only file checks outside the .NET project graph.
-#   - parameter includedPatterns:
-#     optional wildcard patterns that replace the default ASP.NET extra include list
-#     before any override file is applied.
-#   - parameter excludedPatterns:
-#     optional wildcard patterns that replace the default ASP.NET extra exclude list
-#     before any override file is applied.
+#
+# - Parity note (two levels):
+#   DO NOT DIVERGE: keep shared-contract rules aligned across the 3 detector templates.
+#   Level 1 (strong parity, higher priority):
+#   - `detect-publishable-changes-dotnet.yml`  <=>  `detect-publishable-changes-git.yml`
+#   - Expectation: keep behavioral parity for change-detection semantics and outputs
+#     (build/publish decisions, baseline strategy, fail-open behavior, exported vars).
+#
+#   Level 2 (limited contract parity, lower scope):
+#   - `detect-publishable-changes-dotnet.yml`
+#   - `detect-publishable-changes-git.yml`
+#   - `detect-pipeline-tag.yml`
+#   - Scope is ONLY:
+#     1) auto task `name` generation criteria (base + token composition + sanitization)
+#     2) `definitionKey` resolution semantics
+#     3) `definitionBranch` semantics for build/baseline queries
+#
+#   Non-goal for Level 2:
+#   - Do NOT assume business-logic parity with `detect-pipeline-tag.yml`.
+#   - `detect-pipeline-tag.yml` is a tag lookup utility, not a build/publish detector.
+#
+#   Before changing shared logic/shape, read:
+#   `docs/features/change-detection-parity.md`
+#   This note is also intended for AI-assisted edits.
 #
 # - Data sources:
 #   1. Azure DevOps REST API:
-#      finds the latest successful build tagged "built" and "published".
+#      finds the latest successful build tagged "built" and "published" for
+#      `definitionKey` + `definitionBranch`.
 #   2. Local git checkout:
 #      compares baseline commit -> current commit with `git diff --name-only`,
 #      optionally restricted to `workingDirectory`.
@@ -231,10 +262,6 @@ steps:
 #     override file is evaluated.
 #   - If `excludedPatterns` is informed, it replaces the default exclude list before the
 #     override file is evaluated.
-#
-# - Final exported variables:
-#   - BuildParameters.HasAffectedBuildProjects
-#   - BuildParameters.HasAffectedPublishProjects
 #
 # - Artifacts written into $(Build.ArtifactStagingDirectory)/drop:
 #   - changed-files-build.txt

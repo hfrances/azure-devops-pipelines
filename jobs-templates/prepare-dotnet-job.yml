@@ -31,7 +31,8 @@ parameters:
     default: none
     values:
       - none
-      - aspnetjobs:
+      - aspnet
+jobs:
   - job: ${{ coalesce(parameters.jobName, replace(replace(replace(format('{0}{1}_{2}', 'Prepare', replace(replace(replace(replace(replace(coalesce(parameters.prefix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), replace(replace(replace(replace(replace(coalesce(parameters.suffix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_')), '~_~', ''), '~_', '_'), '_~', '') ) }}
     displayName: ${{ parameters.displayName }}
     steps:
@@ -51,7 +52,6 @@ parameters:
       - template: ../scripts-templates/detect-publishable-changes-dotnet.yml@hf-azure-pipelines-repo
         parameters:
           taskName: DetectPublishableChanges
-          definitionName: ''
           enabled: ${{ parameters.publishChangeDetection }}
           workingDirectory: '${{ parameters.workingDirectory }}'
           solutionPath: '$(Solution.FullName)'
