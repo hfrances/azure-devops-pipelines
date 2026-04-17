@@ -4,6 +4,7 @@ Este directorio contiene tests de comportamiento para plantillas de condicionami
 
 - `conditioned-job.yml`
 - `conditioned-job-wrapper.yml`
+- `conditioned-stage.yml`
 
 Pipeline de pruebas principal:
 
@@ -18,6 +19,8 @@ Plantilla auxiliar usada por el wrapper:
 - [Matriz de tests (`TestAlone`)](#matriz-de-tests-testalone)
 - [Matriz de tests (`TestSingle`)](#matriz-de-tests-testsingle)
 - [Matriz de tests (`TestCombi`)](#matriz-de-tests-testcombi)
+- [Stages template (`StageSingle` y `StageCombi`)](#stages-template-stagesingle-y-stagecombi)
+- [Verificación final de stages](#verificación-final-de-stages)
 - [Validaciones clave](#validaciones-clave)
 - [Criterio de fallo](#criterio-de-fallo)
 
@@ -35,7 +38,7 @@ Este bloque prueba el mismo comportamiento, pero consumiendo outputs de un job d
 
 ## Matriz de tests (`TestSingle`)
 
-Preparación incluida dentro del caso:
+Preparación incluida dentro del caso (`PreparationSingle`):
 
 - Job `Prepare` / Task `SetOutputs` publica variables para pruebas:
   - Outputs:
@@ -65,7 +68,7 @@ Preparación incluida dentro del caso (`PrepareCombi`):
   - `isTestedSummary = isTestedA AND isTestedB`
   - `isBrokenSummary = isBrokenA AND isBrokenB`
 
-`TestCombi` se condiciona con `isTestedSummary` y ejecuta la paridad A/B.
+`TestCombi` ejecuta la paridad A/B usando las variables de `PreparationCombi`.
 
 | Test | Template | Condición | Objetivo | Resultado esperado |
 |---|---|---|---|---|
@@ -79,6 +82,29 @@ Preparación incluida dentro del caso (`PrepareCombi`):
 | `ConditionedJobWrapperBrokenCheckB` | `conditioned-job-wrapper.yml` | `isBrokenB=false` | Negativo de B vía wrapper | `Skipped` |
 | `VerifyConditionedExecutionCombi` | Job nativo | `not(canceled())` | Asertar estados finales esperados del caso A/B | `Succeeded` |
 
+## Stages template (`StageSingle` y `StageCombi`)
+
+Además de los tests de jobs, el pipeline ejecuta dos stages creados con la template `conditioned-stage.yml`:
+
+- `StageSingle`:
+  - Depende de `PreparationSingle`.
+  - Condición por output: `PreparationSingle.Prepare.SetOutputs.isTested`.
+  - Incluye `StageSingleMarker` y publica output `stageSingleExecuted=true`.
+- `StageCombi`:
+  - Depende de `PreparationCombi`.
+  - Condición por output: `PreparationCombi.PrepareCombi.SetSummary.isTestedSummary`.
+  - Incluye `StageCombiMarker` y publica output `stageCombiExecuted=true`.
+
+## Verificación final de stages
+
+Stage `VerifyTemplatedStages` valida explícitamente que:
+
+- `StageSingle` terminó en `Succeeded`.
+- `StageCombi` terminó en `Succeeded`.
+- Los outputs de marker existen y valen `true`:
+  - `stageSingleExecuted`
+  - `stageCombiExecuted`
+
 ## Validaciones clave
 
 - Variables con `isOutput=true` se pueden mapear y consumir entre stages/jobs.
@@ -86,6 +112,7 @@ Preparación incluida dentro del caso (`PrepareCombi`):
 - La ejecución condicional por variable (`isTested` / `isBroken`) funciona igual en:
   - `conditioned-job.yml`
   - `conditioned-job-wrapper.yml`
+- La ejecución condicional a nivel stage también se valida con `conditioned-stage.yml`.
 - El stage de test se ejecuta con `not(canceled())` para capturar regresiones aunque existan fallos previos.
 
 ## Criterio de fallo

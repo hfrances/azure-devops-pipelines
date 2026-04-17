@@ -601,6 +601,8 @@ stages:
           steps:
             - pwsh: |
                 Write-Output "StageSingle ejecutado con isTested=true desde PreparationSingle."
+                Write-Output "stageSingleExecuted: true (output=true)"
+                Write-Output "##vso[task.setvariable variable=stageSingleExecuted;isOutput=true]true"
               name: Marker
               displayName: Marker
 
@@ -1047,5 +1049,56 @@ stages:
           steps:
             - pwsh: |
                 Write-Output "StageCombi ejecutado con isTestedSummary=true desde PreparationCombi."
+                Write-Output "stageCombiExecuted: true (output=true)"
+                Write-Output "##vso[task.setvariable variable=stageCombiExecuted;isOutput=true]true"
               name: Marker
               displayName: Marker
+
+  # Stage final: valida que StageSingle y StageCombi se han ejecutado realmente.
+  - stage: VerifyTemplatedStages
+    displayName: Verify templated stages execution
+    dependsOn:
+      - StageSingle
+      - StageCombi
+    condition: not(canceled())
+    jobs:
+      - job: VerifyStagesExecution
+        displayName: Verify StageSingle and StageCombi
+        variables:
+          stageSingleExecuted: $[ stageDependencies.StageSingle.StageSingleMarker.outputs['Marker.stageSingleExecuted'] ]
+          stageCombiExecuted: $[ stageDependencies.StageCombi.StageCombiMarker.outputs['Marker.stageCombiExecuted'] ]
+          stageSingleResult: $[ dependencies.StageSingle.result ]
+          stageCombiResult: $[ dependencies.StageCombi.result ]
+        steps:
+          - pwsh: |
+              $hasErrors = $false
+
+              function CheckTrue([string]$key, [string]$actual) {
+                Write-Output "${key}: $actual"
+                if ($actual -ne 'true') {
+                  Write-Output "##vso[task.logissue type=error]${key} expected 'true' but got '$actual'."
+                  $script:hasErrors = $true
+                }
+              }
+
+              function CheckSucceeded([string]$key, [string]$actual) {
+                Write-Output "${key}: $actual"
+                if ($actual -ne 'Succeeded') {
+                  Write-Output "##vso[task.logissue type=error]${key} expected 'Succeeded' but got '$actual'."
+                  $script:hasErrors = $true
+                }
+              }
+
+              CheckSucceeded 'StageSingle.result' '$(stageSingleResult)'
+              CheckSucceeded 'StageCombi.result' '$(stageCombiResult)'
+              CheckTrue 'stageSingleExecuted' '$(stageSingleExecuted)'
+              CheckTrue 'stageCombiExecuted' '$(stageCombiExecuted)'
+
+              if ($hasErrors) {
+                Write-Output "##vso[task.complete result=Failed;]DONE"
+                exit 1
+              }
+
+              Write-Output "Templated stages execution verification passed."
+            name: VerifyTemplatedStagesExecution
+            displayName: Verify templated stages execution
