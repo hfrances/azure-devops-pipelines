@@ -1,7 +1,7 @@
 parameters:
-  - name: jobTemplatePath
+  - name: template
     type: string
-  - name: jobTemplateParameters
+  - name: parameters
     type: object
     default: {}
   - name: parentStageName
@@ -11,7 +11,6 @@ parameters:
     type: string
   - name: parentSummaryTaskName
     type: string
-    default: 'SetOutputs'
   - name: parentSummaryVariableName
     type: string
   - name: mappingVariables
@@ -28,7 +27,7 @@ parameters:
     default: succeeded()
 
 jobs:
-  - template: ${{ parameters.jobTemplatePath }}
+  - template: ${{ parameters.template }}
     parameters:
 
       variables:
@@ -65,5 +64,5 @@ jobs:
       # =========================================================
       # Inject the real parameters
       # =========================================================
-      ${{ each pair in parameters.jobTemplateParameters }}:
+      ${{ each pair in parameters.parameters }}:
         ${{ pair.key }}: ${{ pair.value }}

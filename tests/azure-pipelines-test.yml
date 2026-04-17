@@ -1,0 +1,103 @@
+trigger: none
+pr: none
+
+stages:
+  - stage: Preparation
+    displayName: Preparation
+    jobs:
+      - job: Prepare
+        displayName: Prepare
+        steps:
+          - pwsh: |
+              $isTested = 'true'
+              $outBuildId = '$(Build.BuildId)'
+              $outDefinitionName = '$(Build.DefinitionName)'
+              $outSourceBranch = '$(Build.SourceBranch)'
+              $plainLocalOnly = 'local-only-value'
+
+              Write-Output "isTested: $isTested (output=true)"
+              Write-Output "##vso[task.setvariable variable=isTested;isOutput=true]$isTested"
+
+              Write-Output "outBuildId: $outBuildId (output=true)"
+              Write-Output "##vso[task.setvariable variable=outBuildId;isOutput=true]$outBuildId"
+
+              Write-Output "outDefinitionName: $outDefinitionName (output=true)"
+              Write-Output "##vso[task.setvariable variable=outDefinitionName;isOutput=true]$outDefinitionName"
+
+              Write-Output "outSourceBranch: $outSourceBranch (output=true)"
+              Write-Output "##vso[task.setvariable variable=outSourceBranch;isOutput=true]$outSourceBranch"
+
+              Write-Output "plainLocalOnly: $plainLocalOnly (output=false)"
+              Write-Output "##vso[task.setvariable variable=plainLocalOnly]$plainLocalOnly"
+            name: SetOutputs
+            displayName: Set outputs
+
+  - stage: TestSingle
+    displayName: Test Single
+    dependsOn: Preparation
+    condition: and(succeeded(), eq(dependencies.Preparation.outputs['Prepare.SetOutputs.isTested'], 'true'))
+    jobs:
+      - template: /scripts-templates/jobs/conditioned-job.yml
+        parameters:
+          jobName: ConditionedJobCheck
+          displayName: Conditioned job check
+          parentStageName: Preparation
+          parentSummaryJobName: Prepare
+          parentSummaryTaskName: SetOutputs
+          parentSummaryVariableName: isTested
+          mappingVariables:
+            outBuildId: mappedOutBuildId
+            outDefinitionName: mappedOutDefinitionName
+            outSourceBranch: mappedOutSourceBranch
+            plainLocalOnly: mappedPlainLocalOnly
+          additionalVariables:
+            expectedBuildId: $(Build.BuildId)
+            expectedDefinitionName: $(Build.DefinitionName)
+            expectedSourceBranch: $(Build.SourceBranch)
+          steps:
+            - pwsh: |
+                $hasIssues = $false
+
+                function Warn([string]$message) {
+                  Write-Output "##vso[task.logissue type=warning]$message"
+                  $script:hasIssues = $true
+                }
+
+                function CheckExpected([string]$key, [string]$actual, [string]$expected) {
+                  Write-Output "$key: $actual"
+                  if ([string]::IsNullOrWhiteSpace($actual)) {
+                    Warn "$key should have value but arrived empty."
+                    return
+                  }
+                  if ($actual -ne $expected) {
+                    Warn "$key expected '$expected' but got '$actual'."
+                  }
+                }
+
+                function CheckMustBeEmpty([string]$key, [string]$actual) {
+                  Write-Output "$key: $actual"
+                  if (-not [string]::IsNullOrWhiteSpace($actual)) {
+                    Warn "$key should be empty because source variable was not output."
+                  }
+                }
+
+                Write-Output "isTested: $(isTested)"
+                if ('$(isTested)' -ne 'true') {
+                  Warn "Conditional variable isTested should be true."
+                }
+
+                CheckExpected 'mappedOutBuildId' '$(mappedOutBuildId)' '$(expectedBuildId)'
+                CheckExpected 'mappedOutDefinitionName' '$(mappedOutDefinitionName)' '$(expectedDefinitionName)'
+                CheckExpected 'mappedOutSourceBranch' '$(mappedOutSourceBranch)' '$(expectedSourceBranch)'
+                CheckMustBeEmpty 'mappedPlainLocalOnly' '$(mappedPlainLocalOnly)'
+
+                if ($hasIssues) {
+                  Write-Output "##vso[task.logissue type=warning]Validation finished with warnings."
+                  Write-Output "##vso[task.complete result=SucceededWithIssues;]DONE"
+                  exit 0
+                }
+
+                Write-Output "All validations passed."
+              name: ValidateMappings
+              displayName: Validate mapped variables
+              condition: and(succeeded(), eq(variables['isTested'], 'true'))
