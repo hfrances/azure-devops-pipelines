@@ -38,6 +38,18 @@ Job `Prepare` / Task `SetOutputs` publica variables para pruebas:
 | `ConditionedJobWrapperBrokenCheck` | `conditioned-job-wrapper.yml` | `isBroken=false` | Misma prueba negativa vía wrapper | `Skipped` |
 | `VerifyConditionedExecution` | Job nativo | `always()` | Asertar estados finales esperados de los 4 tests anteriores | `Succeeded` |
 
+## Matriz de tests (Stage `TestAlone`)
+
+Este bloque prueba el mismo comportamiento, pero consumiendo outputs de un job del mismo stage (flujo `dependencies`).
+
+| Test | Template | Condición | Objetivo | Resultado esperado |
+|---|---|---|---|---|
+| `ConditionedJobCheckAlone` | `conditioned-job.yml` | `isTested=true` | Validar ejecución + mapeo de outputs/no-outputs en Test Alone | `Succeeded` |
+| `ConditionedJobWrapperCheckAlone` | `conditioned-job-wrapper.yml` | `isTested=true` | Validar paridad funcional del wrapper en Test Alone | `Succeeded` |
+| `ConditionedJobBrokenCheckAlone` | `conditioned-job.yml` | `isBroken=false` | Validar que no entra cuando la condicional es false en Test Alone | `Skipped` |
+| `ConditionedJobWrapperBrokenCheckAlone` | `conditioned-job-wrapper.yml` | `isBroken=false` | Misma prueba negativa vía wrapper en Test Alone | `Skipped` |
+| `VerifyConditionedExecutionAlone` | Job nativo | `always()` | Asertar estados finales esperados de los 4 tests de Test Alone | `Succeeded` |
+
 ## Validaciones clave
 
 - Variables con `isOutput=true` se pueden mapear y consumir entre stages/jobs.
