@@ -232,7 +232,7 @@ stages:
                 Write-Output "isBroken: $(isBroken)"
                 if ('$(isBroken)' -eq 'true') {
                   Write-Output "##vso[task.logissue type=error]isBroken is true. Failing as expected by test rule."
-                  exit 1
+                  Write-Output "##vso[task.complete result=Failed;]DONE"
                 }
               name: ValidateBrokenDirect
               displayName: Validate broken variable (direct)
@@ -257,7 +257,7 @@ stages:
                   Write-Output "isBroken: $(isBroken)"
                   if ('$(isBroken)' -eq 'true') {
                     Write-Output "##vso[task.logissue type=error]isBroken is true. Failing as expected by test rule."
-                    exit 1
+                    Write-Output "##vso[task.complete result=Failed;]DONE"
                   }
                 name: ValidateBrokenViaWrapper
                 displayName: Validate broken variable (wrapper)
@@ -295,7 +295,7 @@ stages:
               CheckEqual 'ConditionedJobWrapperBrokenCheck.result' '$(resConditionedJobWrapperBrokenCheck)' 'Skipped'
 
               if ($hasErrors) {
-                exit 1
+                Write-Output "##vso[task.complete result=Failed;]DONE"
               }
 
               Write-Output "Execution/results verification passed."
