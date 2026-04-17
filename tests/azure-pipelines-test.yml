@@ -63,10 +63,10 @@ stages:
         parameters:
           jobName: ConditionedJobCheck
           displayName: Conditioned job check
-          parentStageName: Preparation
-          parentSummaryJobName: Prepare
-          parentSummaryTaskName: SetOutputs
-          parentSummaryVariableName: isTested
+          conditionalStage: Preparation
+          conditionalJob: Prepare
+          conditionalTask: SetOutputs
+          conditionalVariable: isTested
           condition: always()
           mappingVariables:
             outBuildId: mappedOutBuildId
@@ -130,10 +130,10 @@ stages:
       - template: /scripts-templates/jobs/conditioned-job-wrapper.yml
         parameters:
           template: /tests/templates/conditioned-wrapper-target-job.yml
-          parentStageName: Preparation
-          parentSummaryJobName: Prepare
-          parentSummaryTaskName: SetOutputs
-          parentSummaryVariableName: isTested
+          conditionalStage: Preparation
+          conditionalJob: Prepare
+          conditionalTask: SetOutputs
+          conditionalVariable: isTested
           condition: always()
           dependsOn:
             - ConditionedJobCheck
@@ -203,10 +203,10 @@ stages:
         parameters:
           jobName: ConditionedJobBrokenCheck
           displayName: Conditioned job broken check
-          parentStageName: Preparation
-          parentSummaryJobName: Prepare
-          parentSummaryTaskName: SetOutputs
-          parentSummaryVariableName: isBroken
+          conditionalStage: Preparation
+          conditionalJob: Prepare
+          conditionalTask: SetOutputs
+          conditionalVariable: isBroken
           condition: always()
           dependsOn:
             - ConditionedJobWrapperCheck
@@ -225,10 +225,10 @@ stages:
       - template: /scripts-templates/jobs/conditioned-job-wrapper.yml
         parameters:
           template: /tests/templates/conditioned-wrapper-target-job.yml
-          parentStageName: Preparation
-          parentSummaryJobName: Prepare
-          parentSummaryTaskName: SetOutputs
-          parentSummaryVariableName: isBroken
+          conditionalStage: Preparation
+          conditionalJob: Prepare
+          conditionalTask: SetOutputs
+          conditionalVariable: isBroken
           condition: always()
           dependsOn:
             - ConditionedJobBrokenCheck
