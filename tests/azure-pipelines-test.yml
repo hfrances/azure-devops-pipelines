@@ -67,241 +67,6 @@ stages:
             name: SetOutputs
             displayName: Set outputs
 
-  # Stage: ejecuta las pruebas de conditioned-job y conditioned-job-wrapper.
-  # Debe ejecutarse siempre para observar resultados incluso con fallos previos.
-  - stage: TestSingle
-    displayName: Test Single
-    dependsOn: Preparation
-    condition: succeeded()
-    jobs:
-      # Job test (directo): valida condicion por isTested y mapeo de outputs/no-outputs.
-      - template: /scripts-templates/jobs/conditioned-job.yml
-        parameters:
-          jobName: ConditionedJobCheck
-          displayName: Conditioned job check
-          conditionalStage: Preparation
-          conditionalJob: Prepare
-          conditionalTask: SetOutputs
-          conditionalVariable: isTested
-          condition: succeededOrFailed()
-          mappingVariables:
-            outBuildId: mappedOutBuildId
-            outDefinitionName: mappedOutDefinitionName
-            outSourceBranch: mappedOutSourceBranch
-            plainLocalOnly: mappedPlainLocalOnly
-          additionalVariables:
-            expectedBuildId: $(Build.BuildId)
-            expectedDefinitionName: $(Build.DefinitionName)
-            expectedSourceBranch: $(Build.SourceBranch)
-          steps:
-            # Task test: comprueba que outputs llegan, no-outputs no llegan y reporta warnings.
-            - pwsh: |
-                $hasIssues = $false
-
-                function Warn([string]$message) {
-                  Write-Output "##vso[task.logissue type=warning]$message"
-                  $script:hasIssues = $true
-                }
-
-                function CheckExpected([string]$key, [string]$actual, [string]$expected) {
-                  Write-Output "${key}: $actual"
-                  if ([string]::IsNullOrWhiteSpace($actual)) {
-                    Warn "${key} should have value but arrived empty."
-                    return
-                  }
-                  if ($actual -ne $expected) {
-                    Warn "${key} expected '$expected' but got '$actual'."
-                  }
-                }
-
-                function CheckMustBeEmpty([string]$key, [string]$actual) {
-                  Write-Output "${key}: $actual"
-                  if (-not [string]::IsNullOrWhiteSpace($actual)) {
-                    Warn "${key} should be empty because source variable was not output."
-                  }
-                }
-
-                Write-Output "isTested: $(isTested)"
-                if ('$(isTested)' -ne 'true') {
-                  Warn "Conditional variable isTested should be true."
-                }
-
-                CheckExpected 'mappedOutBuildId' '$(mappedOutBuildId)' '$(expectedBuildId)'
-                CheckExpected 'mappedOutDefinitionName' '$(mappedOutDefinitionName)' '$(expectedDefinitionName)'
-                CheckExpected 'mappedOutSourceBranch' '$(mappedOutSourceBranch)' '$(expectedSourceBranch)'
-                CheckMustBeEmpty 'mappedPlainLocalOnly' '$(mappedPlainLocalOnly)'
-
-                if ($hasIssues) {
-                  Write-Output "##vso[task.logissue type=warning]Validation finished with warnings."
-                  Write-Output "##vso[task.complete result=SucceededWithIssues;]DONE"
-                  exit 0
-                }
-
-                Write-Output "All validations passed."
-              name: ValidateMappings
-              displayName: Validate mapped variables
-              condition: and(succeeded(), eq(variables['isTested'], 'true'))
-
-      # Job test (wrapper): misma validacion que el job directo pero pasando por wrapper.
-      - template: /scripts-templates/jobs/conditioned-job-wrapper.yml
-        parameters:
-          template: /tests/templates/conditioned-wrapper-target-job.yml
-          conditionalStage: Preparation
-          conditionalJob: Prepare
-          conditionalTask: SetOutputs
-          conditionalVariable: isTested
-          condition: succeededOrFailed()
-          dependsOn:
-            - ConditionedJobCheck
-          mappingVariables:
-            outBuildId: wrapperMappedOutBuildId
-            outDefinitionName: wrapperMappedOutDefinitionName
-            outSourceBranch: wrapperMappedOutSourceBranch
-            plainLocalOnly: wrapperMappedPlainLocalOnly
-          additionalVariables:
-            expectedBuildId: $(Build.BuildId)
-            expectedDefinitionName: $(Build.DefinitionName)
-            expectedSourceBranch: $(Build.SourceBranch)
-          parameters:
-            jobName: ConditionedJobWrapperCheck
-            displayName: Conditioned job wrapper check
-            steps:
-              # Task test: valida condicion y mapeos en la ruta wrapper.
-              - pwsh: |
-                  $hasIssues = $false
-
-                  function Warn([string]$message) {
-                    Write-Output "##vso[task.logissue type=warning]$message"
-                    $script:hasIssues = $true
-                  }
-
-                  function CheckExpected([string]$key, [string]$actual, [string]$expected) {
-                    Write-Output "${key}: $actual"
-                    if ([string]::IsNullOrWhiteSpace($actual)) {
-                      Warn "${key} should have value but arrived empty."
-                      return
-                    }
-                    if ($actual -ne $expected) {
-                      Warn "${key} expected '$expected' but got '$actual'."
-                    }
-                  }
-
-                  function CheckMustBeEmpty([string]$key, [string]$actual) {
-                    Write-Output "${key}: $actual"
-                    if (-not [string]::IsNullOrWhiteSpace($actual)) {
-                      Warn "${key} should be empty because source variable was not output."
-                    }
-                  }
-
-                  Write-Output "isTested: $(isTested)"
-                  if ('$(isTested)' -ne 'true') {
-                    Warn "Conditional variable isTested should be true."
-                  }
-
-                  CheckExpected 'wrapperMappedOutBuildId' '$(wrapperMappedOutBuildId)' '$(expectedBuildId)'
-                  CheckExpected 'wrapperMappedOutDefinitionName' '$(wrapperMappedOutDefinitionName)' '$(expectedDefinitionName)'
-                  CheckExpected 'wrapperMappedOutSourceBranch' '$(wrapperMappedOutSourceBranch)' '$(expectedSourceBranch)'
-                  CheckMustBeEmpty 'wrapperMappedPlainLocalOnly' '$(wrapperMappedPlainLocalOnly)'
-
-                  if ($hasIssues) {
-                    Write-Output "##vso[task.logissue type=warning]Validation finished with warnings."
-                    Write-Output "##vso[task.complete result=SucceededWithIssues;]DONE"
-                    exit 0
-                  }
-
-                  Write-Output "All validations passed."
-                name: ValidateMappingsViaWrapper
-                displayName: Validate mapped variables via wrapper
-                condition: and(succeeded(), eq(variables['isTested'], 'true'))
-
-      # Job test negativo (directo): con isBroken=false debe quedar Skipped por condicion.
-      - template: /scripts-templates/jobs/conditioned-job.yml
-        parameters:
-          jobName: ConditionedJobBrokenCheck
-          displayName: Conditioned job broken check
-          conditionalStage: Preparation
-          conditionalJob: Prepare
-          conditionalTask: SetOutputs
-          conditionalVariable: isBroken
-          condition: succeededOrFailed()
-          dependsOn:
-            - ConditionedJobWrapperCheck
-          steps:
-            # Task: solo fallaria si isBroken=true; en este escenario no deberia ejecutarse.
-            - pwsh: |
-                Write-Output "isBroken: $(isBroken)"
-                if ('$(isBroken)' -eq 'true') {
-                  Write-Output "##vso[task.logissue type=error]isBroken is true. Failing as expected by test rule."
-                  Write-Output "##vso[task.complete result=Failed;]DONE"
-                }
-              name: ValidateBrokenDirect
-              displayName: Validate broken variable (direct)
-
-      # Job test negativo (wrapper): mismo escenario de isBroken=false, tambien debe quedar Skipped.
-      - template: /scripts-templates/jobs/conditioned-job-wrapper.yml
-        parameters:
-          template: /tests/templates/conditioned-wrapper-target-job.yml
-          conditionalStage: Preparation
-          conditionalJob: Prepare
-          conditionalTask: SetOutputs
-          conditionalVariable: isBroken
-          condition: succeededOrFailed()
-          dependsOn:
-            - ConditionedJobBrokenCheck
-          parameters:
-            jobName: ConditionedJobWrapperBrokenCheck
-            displayName: Conditioned job wrapper broken check
-            steps:
-              # Task: espejo del test negativo en la ruta wrapper.
-              - pwsh: |
-                  Write-Output "isBroken: $(isBroken)"
-                  if ('$(isBroken)' -eq 'true') {
-                    Write-Output "##vso[task.logissue type=error]isBroken is true. Failing as expected by test rule."
-                    Write-Output "##vso[task.complete result=Failed;]DONE"
-                  }
-                name: ValidateBrokenViaWrapper
-                displayName: Validate broken variable (wrapper)
-
-      # Job de verificacion final: asegura que los jobs esperados corrieron/skippearon sin errores.
-      - job: VerifyConditionedExecution
-        displayName: Verify conditioned jobs execution
-        dependsOn:
-          - ConditionedJobCheck
-          - ConditionedJobWrapperCheck
-          - ConditionedJobBrokenCheck
-          - ConditionedJobWrapperBrokenCheck
-        condition: succeededOrFailed()
-        variables:
-          resConditionedJobCheck: $[ dependencies.ConditionedJobCheck.result ]
-          resConditionedJobWrapperCheck: $[ dependencies.ConditionedJobWrapperCheck.result ]
-          resConditionedJobBrokenCheck: $[ dependencies.ConditionedJobBrokenCheck.result ]
-          resConditionedJobWrapperBrokenCheck: $[ dependencies.ConditionedJobWrapperBrokenCheck.result ]
-        steps:
-          # Task de aserciones finales de estado por job.
-          - pwsh: |
-              $hasErrors = $false
-
-              function CheckEqual([string]$key, [string]$actual, [string]$expected) {
-                Write-Output "${key}: $actual"
-                if ($actual -ne $expected) {
-                  Write-Output "##vso[task.logissue type=error]${key} expected '$expected' but got '$actual'."
-                  $script:hasErrors = $true
-                }
-              }
-
-              CheckEqual 'ConditionedJobCheck.result' '$(resConditionedJobCheck)' 'Succeeded'
-              CheckEqual 'ConditionedJobWrapperCheck.result' '$(resConditionedJobWrapperCheck)' 'Succeeded'
-              CheckEqual 'ConditionedJobBrokenCheck.result' '$(resConditionedJobBrokenCheck)' 'Skipped'
-              CheckEqual 'ConditionedJobWrapperBrokenCheck.result' '$(resConditionedJobWrapperBrokenCheck)' 'Skipped'
-
-              if ($hasErrors) {
-                Write-Output "##vso[task.complete result=Failed;]DONE"
-              }
-
-              Write-Output "Execution/results verification passed."
-            name: VerifyExecutionResults
-            displayName: Verify execution results
-
   # Stage: replica de pruebas pero consumiendo outputs de un job del mismo stage (dependencies).
   - stage: TestAlone
     displayName: Test Alone
@@ -577,3 +342,659 @@ stages:
             name: VerifyExecutionResultsAlone
             displayName: Verify execution results alone
 
+
+  # Stage: ejecuta las pruebas de conditioned-job y conditioned-job-wrapper.
+  # Debe ejecutarse siempre para observar resultados incluso con fallos previos.
+  - stage: TestSingle
+    displayName: Test Single
+    dependsOn: Preparation
+    condition: succeeded()
+    jobs:
+      # Job test (directo): valida condicion por isTested y mapeo de outputs/no-outputs.
+      - template: /scripts-templates/jobs/conditioned-job.yml
+        parameters:
+          jobName: ConditionedJobCheck
+          displayName: Conditioned job check
+          conditionalStage: Preparation
+          conditionalJob: Prepare
+          conditionalTask: SetOutputs
+          conditionalVariable: isTested
+          condition: succeededOrFailed()
+          mappingVariables:
+            outBuildId: mappedOutBuildId
+            outDefinitionName: mappedOutDefinitionName
+            outSourceBranch: mappedOutSourceBranch
+            plainLocalOnly: mappedPlainLocalOnly
+          additionalVariables:
+            expectedBuildId: $(Build.BuildId)
+            expectedDefinitionName: $(Build.DefinitionName)
+            expectedSourceBranch: $(Build.SourceBranch)
+          steps:
+            # Task test: comprueba que outputs llegan, no-outputs no llegan y reporta warnings.
+            - pwsh: |
+                $hasIssues = $false
+
+                function Warn([string]$message) {
+                  Write-Output "##vso[task.logissue type=warning]$message"
+                  $script:hasIssues = $true
+                }
+
+                function CheckExpected([string]$key, [string]$actual, [string]$expected) {
+                  Write-Output "${key}: $actual"
+                  if ([string]::IsNullOrWhiteSpace($actual)) {
+                    Warn "${key} should have value but arrived empty."
+                    return
+                  }
+                  if ($actual -ne $expected) {
+                    Warn "${key} expected '$expected' but got '$actual'."
+                  }
+                }
+
+                function CheckMustBeEmpty([string]$key, [string]$actual) {
+                  Write-Output "${key}: $actual"
+                  if (-not [string]::IsNullOrWhiteSpace($actual)) {
+                    Warn "${key} should be empty because source variable was not output."
+                  }
+                }
+
+                Write-Output "isTested: $(isTested)"
+                if ('$(isTested)' -ne 'true') {
+                  Warn "Conditional variable isTested should be true."
+                }
+
+                CheckExpected 'mappedOutBuildId' '$(mappedOutBuildId)' '$(expectedBuildId)'
+                CheckExpected 'mappedOutDefinitionName' '$(mappedOutDefinitionName)' '$(expectedDefinitionName)'
+                CheckExpected 'mappedOutSourceBranch' '$(mappedOutSourceBranch)' '$(expectedSourceBranch)'
+                CheckMustBeEmpty 'mappedPlainLocalOnly' '$(mappedPlainLocalOnly)'
+
+                if ($hasIssues) {
+                  Write-Output "##vso[task.logissue type=warning]Validation finished with warnings."
+                  Write-Output "##vso[task.complete result=SucceededWithIssues;]DONE"
+                  exit 0
+                }
+
+                Write-Output "All validations passed."
+              name: ValidateMappings
+              displayName: Validate mapped variables
+              condition: and(succeeded(), eq(variables['isTested'], 'true'))
+
+      # Job test (wrapper): misma validacion que el job directo pero pasando por wrapper.
+      - template: /scripts-templates/jobs/conditioned-job-wrapper.yml
+        parameters:
+          template: /tests/templates/conditioned-wrapper-target-job.yml
+          conditionalStage: Preparation
+          conditionalJob: Prepare
+          conditionalTask: SetOutputs
+          conditionalVariable: isTested
+          condition: succeededOrFailed()
+          dependsOn:
+            - ConditionedJobCheck
+          mappingVariables:
+            outBuildId: wrapperMappedOutBuildId
+            outDefinitionName: wrapperMappedOutDefinitionName
+            outSourceBranch: wrapperMappedOutSourceBranch
+            plainLocalOnly: wrapperMappedPlainLocalOnly
+          additionalVariables:
+            expectedBuildId: $(Build.BuildId)
+            expectedDefinitionName: $(Build.DefinitionName)
+            expectedSourceBranch: $(Build.SourceBranch)
+          parameters:
+            jobName: ConditionedJobWrapperCheck
+            displayName: Conditioned job wrapper check
+            steps:
+              # Task test: valida condicion y mapeos en la ruta wrapper.
+              - pwsh: |
+                  $hasIssues = $false
+
+                  function Warn([string]$message) {
+                    Write-Output "##vso[task.logissue type=warning]$message"
+                    $script:hasIssues = $true
+                  }
+
+                  function CheckExpected([string]$key, [string]$actual, [string]$expected) {
+                    Write-Output "${key}: $actual"
+                    if ([string]::IsNullOrWhiteSpace($actual)) {
+                      Warn "${key} should have value but arrived empty."
+                      return
+                    }
+                    if ($actual -ne $expected) {
+                      Warn "${key} expected '$expected' but got '$actual'."
+                    }
+                  }
+
+                  function CheckMustBeEmpty([string]$key, [string]$actual) {
+                    Write-Output "${key}: $actual"
+                    if (-not [string]::IsNullOrWhiteSpace($actual)) {
+                      Warn "${key} should be empty because source variable was not output."
+                    }
+                  }
+
+                  Write-Output "isTested: $(isTested)"
+                  if ('$(isTested)' -ne 'true') {
+                    Warn "Conditional variable isTested should be true."
+                  }
+
+                  CheckExpected 'wrapperMappedOutBuildId' '$(wrapperMappedOutBuildId)' '$(expectedBuildId)'
+                  CheckExpected 'wrapperMappedOutDefinitionName' '$(wrapperMappedOutDefinitionName)' '$(expectedDefinitionName)'
+                  CheckExpected 'wrapperMappedOutSourceBranch' '$(wrapperMappedOutSourceBranch)' '$(expectedSourceBranch)'
+                  CheckMustBeEmpty 'wrapperMappedPlainLocalOnly' '$(wrapperMappedPlainLocalOnly)'
+
+                  if ($hasIssues) {
+                    Write-Output "##vso[task.logissue type=warning]Validation finished with warnings."
+                    Write-Output "##vso[task.complete result=SucceededWithIssues;]DONE"
+                    exit 0
+                  }
+
+                  Write-Output "All validations passed."
+                name: ValidateMappingsViaWrapper
+                displayName: Validate mapped variables via wrapper
+                condition: and(succeeded(), eq(variables['isTested'], 'true'))
+
+      # Job test negativo (directo): con isBroken=false debe quedar Skipped por condicion.
+      - template: /scripts-templates/jobs/conditioned-job.yml
+        parameters:
+          jobName: ConditionedJobBrokenCheck
+          displayName: Conditioned job broken check
+          conditionalStage: Preparation
+          conditionalJob: Prepare
+          conditionalTask: SetOutputs
+          conditionalVariable: isBroken
+          condition: succeededOrFailed()
+          dependsOn:
+            - ConditionedJobWrapperCheck
+          steps:
+            # Task: solo fallaria si isBroken=true; en este escenario no deberia ejecutarse.
+            - pwsh: |
+                Write-Output "isBroken: $(isBroken)"
+                if ('$(isBroken)' -eq 'true') {
+                  Write-Output "##vso[task.logissue type=error]isBroken is true. Failing as expected by test rule."
+                  Write-Output "##vso[task.complete result=Failed;]DONE"
+                }
+              name: ValidateBrokenDirect
+              displayName: Validate broken variable (direct)
+
+      # Job test negativo (wrapper): mismo escenario de isBroken=false, tambien debe quedar Skipped.
+      - template: /scripts-templates/jobs/conditioned-job-wrapper.yml
+        parameters:
+          template: /tests/templates/conditioned-wrapper-target-job.yml
+          conditionalStage: Preparation
+          conditionalJob: Prepare
+          conditionalTask: SetOutputs
+          conditionalVariable: isBroken
+          condition: succeededOrFailed()
+          dependsOn:
+            - ConditionedJobBrokenCheck
+          parameters:
+            jobName: ConditionedJobWrapperBrokenCheck
+            displayName: Conditioned job wrapper broken check
+            steps:
+              # Task: espejo del test negativo en la ruta wrapper.
+              - pwsh: |
+                  Write-Output "isBroken: $(isBroken)"
+                  if ('$(isBroken)' -eq 'true') {
+                    Write-Output "##vso[task.logissue type=error]isBroken is true. Failing as expected by test rule."
+                    Write-Output "##vso[task.complete result=Failed;]DONE"
+                  }
+                name: ValidateBrokenViaWrapper
+                displayName: Validate broken variable (wrapper)
+
+      # Job de verificacion final: asegura que los jobs esperados corrieron/skippearon sin errores.
+      - job: VerifyConditionedExecution
+        displayName: Verify conditioned jobs execution
+        dependsOn:
+          - ConditionedJobCheck
+          - ConditionedJobWrapperCheck
+          - ConditionedJobBrokenCheck
+          - ConditionedJobWrapperBrokenCheck
+        condition: succeededOrFailed()
+        variables:
+          resConditionedJobCheck: $[ dependencies.ConditionedJobCheck.result ]
+          resConditionedJobWrapperCheck: $[ dependencies.ConditionedJobWrapperCheck.result ]
+          resConditionedJobBrokenCheck: $[ dependencies.ConditionedJobBrokenCheck.result ]
+          resConditionedJobWrapperBrokenCheck: $[ dependencies.ConditionedJobWrapperBrokenCheck.result ]
+        steps:
+          # Task de aserciones finales de estado por job.
+          - pwsh: |
+              $hasErrors = $false
+
+              function CheckEqual([string]$key, [string]$actual, [string]$expected) {
+                Write-Output "${key}: $actual"
+                if ($actual -ne $expected) {
+                  Write-Output "##vso[task.logissue type=error]${key} expected '$expected' but got '$actual'."
+                  $script:hasErrors = $true
+                }
+              }
+
+              CheckEqual 'ConditionedJobCheck.result' '$(resConditionedJobCheck)' 'Succeeded'
+              CheckEqual 'ConditionedJobWrapperCheck.result' '$(resConditionedJobWrapperCheck)' 'Succeeded'
+              CheckEqual 'ConditionedJobBrokenCheck.result' '$(resConditionedJobBrokenCheck)' 'Skipped'
+              CheckEqual 'ConditionedJobWrapperBrokenCheck.result' '$(resConditionedJobWrapperBrokenCheck)' 'Skipped'
+
+              if ($hasErrors) {
+                Write-Output "##vso[task.complete result=Failed;]DONE"
+              }
+
+              Write-Output "Execution/results verification passed."
+            name: VerifyExecutionResults
+            displayName: Verify execution results
+
+  # Stage: prepara variables A/B y un Summary agregado para escenario Combi.
+  - stage: PreparationCombi
+    displayName: Preparation Combi
+    jobs:
+      - job: PrepareCombi
+        displayName: Prepare combi
+        steps:
+          # Task 1: genera flags y datos output para testA.
+          - pwsh: |
+              $isTestedA = 'true'
+              $isBrokenA = 'false'
+
+              $invertConditionFlags = '${{ parameters.invertConditionFlags }}'
+              if ($invertConditionFlags -eq 'True') {
+                $tmp = $isTestedA
+                $isTestedA = $isBrokenA
+                $isBrokenA = $tmp
+              }
+
+              $outBuildIdA = '$(Build.BuildId)'
+              $outDefinitionNameA = '$(Build.DefinitionName)'
+              $outSourceBranchA = '$(Build.SourceBranch)'
+              $plainLocalOnlyA = 'local-only-value-A'
+
+              Write-Output "testA.invertConditionFlags: $invertConditionFlags"
+              Write-Output "testA.isTestedA: $isTestedA (output=true)"
+              Write-Output "##vso[task.setvariable variable=isTestedA;isOutput=true]$isTestedA"
+              Write-Output "testA.isBrokenA: $isBrokenA (output=true)"
+              Write-Output "##vso[task.setvariable variable=isBrokenA;isOutput=true]$isBrokenA"
+              Write-Output "testA.outBuildIdA: $outBuildIdA (output=true)"
+              Write-Output "##vso[task.setvariable variable=outBuildIdA;isOutput=true]$outBuildIdA"
+              Write-Output "testA.outDefinitionNameA: $outDefinitionNameA (output=true)"
+              Write-Output "##vso[task.setvariable variable=outDefinitionNameA;isOutput=true]$outDefinitionNameA"
+              Write-Output "testA.outSourceBranchA: $outSourceBranchA (output=true)"
+              Write-Output "##vso[task.setvariable variable=outSourceBranchA;isOutput=true]$outSourceBranchA"
+              Write-Output "testA.plainLocalOnlyA: $plainLocalOnlyA (output=false)"
+              Write-Output "##vso[task.setvariable variable=plainLocalOnlyA]$plainLocalOnlyA"
+            name: SetOutputsA
+            displayName: Set outputs A
+
+          # Task 2: genera flags y datos output para testB.
+          - pwsh: |
+              $isTestedB = 'true'
+              $isBrokenB = 'false'
+
+              $invertConditionFlags = '${{ parameters.invertConditionFlags }}'
+              if ($invertConditionFlags -eq 'True') {
+                $tmp = $isTestedB
+                $isTestedB = $isBrokenB
+                $isBrokenB = $tmp
+              }
+
+              $outBuildIdB = '$(Build.BuildId)'
+              $outDefinitionNameB = '$(Build.DefinitionName)'
+              $outSourceBranchB = '$(Build.SourceBranch)'
+              $plainLocalOnlyB = 'local-only-value-B'
+
+              Write-Output "testB.invertConditionFlags: $invertConditionFlags"
+              Write-Output "testB.isTestedB: $isTestedB (output=true)"
+              Write-Output "##vso[task.setvariable variable=isTestedB;isOutput=true]$isTestedB"
+              Write-Output "testB.isBrokenB: $isBrokenB (output=true)"
+              Write-Output "##vso[task.setvariable variable=isBrokenB;isOutput=true]$isBrokenB"
+              Write-Output "testB.outBuildIdB: $outBuildIdB (output=true)"
+              Write-Output "##vso[task.setvariable variable=outBuildIdB;isOutput=true]$outBuildIdB"
+              Write-Output "testB.outDefinitionNameB: $outDefinitionNameB (output=true)"
+              Write-Output "##vso[task.setvariable variable=outDefinitionNameB;isOutput=true]$outDefinitionNameB"
+              Write-Output "testB.outSourceBranchB: $outSourceBranchB (output=true)"
+              Write-Output "##vso[task.setvariable variable=outSourceBranchB;isOutput=true]$outSourceBranchB"
+              Write-Output "testB.plainLocalOnlyB: $plainLocalOnlyB (output=false)"
+              Write-Output "##vso[task.setvariable variable=plainLocalOnlyB]$plainLocalOnlyB"
+            name: SetOutputsB
+            displayName: Set outputs B
+
+          # Task 3: Summary agregado de flags A/B.
+          - pwsh: |
+              $isTestedA = '$(SetOutputsA.isTestedA)'
+              $isTestedB = '$(SetOutputsB.isTestedB)'
+              $isBrokenA = '$(SetOutputsA.isBrokenA)'
+              $isBrokenB = '$(SetOutputsB.isBrokenB)'
+
+              $isTestedSummary = if ($isTestedA -eq 'true' -and $isTestedB -eq 'true') { 'true' } else { 'false' }
+              $isBrokenSummary = if ($isBrokenA -eq 'true' -and $isBrokenB -eq 'true') { 'true' } else { 'false' }
+
+              Write-Output "summary.isTestedA: $isTestedA"
+              Write-Output "summary.isTestedB: $isTestedB"
+              Write-Output "summary.isBrokenA: $isBrokenA"
+              Write-Output "summary.isBrokenB: $isBrokenB"
+              Write-Output "summary.isTestedSummary: $isTestedSummary (output=true)"
+              Write-Output "##vso[task.setvariable variable=isTestedSummary;isOutput=true]$isTestedSummary"
+              Write-Output "summary.isBrokenSummary: $isBrokenSummary (output=true)"
+              Write-Output "##vso[task.setvariable variable=isBrokenSummary;isOutput=true]$isBrokenSummary"
+            name: SetSummary
+            displayName: Set summary outputs
+
+  # Stage: pruebas Combi (A/B), condicionadas por Summary de PreparationCombi.
+  - stage: TestCombi
+    displayName: Test Combi
+    dependsOn: PreparationCombi
+    condition: and(succeededOrFailed(), eq(dependencies.PreparationCombi.outputs['PrepareCombi.SetSummary.isTestedSummary'], 'true'))
+    jobs:
+      # A positivos (directo + wrapper)
+      - template: /scripts-templates/jobs/conditioned-job.yml
+        parameters:
+          jobName: ConditionedJobCheckA
+          displayName: Conditioned job check A
+          conditionalStage: PreparationCombi
+          conditionalJob: PrepareCombi
+          conditionalTask: SetOutputsA
+          conditionalVariable: isTestedA
+          condition: succeededOrFailed()
+          mappingVariables:
+            outBuildIdA: mappedOutBuildIdA
+            outDefinitionNameA: mappedOutDefinitionNameA
+            outSourceBranchA: mappedOutSourceBranchA
+            plainLocalOnlyA: mappedPlainLocalOnlyA
+          additionalVariables:
+            expectedBuildId: $(Build.BuildId)
+            expectedDefinitionName: $(Build.DefinitionName)
+            expectedSourceBranch: $(Build.SourceBranch)
+          steps:
+            - pwsh: |
+                $hasIssues = $false
+                function Warn([string]$message) { Write-Output "##vso[task.logissue type=warning]$message"; $script:hasIssues = $true }
+                function CheckExpected([string]$key, [string]$actual, [string]$expected) {
+                  Write-Output "${key}: $actual"
+                  if ([string]::IsNullOrWhiteSpace($actual)) { Warn "${key} should have value but arrived empty."; return }
+                  if ($actual -ne $expected) { Warn "${key} expected '$expected' but got '$actual'." }
+                }
+                function CheckMustBeEmpty([string]$key, [string]$actual) {
+                  Write-Output "${key}: $actual"
+                  if (-not [string]::IsNullOrWhiteSpace($actual)) { Warn "${key} should be empty because source variable was not output." }
+                }
+                Write-Output "isTestedA: $(isTestedA)"
+                if ('$(isTestedA)' -ne 'true') { Warn "Conditional variable isTestedA should be true." }
+                CheckExpected 'mappedOutBuildIdA' '$(mappedOutBuildIdA)' '$(expectedBuildId)'
+                CheckExpected 'mappedOutDefinitionNameA' '$(mappedOutDefinitionNameA)' '$(expectedDefinitionName)'
+                CheckExpected 'mappedOutSourceBranchA' '$(mappedOutSourceBranchA)' '$(expectedSourceBranch)'
+                CheckMustBeEmpty 'mappedPlainLocalOnlyA' '$(mappedPlainLocalOnlyA)'
+                if ($hasIssues) { Write-Output "##vso[task.complete result=SucceededWithIssues;]DONE"; exit 0 }
+              name: ValidateMappingsA
+              displayName: Validate mapped variables A
+              condition: and(succeeded(), eq(variables['isTestedA'], 'true'))
+
+      - template: /scripts-templates/jobs/conditioned-job-wrapper.yml
+        parameters:
+          template: /tests/templates/conditioned-wrapper-target-job.yml
+          conditionalStage: PreparationCombi
+          conditionalJob: PrepareCombi
+          conditionalTask: SetOutputsA
+          conditionalVariable: isTestedA
+          condition: succeededOrFailed()
+          dependsOn:
+            - ConditionedJobCheckA
+          mappingVariables:
+            outBuildIdA: wrapperMappedOutBuildIdA
+            outDefinitionNameA: wrapperMappedOutDefinitionNameA
+            outSourceBranchA: wrapperMappedOutSourceBranchA
+            plainLocalOnlyA: wrapperMappedPlainLocalOnlyA
+          additionalVariables:
+            expectedBuildId: $(Build.BuildId)
+            expectedDefinitionName: $(Build.DefinitionName)
+            expectedSourceBranch: $(Build.SourceBranch)
+          parameters:
+            jobName: ConditionedJobWrapperCheckA
+            displayName: Conditioned job wrapper check A
+            steps:
+              - pwsh: |
+                  $hasIssues = $false
+                  function Warn([string]$message) { Write-Output "##vso[task.logissue type=warning]$message"; $script:hasIssues = $true }
+                  function CheckExpected([string]$key, [string]$actual, [string]$expected) {
+                    Write-Output "${key}: $actual"
+                    if ([string]::IsNullOrWhiteSpace($actual)) { Warn "${key} should have value but arrived empty."; return }
+                    if ($actual -ne $expected) { Warn "${key} expected '$expected' but got '$actual'." }
+                  }
+                  function CheckMustBeEmpty([string]$key, [string]$actual) {
+                    Write-Output "${key}: $actual"
+                    if (-not [string]::IsNullOrWhiteSpace($actual)) { Warn "${key} should be empty because source variable was not output." }
+                  }
+                  Write-Output "isTestedA: $(isTestedA)"
+                  if ('$(isTestedA)' -ne 'true') { Warn "Conditional variable isTestedA should be true." }
+                  CheckExpected 'wrapperMappedOutBuildIdA' '$(wrapperMappedOutBuildIdA)' '$(expectedBuildId)'
+                  CheckExpected 'wrapperMappedOutDefinitionNameA' '$(wrapperMappedOutDefinitionNameA)' '$(expectedDefinitionName)'
+                  CheckExpected 'wrapperMappedOutSourceBranchA' '$(wrapperMappedOutSourceBranchA)' '$(expectedSourceBranch)'
+                  CheckMustBeEmpty 'wrapperMappedPlainLocalOnlyA' '$(wrapperMappedPlainLocalOnlyA)'
+                  if ($hasIssues) { Write-Output "##vso[task.complete result=SucceededWithIssues;]DONE"; exit 0 }
+                name: ValidateMappingsViaWrapperA
+                displayName: Validate mapped variables via wrapper A
+                condition: and(succeeded(), eq(variables['isTestedA'], 'true'))
+
+      # A negativos (directo + wrapper)
+      - template: /scripts-templates/jobs/conditioned-job.yml
+        parameters:
+          jobName: ConditionedJobBrokenCheckA
+          displayName: Conditioned job broken check A
+          conditionalStage: PreparationCombi
+          conditionalJob: PrepareCombi
+          conditionalTask: SetOutputsA
+          conditionalVariable: isBrokenA
+          condition: succeededOrFailed()
+          dependsOn:
+            - ConditionedJobWrapperCheckA
+          steps:
+            - pwsh: |
+                Write-Output "isBrokenA: $(isBrokenA)"
+                if ('$(isBrokenA)' -eq 'true') {
+                  Write-Output "##vso[task.logissue type=error]isBrokenA is true. Failing as expected by test rule."
+                  Write-Output "##vso[task.complete result=Failed;]DONE"
+                }
+              name: ValidateBrokenDirectA
+              displayName: Validate broken variable direct A
+
+      - template: /scripts-templates/jobs/conditioned-job-wrapper.yml
+        parameters:
+          template: /tests/templates/conditioned-wrapper-target-job.yml
+          conditionalStage: PreparationCombi
+          conditionalJob: PrepareCombi
+          conditionalTask: SetOutputsA
+          conditionalVariable: isBrokenA
+          condition: succeededOrFailed()
+          dependsOn:
+            - ConditionedJobBrokenCheckA
+          parameters:
+            jobName: ConditionedJobWrapperBrokenCheckA
+            displayName: Conditioned job wrapper broken check A
+            steps:
+              - pwsh: |
+                  Write-Output "isBrokenA: $(isBrokenA)"
+                  if ('$(isBrokenA)' -eq 'true') {
+                    Write-Output "##vso[task.logissue type=error]isBrokenA is true. Failing as expected by test rule."
+                    Write-Output "##vso[task.complete result=Failed;]DONE"
+                  }
+                name: ValidateBrokenViaWrapperA
+                displayName: Validate broken variable wrapper A
+
+      # B positivos (directo + wrapper)
+      - template: /scripts-templates/jobs/conditioned-job.yml
+        parameters:
+          jobName: ConditionedJobCheckB
+          displayName: Conditioned job check B
+          conditionalStage: PreparationCombi
+          conditionalJob: PrepareCombi
+          conditionalTask: SetOutputsB
+          conditionalVariable: isTestedB
+          condition: succeededOrFailed()
+          dependsOn:
+            - ConditionedJobWrapperBrokenCheckA
+          mappingVariables:
+            outBuildIdB: mappedOutBuildIdB
+            outDefinitionNameB: mappedOutDefinitionNameB
+            outSourceBranchB: mappedOutSourceBranchB
+            plainLocalOnlyB: mappedPlainLocalOnlyB
+          additionalVariables:
+            expectedBuildId: $(Build.BuildId)
+            expectedDefinitionName: $(Build.DefinitionName)
+            expectedSourceBranch: $(Build.SourceBranch)
+          steps:
+            - pwsh: |
+                $hasIssues = $false
+                function Warn([string]$message) { Write-Output "##vso[task.logissue type=warning]$message"; $script:hasIssues = $true }
+                function CheckExpected([string]$key, [string]$actual, [string]$expected) {
+                  Write-Output "${key}: $actual"
+                  if ([string]::IsNullOrWhiteSpace($actual)) { Warn "${key} should have value but arrived empty."; return }
+                  if ($actual -ne $expected) { Warn "${key} expected '$expected' but got '$actual'." }
+                }
+                function CheckMustBeEmpty([string]$key, [string]$actual) {
+                  Write-Output "${key}: $actual"
+                  if (-not [string]::IsNullOrWhiteSpace($actual)) { Warn "${key} should be empty because source variable was not output." }
+                }
+                Write-Output "isTestedB: $(isTestedB)"
+                if ('$(isTestedB)' -ne 'true') { Warn "Conditional variable isTestedB should be true." }
+                CheckExpected 'mappedOutBuildIdB' '$(mappedOutBuildIdB)' '$(expectedBuildId)'
+                CheckExpected 'mappedOutDefinitionNameB' '$(mappedOutDefinitionNameB)' '$(expectedDefinitionName)'
+                CheckExpected 'mappedOutSourceBranchB' '$(mappedOutSourceBranchB)' '$(expectedSourceBranch)'
+                CheckMustBeEmpty 'mappedPlainLocalOnlyB' '$(mappedPlainLocalOnlyB)'
+                if ($hasIssues) { Write-Output "##vso[task.complete result=SucceededWithIssues;]DONE"; exit 0 }
+              name: ValidateMappingsB
+              displayName: Validate mapped variables B
+              condition: and(succeeded(), eq(variables['isTestedB'], 'true'))
+
+      - template: /scripts-templates/jobs/conditioned-job-wrapper.yml
+        parameters:
+          template: /tests/templates/conditioned-wrapper-target-job.yml
+          conditionalStage: PreparationCombi
+          conditionalJob: PrepareCombi
+          conditionalTask: SetOutputsB
+          conditionalVariable: isTestedB
+          condition: succeededOrFailed()
+          dependsOn:
+            - ConditionedJobCheckB
+          mappingVariables:
+            outBuildIdB: wrapperMappedOutBuildIdB
+            outDefinitionNameB: wrapperMappedOutDefinitionNameB
+            outSourceBranchB: wrapperMappedOutSourceBranchB
+            plainLocalOnlyB: wrapperMappedPlainLocalOnlyB
+          additionalVariables:
+            expectedBuildId: $(Build.BuildId)
+            expectedDefinitionName: $(Build.DefinitionName)
+            expectedSourceBranch: $(Build.SourceBranch)
+          parameters:
+            jobName: ConditionedJobWrapperCheckB
+            displayName: Conditioned job wrapper check B
+            steps:
+              - pwsh: |
+                  $hasIssues = $false
+                  function Warn([string]$message) { Write-Output "##vso[task.logissue type=warning]$message"; $script:hasIssues = $true }
+                  function CheckExpected([string]$key, [string]$actual, [string]$expected) {
+                    Write-Output "${key}: $actual"
+                    if ([string]::IsNullOrWhiteSpace($actual)) { Warn "${key} should have value but arrived empty."; return }
+                    if ($actual -ne $expected) { Warn "${key} expected '$expected' but got '$actual'." }
+                  }
+                  function CheckMustBeEmpty([string]$key, [string]$actual) {
+                    Write-Output "${key}: $actual"
+                    if (-not [string]::IsNullOrWhiteSpace($actual)) { Warn "${key} should be empty because source variable was not output." }
+                  }
+                  Write-Output "isTestedB: $(isTestedB)"
+                  if ('$(isTestedB)' -ne 'true') { Warn "Conditional variable isTestedB should be true." }
+                  CheckExpected 'wrapperMappedOutBuildIdB' '$(wrapperMappedOutBuildIdB)' '$(expectedBuildId)'
+                  CheckExpected 'wrapperMappedOutDefinitionNameB' '$(wrapperMappedOutDefinitionNameB)' '$(expectedDefinitionName)'
+                  CheckExpected 'wrapperMappedOutSourceBranchB' '$(wrapperMappedOutSourceBranchB)' '$(expectedSourceBranch)'
+                  CheckMustBeEmpty 'wrapperMappedPlainLocalOnlyB' '$(wrapperMappedPlainLocalOnlyB)'
+                  if ($hasIssues) { Write-Output "##vso[task.complete result=SucceededWithIssues;]DONE"; exit 0 }
+                name: ValidateMappingsViaWrapperB
+                displayName: Validate mapped variables via wrapper B
+                condition: and(succeeded(), eq(variables['isTestedB'], 'true'))
+
+      # B negativos (directo + wrapper)
+      - template: /scripts-templates/jobs/conditioned-job.yml
+        parameters:
+          jobName: ConditionedJobBrokenCheckB
+          displayName: Conditioned job broken check B
+          conditionalStage: PreparationCombi
+          conditionalJob: PrepareCombi
+          conditionalTask: SetOutputsB
+          conditionalVariable: isBrokenB
+          condition: succeededOrFailed()
+          dependsOn:
+            - ConditionedJobWrapperCheckB
+          steps:
+            - pwsh: |
+                Write-Output "isBrokenB: $(isBrokenB)"
+                if ('$(isBrokenB)' -eq 'true') {
+                  Write-Output "##vso[task.logissue type=error]isBrokenB is true. Failing as expected by test rule."
+                  Write-Output "##vso[task.complete result=Failed;]DONE"
+                }
+              name: ValidateBrokenDirectB
+              displayName: Validate broken variable direct B
+
+      - template: /scripts-templates/jobs/conditioned-job-wrapper.yml
+        parameters:
+          template: /tests/templates/conditioned-wrapper-target-job.yml
+          conditionalStage: PreparationCombi
+          conditionalJob: PrepareCombi
+          conditionalTask: SetOutputsB
+          conditionalVariable: isBrokenB
+          condition: succeededOrFailed()
+          dependsOn:
+            - ConditionedJobBrokenCheckB
+          parameters:
+            jobName: ConditionedJobWrapperBrokenCheckB
+            displayName: Conditioned job wrapper broken check B
+            steps:
+              - pwsh: |
+                  Write-Output "isBrokenB: $(isBrokenB)"
+                  if ('$(isBrokenB)' -eq 'true') {
+                    Write-Output "##vso[task.logissue type=error]isBrokenB is true. Failing as expected by test rule."
+                    Write-Output "##vso[task.complete result=Failed;]DONE"
+                  }
+                name: ValidateBrokenViaWrapperB
+                displayName: Validate broken variable wrapper B
+
+      # Verificador final Combi.
+      - job: VerifyConditionedExecutionCombi
+        displayName: Verify conditioned jobs execution combi
+        dependsOn:
+          - ConditionedJobCheckA
+          - ConditionedJobWrapperCheckA
+          - ConditionedJobBrokenCheckA
+          - ConditionedJobWrapperBrokenCheckA
+          - ConditionedJobCheckB
+          - ConditionedJobWrapperCheckB
+          - ConditionedJobBrokenCheckB
+          - ConditionedJobWrapperBrokenCheckB
+        condition: succeededOrFailed()
+        variables:
+          resConditionedJobCheckA: $[ dependencies.ConditionedJobCheckA.result ]
+          resConditionedJobWrapperCheckA: $[ dependencies.ConditionedJobWrapperCheckA.result ]
+          resConditionedJobBrokenCheckA: $[ dependencies.ConditionedJobBrokenCheckA.result ]
+          resConditionedJobWrapperBrokenCheckA: $[ dependencies.ConditionedJobWrapperBrokenCheckA.result ]
+          resConditionedJobCheckB: $[ dependencies.ConditionedJobCheckB.result ]
+          resConditionedJobWrapperCheckB: $[ dependencies.ConditionedJobWrapperCheckB.result ]
+          resConditionedJobBrokenCheckB: $[ dependencies.ConditionedJobBrokenCheckB.result ]
+          resConditionedJobWrapperBrokenCheckB: $[ dependencies.ConditionedJobWrapperBrokenCheckB.result ]
+        steps:
+          - pwsh: |
+              $hasErrors = $false
+              function CheckEqual([string]$key, [string]$actual, [string]$expected) {
+                Write-Output "${key}: $actual"
+                if ($actual -ne $expected) {
+                  Write-Output "##vso[task.logissue type=error]${key} expected '$expected' but got '$actual'."
+                  $script:hasErrors = $true
+                }
+              }
+
+              CheckEqual 'ConditionedJobCheckA.result' '$(resConditionedJobCheckA)' 'Succeeded'
+              CheckEqual 'ConditionedJobWrapperCheckA.result' '$(resConditionedJobWrapperCheckA)' 'Succeeded'
+              CheckEqual 'ConditionedJobBrokenCheckA.result' '$(resConditionedJobBrokenCheckA)' 'Skipped'
+              CheckEqual 'ConditionedJobWrapperBrokenCheckA.result' '$(resConditionedJobWrapperBrokenCheckA)' 'Skipped'
+
+              CheckEqual 'ConditionedJobCheckB.result' '$(resConditionedJobCheckB)' 'Succeeded'
+              CheckEqual 'ConditionedJobWrapperCheckB.result' '$(resConditionedJobWrapperCheckB)' 'Succeeded'
+              CheckEqual 'ConditionedJobBrokenCheckB.result' '$(resConditionedJobBrokenCheckB)' 'Skipped'
+              CheckEqual 'ConditionedJobWrapperBrokenCheckB.result' '$(resConditionedJobWrapperBrokenCheckB)' 'Skipped'
+
+              if ($hasErrors) {
+                Write-Output "##vso[task.complete result=Failed;]DONE"
+              }
+
+              Write-Output "Combi execution/results verification passed."
+            name: VerifyExecutionResultsCombi
+            displayName: Verify execution results combi
