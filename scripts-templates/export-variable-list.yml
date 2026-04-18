@@ -40,10 +40,10 @@ steps:
         }
 
         $fileName = Join-Path $path $fileBase
-        write-output "dump variables on $fileName"
+        Write-Host "dump variables on $fileName"
         set-content $fileName $out
 
-        write-output "##vso[task.addattachment type=Distributedtask.Core.Summary;name=Environment Variables ($env:SYSTEM_JOBDISPLAYNAME);]$fileName"
+        Write-Host "##vso[task.addattachment type=Distributedtask.Core.Summary;name=Environment Variables ($env:SYSTEM_JOBDISPLAYNAME);]$fileName"
     displayName: 'Export variable list'
     condition: ${{ parameters.condition }}
 

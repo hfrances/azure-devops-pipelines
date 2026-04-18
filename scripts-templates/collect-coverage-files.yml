@@ -19,7 +19,7 @@ steps:
             $files += ($_.Group | Sort-Object LastWriteTime | Select-Object -First 1)
           };
         
-        write-output "`nCollected coverage files:"
+        Write-Host "`nCollected coverage files:"
         $files.FullName;
         $files | ForEach-Object {
           if ($coverageResults -ne "") {
@@ -28,6 +28,6 @@ steps:
           $coverageResults += $_.FullName;
           Copy-Item $_ $(Agent.TempDirectory); 
         }
-        write-output "##vso[task.setvariable variable=CoverageResults]$coverageResults"
+        Write-Host "##vso[task.setvariable variable=CoverageResults]$coverageResults"
     displayName: 'Coverage: Collect files'
     condition: ${{ parameters.condition }}

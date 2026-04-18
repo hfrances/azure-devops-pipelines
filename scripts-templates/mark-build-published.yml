@@ -32,7 +32,7 @@ steps:
 
         $targetBuildId = "${{ parameters.buildId }}"
         if ([string]::IsNullOrWhiteSpace($targetBuildId)) {
-          Write-Output "##vso[build.addbuildtag]$finalTag";
+          Write-Host "##vso[build.addbuildtag]$finalTag";
         } else {
           if ([string]::IsNullOrWhiteSpace($env:SYSTEM_ACCESSTOKEN)) {
             throw "System.AccessToken is not available. Enable OAuth token access for scripts to tag a specific build."
@@ -46,6 +46,6 @@ steps:
           Write-Host "Tag endpoint: $uri"
           Invoke-RestMethod -Method Put -Uri $uri -Headers $headers | Out-Null
         }
-        Write-Output "##vso[task.setvariable variable=BuildParameters.$finalTag]true";
+        Write-Host "##vso[task.setvariable variable=BuildParameters.$finalTag]true";
     displayName: Mark build as ${{ parameters.tag }}
     condition: ${{ parameters.condition }}

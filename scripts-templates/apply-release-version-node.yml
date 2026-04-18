@@ -28,7 +28,7 @@ steps:
         $json = Get-Content $packageJsonPath -Raw | ConvertFrom-Json
         $json.version = $version
         $json | ConvertTo-Json -Depth 100 | Set-Content $packageJsonPath
-        Write-Output "Updated package.json version to: $version"
+        Write-Host "Updated package.json version to: $version"
       workingDirectory: ${{ parameters.workingDirectory }}
     displayName: Apply release version to package.json
     condition: ${{ parameters.condition }}

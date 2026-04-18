@@ -96,22 +96,22 @@ steps:
             # Calculate AssemblyVersion
             $releaseAssemblyVersion = "$major.$minor.$patch.$(Build.BuildId)";
             # Set variables
-            write-output "##vso[task.setvariable variable=BuildParameters.ReleaseAssemblyVersion]$releaseAssemblyVersion";
-            write-output "##vso[build.addbuildtag]${tagPrefix}$releaseAssemblyVersion";
+            Write-Host "##vso[task.setvariable variable=BuildParameters.ReleaseAssemblyVersion]$releaseAssemblyVersion";
+            Write-Host "##vso[build.addbuildtag]${tagPrefix}$releaseAssemblyVersion";
           }
           # Set variables
-          write-output "##vso[task.setvariable variable=BuildParameters.ReleaseVersion]$releaseVersion";
-          write-output "##vso[task.setvariable variable=BuildParameters.DockerVersion]$dockerVersion";
-          write-output "##vso[task.setvariable variable=BuildParameters.DockerAlias]$dockerAlias";
-          write-output "##vso[build.addbuildtag]${tagPrefix}$dockerVersion";
-          write-output "##vso[build.addbuildtag]${tagPrefix}$dockerAlias";
+          Write-Host "##vso[task.setvariable variable=BuildParameters.ReleaseVersion]$releaseVersion";
+          Write-Host "##vso[task.setvariable variable=BuildParameters.DockerVersion]$dockerVersion";
+          Write-Host "##vso[task.setvariable variable=BuildParameters.DockerAlias]$dockerAlias";
+          Write-Host "##vso[build.addbuildtag]${tagPrefix}$dockerVersion";
+          Write-Host "##vso[build.addbuildtag]${tagPrefix}$dockerAlias";
           # Display variables
-          write-output "Release version: $releaseVersion"
+          Write-Host "Release version: $releaseVersion"
           if ($calculateAssemblyVersion) {
-            write-output "Release assembly version: $releaseAssemblyVersion"
+            Write-Host "Release assembly version: $releaseAssemblyVersion"
           }
-          write-output "Docker version: $dockerVersion"
-          write-output "Docker alias: $dockerAlias"
+          Write-Host "Docker version: $dockerVersion"
+          Write-Host "Docker alias: $dockerAlias"
         }
         else {
           write-error "Invalid version format for: $ProjectVersion";

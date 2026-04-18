@@ -20,6 +20,9 @@ parameters:
   - name: definitionBranch
     type: string
     default: '$(Build.SourceBranch)'
+  - name: outputVariables
+    type: object
+    default: {}
 
 steps:
   - task: PowerShell@2
@@ -117,8 +120,9 @@ steps:
         $candidateRunId = ''
         foreach ($b in $builds) {
           $tags = Get-BuildTags -buildId $b.id
-          Write-Host "Build $($b.id) tags: $($tags -join ',')"
+          Write-Host "##vso[task.debug]Build $($b.id) tags: $($tags -join ',')"
           if ($tags -contains $requiredTag) {
+            Write-Host "Build $($b.id) tags: $($tags -join ',')"
             $candidateRunId = [string]$b.id
             break
           }
@@ -127,11 +131,29 @@ steps:
         $pending = if ($candidateRunId -ne '') { 'true' } else { 'false' }
         Write-Host "Resolved tag: required=$requiredTag candidate=$candidateRunId pending=$pending definitionId=$definitionId definitionBranch=$definitionBranch"
 
-        Write-Output "##vso[task.setvariable variable=DefinitionId]$definitionId"
-        Write-Output "##vso[task.setvariable variable=RequiredTag]$requiredTag"
-        Write-Output "##vso[task.setvariable variable=ExcludedTag]"
-        Write-Output "##vso[task.setvariable variable=CandidateRunId]$candidateRunId"
-        Write-Output "##vso[task.setvariable variable=Pending]$pending"
+        Write-Host "##vso[task.setvariable variable=DefinitionId]$definitionId"
+        Write-Host "##vso[task.setvariable variable=RequiredTag]$requiredTag"
+        Write-Host "##vso[task.setvariable variable=ExcludedTag]"
+        Write-Host "##vso[task.setvariable variable=CandidateRunId]$candidateRunId"
+        Write-Host "##vso[task.setvariable variable=Pending]$pending"
+
+        # Export variables for the next stage/job
+        $outputsJson = @'
+        ${{ convertToJson(parameters.outputVariables) }}
+        '@
+        $outputs = $outputsJson | ConvertFrom-Json -AsHashtable
+        
+        Write-Host "--- Exporting variables for the next stage ---"
+        if ($null -ne $outputs) {
+          foreach ($sourceKey in $outputs.Keys) {
+            $targetVar = $outputs[$sourceKey]
+            
+            $val = Get-EnvValue -name $sourceKey
+            
+            Write-Host "Exporting: $targetVar = $val"
+            Write-Host "##vso[task.setvariable variable=$targetVar;isOutput=true]$val"
+          }
+        }
 
 # Documentation
 # - Purpose:

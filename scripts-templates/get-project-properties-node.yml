@@ -60,11 +60,11 @@ steps:
           exit 1
         }
 
-        Write-Output "##vso[task.setvariable variable=MainProject.FullName]$($packageJsonFile.FullName)"
-        Write-Output "##vso[task.setvariable variable=MainProject.Version]$version"
-        Write-Output "##vso[task.setvariable variable=MainProject.PackageName]$packageName"
-        Write-Output "##vso[task.setvariable variable=MainProject.Description]$description"
-        Write-Output "##vso[task.setvariable variable=NodeProject.HasTestScript]$hasTests"
-        Write-Output "##vso[task.setvariable variable=NodeProject.PackageManager]$packageManager"
-        Write-Output "##vso[task.setvariable variable=NodeProject.DockerfilePath]$dockerfilePath"
-        Write-Output "##vso[task.setvariable variable=NodeProject.WorkingDirectory]$($packageJsonFile.Directory.FullName)"
+        Write-Host "##vso[task.setvariable variable=MainProject.FullName]$($packageJsonFile.FullName)"
+        Write-Host "##vso[task.setvariable variable=MainProject.Version]$version"
+        Write-Host "##vso[task.setvariable variable=MainProject.PackageName]$packageName"
+        Write-Host "##vso[task.setvariable variable=MainProject.Description]$description"
+        Write-Host "##vso[task.setvariable variable=NodeProject.HasTestScript]$hasTests"
+        Write-Host "##vso[task.setvariable variable=NodeProject.PackageManager]$packageManager"
+        Write-Host "##vso[task.setvariable variable=NodeProject.DockerfilePath]$dockerfilePath"
+        Write-Host "##vso[task.setvariable variable=NodeProject.WorkingDirectory]$($packageJsonFile.Directory.FullName)"
