@@ -43,6 +43,24 @@ steps:
         $project = "$(System.TeamProject)"
         $headers = @{ Authorization = "Bearer $($env:SYSTEM_ACCESSTOKEN)" }
 
+        function Get-EnvValue([string]$name) {
+          $candidates = @(
+            $name,
+            $name.ToUpperInvariant(),
+            $name.Replace('.', '_'),
+            $name.Replace('.', '_').ToUpperInvariant()
+          ) | Select-Object -Unique
+
+          foreach ($candidate in $candidates) {
+            $item = Get-Item -LiteralPath "env:$candidate" -ErrorAction SilentlyContinue
+            if ($null -ne $item -and $null -ne $item.Value -and $item.Value -ne '') {
+              return $item.Value
+            }
+          }
+
+          return ''
+        }
+
         function Get-DefinitionIdByName([string]$name) {
           $uri = "$collectionUri$project/_apis/build/definitions?name=$([uri]::EscapeDataString($name))&api-version=7.1"
           $defs = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
