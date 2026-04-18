@@ -145,6 +145,8 @@ steps:
 #   - parameter outputVariables:
 #     optional output remap dictionary using `externalVariable: internalVariable`.
 #     Example: `isDeployable: Pending`, `buildId: CandidateRunId`.
+#     If internal value is empty/null, external key name is used as fallback.
+#     Example: `isDeployable:` => `isDeployable: isDeployable`.
 #
 # - Parity note (limited contract parity only):
 #   DO NOT DIVERGE: keep shared-contract rules aligned across the 3 detector templates.

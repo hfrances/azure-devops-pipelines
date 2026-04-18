@@ -43,11 +43,11 @@ jobs:
       # 2. Dependency resolution (mappingVariables)
       - ${{ if ne(parameters.conditionalStage, '') }}:
         - ${{ each pair in parameters.mappingVariables }}:
-          - name: ${{ pair.value }}
+          - name: ${{ coalesce(pair.value, pair.key) }}
             value: $[ stageDependencies.${{ parameters.conditionalStage }}.${{ parameters.conditionalJob }}.outputs['${{ parameters.conditionalTask }}.${{ pair.key }}'] ]
       - ${{ if eq(parameters.conditionalStage, '') }}:
         - ${{ each pair in parameters.mappingVariables }}:
-          - name: ${{ pair.value }}
+          - name: ${{ coalesce(pair.value, pair.key) }}
             value: $[ dependencies.${{ parameters.conditionalJob }}.outputs['${{ parameters.conditionalTask }}.${{ pair.key }}'] ]
       # 3. Parent Summary Variable
       - ${{ if and(ne(parameters.conditionalVariable, ''), ne(parameters.conditionalStage, '')) }}:

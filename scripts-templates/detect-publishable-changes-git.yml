@@ -29,6 +29,9 @@ parameters:
   - name: excludedPatterns
     type: object
     default: []
+  - name: outputVariables
+    type: object
+    default: {}
 
 steps:
   - task: PowerShell@2
@@ -37,6 +40,7 @@ steps:
       SYSTEM_ACCESSTOKEN: $(System.AccessToken)
       INCLUDED_PATTERNS_JSON: '${{ convertToJson(parameters.includedPatterns) }}'
       EXCLUDED_PATTERNS_JSON: '${{ convertToJson(parameters.excludedPatterns) }}'
+      OUTPUT_VARIABLES_JSON: '${{ convertToJson(parameters.outputVariables) }}'
     inputs:
       pwsh: true
       targetType: inline
@@ -61,6 +65,7 @@ steps:
         function cfg($wd,$patterns,$expatterns){$r=[ordered]@{Include=@();Exclude=@()};if($patterns.Count){$r.Include=@($patterns)}else{$r.Include=@('**')};$r.Exclude=if($expatterns.Count){@($expatterns)}else{@('README*','**/README*','docs/**','.github/**','.azuredevops/**','azure-pipelines*.yml','**/azure-pipelines*.yml')};$f=if([string]::IsNullOrWhiteSpace($wd)){Join-Path $env:BUILD_SOURCESDIRECTORY '.azuredevops/publish-extra-paths.txt'}else{Join-Path (Join-Path $env:BUILD_SOURCESDIRECTORY $wd) '.azuredevops/publish-extra-paths.txt'};if(!(Test-Path $f)){$f=Join-Path $env:BUILD_SOURCESDIRECTORY '.azuredevops/publish-extra-paths.txt'};if(!(Test-Path $f)){return [pscustomobject]$r};Write-Output "Publish extra config file: $f";$sec='';$in=@();$ex=@();foreach($l in Get-Content $f){$t=$l.Trim();if(!$t -or $t.StartsWith('#')){continue};if($t-match'^\[(.+)\]$'){$sec=$matches[1].ToLowerInvariant();continue};if($sec -eq 'include'){$in+=$t}elseif($sec -eq 'exclude'){$ex+=$t}};if($in.Count){$r.Include=$in};if($ex.Count){$r.Exclude=$ex};[pscustomobject]$r}
         function suffixname($name,$suffix){if([string]::IsNullOrWhiteSpace($suffix)){return $name};$base=[System.IO.Path]::GetFileNameWithoutExtension($name);$ext=[System.IO.Path]::GetExtension($name);"$base-$suffix$ext"}
         function report($name,$base,$files,$reason,$suffix,$commits){$drop=Join-Path $env:BUILD_ARTIFACTSTAGINGDIRECTORY 'drop';if(!(Test-Path $drop)){ni -ItemType Directory -Path $drop -Force|Out-Null};$p=Join-Path $drop (suffixname $name $suffix);$b=if($base){$base}else{'<none>'};$lines=@("# current: $env:BUILD_SOURCEVERSION","# baseline: $b","# files: $($files.Count)","# changes: $($commits.Count)");if($reason){$lines+="# reason: $reason"};$lines+='';$lines+="## changes ($($commits.Count))";if($commits.Count){$lines+=@($commits|%{"- $_"})}else{$lines+='- <none>'};$lines+='';$lines+="## files ($($files.Count))";if($files.Count){$lines+=@($files|%{"- $_"})}else{$lines+='- <none>'};Set-Content $p $lines;Write-Output "Changed files report: $p"}
+        function exportoutputs($json,$vals){if([string]::IsNullOrWhiteSpace($json)){return};$map=$json|ConvertFrom-Json -AsHashtable;if($null -eq $map){return};foreach($externalVar in $map.Keys){$internalKey=[string]$map[$externalVar];if([string]::IsNullOrWhiteSpace($internalKey)){$internalKey=[string]$externalVar};$v='';if($vals.ContainsKey($internalKey)){$v=[string]$vals[$internalKey]}else{$tmp=Get-Variable -Name $internalKey -ValueOnly -ErrorAction SilentlyContinue;if($null -ne $tmp){$v=[string]$tmp}};Write-Output "Exporting: $externalVar = $v (from $internalKey)";Write-Output "##vso[task.setvariable variable=$externalVar;isOutput=true]$v"}}
         $enabled=bool "${{ parameters.enabled }}" $true;$wd=norm "${{ parameters.workingDirectory }}";$suffix='${{ parameters.tagSuffix }}';$tagPrefix='${{ parameters.tagPrefix }}';$definitionKey="${{ parameters.definitionKey }}";$definitionBranch="${{ parameters.definitionBranch }}";if([string]::IsNullOrWhiteSpace($definitionBranch) -or $definitionBranch -like '$(*'){$definitionBranch="$env:BUILD_SOURCEBRANCH"};if(-not [string]::IsNullOrWhiteSpace($tagPrefix) -and -not $tagPrefix.EndsWith('/')){$tagPrefix="$tagPrefix/"};$builtTag=if([string]::IsNullOrWhiteSpace($suffix)){'built'}else{"built-$suffix"};if(-not[string]::IsNullOrWhiteSpace($tagPrefix)){$builtTag="$tagPrefix$builtTag"};$publishedTag=if([string]::IsNullOrWhiteSpace($suffix)){'published'}else{"published-$suffix"};if(-not[string]::IsNullOrWhiteSpace($tagPrefix)){$publishedTag="$tagPrefix$publishedTag"}
         $patterns=@();$expatterns=@();if($env:INCLUDED_PATTERNS_JSON){$patterns=@((ConvertFrom-Json -InputObject $env:INCLUDED_PATTERNS_JSON)|%{norm "$_"})};if($env:EXCLUDED_PATTERNS_JSON){$expatterns=@((ConvertFrom-Json -InputObject $env:EXCLUDED_PATTERNS_JSON)|%{norm "$_"})};$cfg=cfg $wd $patterns $expatterns;$buildCfg=$cfg
         $cb='';$pb='';$bskip='';$pskip='';$bskipType='info';$pskipType='info';$build=$true;$publish=$true;$bfiles=@();$pfiles=@();$bcommits=@();$pcommits=@()
@@ -72,8 +77,10 @@ steps:
           section 'Changed files'
           report 'changed-files-build.txt' $cb $bfiles $bskip $suffix $bcommits;report 'changed-files-deploy.txt' $pb $pfiles $pskip $suffix $pcommits; if($bcommits.Count){Write-Output "Build commits: $($bcommits.Count)";$bcommits|%{Write-Output " - commit: $_"}}; if($pcommits.Count){Write-Output "Publish commits: $($pcommits.Count)";$pcommits|%{Write-Output " - commit: $_"}}; if($cb){Write-Output "Build changed files: $($bfiles.Count)"}; if($pb){Write-Output "Publish changed files: $($pfiles.Count)"}
         }catch{markissue $_.Exception.Message;$build=$true;$publish=$true;$bskip="Detection failed: $($_.Exception.Message)";$bskipType='warning';$pskip="Detection failed: $($_.Exception.Message)";$pskipType='warning';$global:LASTEXITCODE=0}
-        Write-Output "##vso[task.setvariable variable=BuildParameters.HasAffectedBuildProjects]$($build.ToString().ToLowerInvariant())"
-        Write-Output "##vso[task.setvariable variable=BuildParameters.HasAffectedPublishProjects]$($publish.ToString().ToLowerInvariant())"
+        $buildText=$build.ToString().ToLowerInvariant();$publishText=$publish.ToString().ToLowerInvariant()
+        Write-Output "##vso[task.setvariable variable=BuildParameters.HasAffectedBuildProjects]$buildText"
+        Write-Output "##vso[task.setvariable variable=BuildParameters.HasAffectedPublishProjects]$publishText"
+        $internalOutputs=[ordered]@{BuildParameters_HasAffectedBuildProjects=$buildText;BuildParameters_HasAffectedPublishProjects=$publishText;HasAffectedBuildProjects=$buildText;HasAffectedPublishProjects=$publishText};exportoutputs $env:OUTPUT_VARIABLES_JSON $internalOutputs
         section 'Final decision'
         Write-Output "BuildParameters.HasAffectedBuildProjects: $build";Write-Output "BuildParameters.HasAffectedPublishProjects: $publish"
         if((-not $build) -and $bskip){log $bskipType "Build skip reason: $bskip"};if((-not $publish) -and $pskip){log $pskipType "Publish skip reason: $pskip"};if($taskHasIssues){Write-Output "##vso[task.complete result=SucceededWithIssues;]Detect built and published changes completed with warnings."};$global:LASTEXITCODE=0
@@ -90,6 +97,7 @@ steps:
 #   Exported task variables:
 #   - `BuildParameters.HasAffectedBuildProjects`
 #   - `BuildParameters.HasAffectedPublishProjects`
+#   Optional task output variables via `outputVariables` (mapping `external: internal`).
 #   Additional drop outputs:
 #   - changed-files report files
 #
@@ -118,6 +126,14 @@ steps:
 #     optional wildcard patterns for include matching.
 #   - parameter excludedPatterns:
 #     optional wildcard patterns for exclude matching.
+#   - parameter outputVariables:
+#     optional output remap dictionary using `externalVariable: internalVariable`.
+#     Internal names supported by this template:
+#     - `BuildParameters_HasAffectedBuildProjects` (alias of Build flag)
+#     - `BuildParameters_HasAffectedPublishProjects` (alias of Publish flag)
+#     - `HasAffectedBuildProjects`
+#     - `HasAffectedPublishProjects`
+#     If internal value is empty/null, external key name is used as fallback.
 #
 # - Parity note (two levels):
 #   DO NOT DIVERGE: keep shared-contract rules aligned across the 3 detector templates.
@@ -142,6 +158,14 @@ steps:
 #   Before changing shared logic/shape, read:
 #   `docs/features/change-detection-parity.md`
 #   This note is also intended for AI-assisted edits.
+#
+# - Formatting note:
+#   Keep helper functions in compact single-line form, aligned with:
+#   - `detect-publishable-changes-git.yml`
+#   - `detect-publishable-changes-dotnet.yml`
+#   - `detect-pipeline-tag.yml`
+#   Do not expand helper functions to multi-line style unless there is a strong
+#   debugging reason.
 #
 # - Data sources:
 #   1. Azure DevOps REST API:

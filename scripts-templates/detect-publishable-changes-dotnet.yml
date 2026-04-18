@@ -32,6 +32,9 @@ parameters:
   - name: excludedPatterns
     type: object
     default: []
+  - name: outputVariables
+    type: object
+    default: {}
   - name: publishExtraMode
     type: string
     default: none
@@ -46,6 +49,7 @@ steps:
       SYSTEM_ACCESSTOKEN: $(System.AccessToken)
       INCLUDED_PATTERNS_JSON: '${{ convertToJson(parameters.includedPatterns) }}'
       EXCLUDED_PATTERNS_JSON: '${{ convertToJson(parameters.excludedPatterns) }}'
+      OUTPUT_VARIABLES_JSON: '${{ convertToJson(parameters.outputVariables) }}'
     inputs:
       pwsh: true
       targetType: inline
@@ -81,6 +85,7 @@ steps:
         function affected($tool,$base,$name,$sol){$dir=Join-Path $env:AGENT_TEMPDIRECTORY 'dotnet-affected-output';$file=Join-Path $dir "$name.proj";ni -ItemType Directory -Path $dir -Force|Out-Null;if(Test-Path $file){ri $file -Force};$out=& $tool --repository-path $env:BUILD_SOURCESDIRECTORY --solution-path $sol --from $base --to $env:BUILD_SOURCEVERSION --format traversal --output-dir $dir --output-name $name 2>&1;$code=$LASTEXITCODE;$global:LASTEXITCODE=0;$txt=@($out)-join[Environment]::NewLine;$r=[ordered]@{Ok=$false;Code=$code;File=$file;Projects=@();Out=$txt;Err=''};if($code -eq 166){$r.Ok=$true;return [pscustomobject]$r};if($code -ne 0){$r.Err="dotnet-affected failed for baseline '$base'.";return [pscustomobject]$r};if(!(Test-Path $file)){$r.Err="dotnet-affected did not generate '$file'.";return [pscustomobject]$r};[xml]$xml=Get-Content $file -Raw;$r.Projects=@($xml.Project.ItemGroup.ProjectReference|%{$_.Include}|?{$_}|%{$c=if([System.IO.Path]::IsPathRooted($_)){$_}else{Join-Path $env:BUILD_SOURCESDIRECTORY $_};norm([System.IO.Path]::GetRelativePath($env:BUILD_SOURCESDIRECTORY,(Resolve-Path $c).Path))});$r.Ok=$true;[pscustomobject]$r}
         function copydrop($src,$name,$suffix){if(Test-Path $src){$drop=Join-Path $env:BUILD_ARTIFACTSTAGINGDIRECTORY 'drop';if(!(Test-Path $drop)){ni -ItemType Directory -Path $drop -Force|Out-Null};$dst=Join-Path $drop (suffixname $name $suffix);Copy-Item -LiteralPath $src -Destination $dst -Force;Write-Output "Drop file exported: $dst"}}
         function ensuretool($dir,$ver){ni -ItemType Directory -Path $dir -Force|Out-Null;Write-Host '';Write-Host '=== dotnet-affected ===';Write-Host "Resolving tool version $ver";& dotnet tool update dotnet-affected --tool-path $dir --version $ver --verbosity quiet 2>&1 | Out-Null;if($LASTEXITCODE -ne 0){$global:LASTEXITCODE=0;& dotnet tool install dotnet-affected --tool-path $dir --version $ver --verbosity quiet 2>&1 | Out-Null;if($LASTEXITCODE -ne 0){throw 'Unable to install dotnet-affected.'};Write-Host 'dotnet-affected installed.'}else{Write-Host 'dotnet-affected updated.'};$global:LASTEXITCODE=0;$tool=Join-Path $dir 'dotnet-affected.exe';if(!(Test-Path $tool)){$tool=Join-Path $dir 'dotnet-affected'};if(!(Test-Path $tool)){throw "dotnet-affected executable not found in '$dir'."};return $tool}
+        function exportoutputs($json,$vals){if([string]::IsNullOrWhiteSpace($json)){return};$map=$json|ConvertFrom-Json -AsHashtable;if($null -eq $map){return};foreach($externalVar in $map.Keys){$internalKey=[string]$map[$externalVar];if([string]::IsNullOrWhiteSpace($internalKey)){$internalKey=[string]$externalVar};$v='';if($vals.ContainsKey($internalKey)){$v=[string]$vals[$internalKey]}else{$tmp=Get-Variable -Name $internalKey -ValueOnly -ErrorAction SilentlyContinue;if($null -ne $tmp){$v=[string]$tmp}};Write-Output "Exporting: $externalVar = $v (from $internalKey)";Write-Output "##vso[task.setvariable variable=$externalVar;isOutput=true]$v"}}
         $enabled=bool "${{ parameters.enabled }}" $true;$solution="${{ parameters.solutionPath }}";$wd=norm "${{ parameters.workingDirectory }}";$suffix='${{ parameters.tagSuffix }}';$tagPrefix='${{ parameters.tagPrefix }}';$definitionKey="${{ parameters.definitionKey }}";$definitionBranch="${{ parameters.definitionBranch }}";if([string]::IsNullOrWhiteSpace($definitionBranch) -or $definitionBranch -like '$(*'){$definitionBranch="$env:BUILD_SOURCEBRANCH"};if(-not [string]::IsNullOrWhiteSpace($tagPrefix) -and -not $tagPrefix.EndsWith('/')){$tagPrefix="$tagPrefix/"};$builtTag=if([string]::IsNullOrWhiteSpace($suffix)){'built'}else{"built-$suffix"};if(-not[string]::IsNullOrWhiteSpace($tagPrefix)){$builtTag="$tagPrefix$builtTag"};$publishedTag=if([string]::IsNullOrWhiteSpace($suffix)){'published'}else{"published-$suffix"};if(-not[string]::IsNullOrWhiteSpace($tagPrefix)){$publishedTag="$tagPrefix$publishedTag"};$mode="${{ parameters.publishExtraMode }}";$ver='6.2.0';$patterns=@();$expatterns=@();$buildCfg=$null;if($env:INCLUDED_PATTERNS_JSON){$patterns=@((ConvertFrom-Json -InputObject $env:INCLUDED_PATTERNS_JSON)|%{norm "$_"})};if($env:EXCLUDED_PATTERNS_JSON){$expatterns=@((ConvertFrom-Json -InputObject $env:EXCLUDED_PATTERNS_JSON)|%{norm "$_"})}
         $cb='';$pb='';$bskip='';$pskip='';$bskipType='info';$pskipType='info';$build=$true;$publish=$true;$bfiles=@();$pfiles=@();$bcommits=@();$pcommits=@()
         if(!(Test-Path $solution)){throw "Resolved solution path not found: $solution"}
@@ -93,8 +98,10 @@ steps:
           report 'changed-files-build.txt' $cb $bfiles $bskip $suffix $bcommits;report 'changed-files-deploy.txt' $pb $pfiles $pskip $suffix $pcommits; if($bcommits.Count){Write-Output "Build commits: $($bcommits.Count)";$bcommits|%{Write-Output " - commit: $_"}}; if($pcommits.Count){Write-Output "Publish commits: $($pcommits.Count)";$pcommits|%{Write-Output " - commit: $_"}}; if($cb){Write-Output "Build changed files: $($bfiles.Count)"}; if($pb){Write-Output "Publish changed files: $($pfiles.Count)"}
           if($enabled -and (($cb -and $build) -or ($pb -and $publish))){$toolDir=Join-Path $env:AGENT_TEMPDIRECTORY 'dotnet-tools';$tool=ensuretool $toolDir $ver;if($cb -and $build){section 'Affected build';$r=affected $tool $cb 'affected-build' $solution;Write-Output "dotnet-affected build exit code: $($r.Code)";if(!$r.Ok){if($r.Out){log warning $r.Out};if($r.Code -eq 1){throw "dotnet-affected build exit code 1. Detection will continue in fail-open mode."};throw $r.Err};copydrop $r.File 'affected-build.proj' $suffix;$build=$r.Projects.Count -gt 0;if($build){Write-Output "Affected build projects: $($r.Projects.Count)";$r.Projects|%{Write-Output " - build: $_"}}else{$bskip='No affected projects since the last built build.'}}elseif($cb){section 'Affected build';Write-Output "dotnet-affected build exit code: <not-run>"};if($pb -and $publish){section 'Affected publish';$r=affected $tool $pb 'affected-publish' $solution;Write-Output "dotnet-affected publish exit code: $($r.Code)";if(!$r.Ok){if($r.Out){log warning $r.Out};throw $r.Err};copydrop $r.File 'affected-publish.proj' $suffix;$pps=@($r.Projects|?{publishable $_});$extras=@();if($mode -eq 'aspnet'){$c=cfg $mode $wd $patterns $expatterns;Write-Output "Publish extra include patterns: $($c.Include.Count)";Write-Output "Publish extra exclude patterns: $($c.Exclude.Count)";$extras=@($pfiles|?{ $x=relwd $_ $wd; (any $x $c.Include) -and -not (any $x $c.Exclude) })};$publish=($pps.Count -gt 0) -or ($extras.Count -gt 0);if($publish){if($pps.Count){Write-Output "Affected publish projects: $($pps.Count)";$pps|%{Write-Output " - publish: $_"}};if($extras.Count){Write-Output "Affected extra publish files: $($extras.Count)";$extras|%{Write-Output " - extra: $_"}}}else{$pskip='No publishable changes since the last published build.'}}elseif($pb){section 'Affected publish';Write-Output "dotnet-affected publish exit code: <not-run>"}}
         }catch{markissue $_.Exception.Message;$build=$true;$publish=$true;$bskip="Detection failed: $($_.Exception.Message)";$bskipType='warning';$pskip="Detection failed: $($_.Exception.Message)";$pskipType='warning';$global:LASTEXITCODE=0}
-        Write-Output "##vso[task.setvariable variable=BuildParameters.HasAffectedBuildProjects]$($build.ToString().ToLowerInvariant())"
-        Write-Output "##vso[task.setvariable variable=BuildParameters.HasAffectedPublishProjects]$($publish.ToString().ToLowerInvariant())"
+        $buildText=$build.ToString().ToLowerInvariant();$publishText=$publish.ToString().ToLowerInvariant()
+        Write-Output "##vso[task.setvariable variable=BuildParameters.HasAffectedBuildProjects]$buildText"
+        Write-Output "##vso[task.setvariable variable=BuildParameters.HasAffectedPublishProjects]$publishText"
+        $internalOutputs=[ordered]@{BuildParameters_HasAffectedBuildProjects=$buildText;BuildParameters_HasAffectedPublishProjects=$publishText;HasAffectedBuildProjects=$buildText;HasAffectedPublishProjects=$publishText};exportoutputs $env:OUTPUT_VARIABLES_JSON $internalOutputs
         section 'Final decision'
         Write-Output "BuildParameters.HasAffectedBuildProjects: $build";Write-Output "BuildParameters.HasAffectedPublishProjects: $publish"
         if((-not $build) -and $bskip){log $bskipType "Build skip reason: $bskip"};if((-not $publish) -and $pskip){log $pskipType "Publish skip reason: $pskip"};if($taskHasIssues){Write-Output "##vso[task.complete result=SucceededWithIssues;]Detect built and published changes completed with warnings."};$global:LASTEXITCODE=0
@@ -112,6 +119,7 @@ steps:
 #   Exported task variables:
 #   - `BuildParameters.HasAffectedBuildProjects`
 #   - `BuildParameters.HasAffectedPublishProjects`
+#   Optional task output variables via `outputVariables` (mapping `external: internal`).
 #   Additional drop outputs:
 #   - changed-files report files
 #   - affected project graph files (dotnet detector)
@@ -149,6 +157,14 @@ steps:
 #     before any override file is applied.
 #   - parameter publishExtraMode:
 #     "aspnet" enables extra publish-only file checks outside the .NET project graph.
+#   - parameter outputVariables:
+#     optional output remap dictionary using `externalVariable: internalVariable`.
+#     Internal names supported by this template:
+#     - `BuildParameters_HasAffectedBuildProjects` (alias of Build flag)
+#     - `BuildParameters_HasAffectedPublishProjects` (alias of Publish flag)
+#     - `HasAffectedBuildProjects`
+#     - `HasAffectedPublishProjects`
+#     If internal value is empty/null, external key name is used as fallback.
 #
 # - Parity note (two levels):
 #   DO NOT DIVERGE: keep shared-contract rules aligned across the 3 detector templates.
@@ -173,6 +189,14 @@ steps:
 #   Before changing shared logic/shape, read:
 #   `docs/features/change-detection-parity.md`
 #   This note is also intended for AI-assisted edits.
+#
+# - Formatting note:
+#   Keep helper functions in compact single-line form, aligned with:
+#   - `detect-publishable-changes-dotnet.yml`
+#   - `detect-publishable-changes-git.yml`
+#   - `detect-pipeline-tag.yml`
+#   Do not expand helper functions to multi-line style unless there is a strong
+#   debugging reason.
 #
 # - Data sources:
 #   1. Azure DevOps REST API:
