@@ -20,6 +20,9 @@ parameters:
   - name: definitionBranch
     type: string
     default: '$(Build.SourceBranch)'
+  - name: lastRunId
+    type: string
+    default: ''
   - name: outputVariables
     type: object
     default: {}
@@ -58,6 +61,7 @@ steps:
         $tagSuffix = "${{ parameters.tagSuffix }}".Trim()
         $tagPrefix = "${{ parameters.tagPrefix }}".Trim()
         $definitionBranch = "${{ parameters.definitionBranch }}".Trim()
+        $lastRunId = "${{ parameters.lastRunId }}".Trim()
         $definitionKey = "${{ parameters.definitionKey }}".Trim()
 
         $requiredTag = Get-RequiredTag -baseTag $baseTag -prefix $tagPrefix -suffix $tagSuffix
@@ -73,7 +77,16 @@ steps:
         $builds = @($buildsResponse.value)
 
         $candidateRunId = ''
+        $hasLastRunId = -not [string]::IsNullOrWhiteSpace($lastRunId)
+        $cutoffReached = -not $hasLastRunId
         foreach ($b in $builds) {
+          if ($hasLastRunId -and -not $cutoffReached) {
+            if ([string]$b.id -eq $lastRunId) {
+              $cutoffReached = $true
+            } else {
+              continue
+            }
+          }
           $tags = Get-BuildTags -buildId $b.id
           Write-Host "##vso[task.debug]Build $($b.id) tags: $($tags -join ',')"
           if ($tags -contains $requiredTag) {
@@ -81,6 +94,9 @@ steps:
             $candidateRunId = [string]$b.id
             break
           }
+        }
+        if ($hasLastRunId -and -not $cutoffReached) {
+          Write-Host "##vso[task.logissue type=warning]lastRunId '$lastRunId' was not found in queried builds. No candidate will be resolved."
         }
 
         $pending = if ($candidateRunId -ne '') { 'true' } else { 'false' }
@@ -139,6 +155,9 @@ steps:
 #     - empty => uses current running definition fallback.
 #   - parameter definitionBranch:
 #     branch used in build lookup. Defaults to `$(Build.SourceBranch)`.
+#   - parameter lastRunId:
+#     optional upper-bound run id for lookup. When set, only that run and older
+#     runs are considered; newer runs are ignored.
 #   - parameter outputVariables:
 #     optional output remap dictionary using `externalVariable: internalVariable`.
 #     Example: `isDeployable: Pending`, `buildId: CandidateRunId`.
