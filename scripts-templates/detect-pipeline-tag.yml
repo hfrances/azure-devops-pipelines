@@ -43,76 +43,13 @@ steps:
         $project = "$(System.TeamProject)"
         $headers = @{ Authorization = "Bearer $($env:SYSTEM_ACCESSTOKEN)" }
 
-        function Get-EnvValue([string]$name) {
-          $candidates = @(
-            $name,
-            $name.ToUpperInvariant(),
-            $name.Replace('.', '_'),
-            $name.Replace('.', '_').ToUpperInvariant()
-          ) | Select-Object -Unique
-
-          foreach ($candidate in $candidates) {
-            $item = Get-Item -LiteralPath "env:$candidate" -ErrorAction SilentlyContinue
-            if ($null -ne $item -and $null -ne $item.Value -and $item.Value -ne '') {
-              return $item.Value
-            }
-          }
-
-          return ''
-        }
-
-        function Get-DefinitionIdByName([string]$name) {
-          $uri = "$collectionUri$project/_apis/build/definitions?name=$([uri]::EscapeDataString($name))&api-version=7.1"
-          $defs = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
-          if (-not $defs.value -or $defs.value.Count -eq 0) {
-            throw "No build definition found for '$name'."
-          }
-          return [string]$defs.value[0].id
-        }
-
-        function Get-EffectiveDefinitionId([string]$explicitDefinitionKey) {
-          if (-not [string]::IsNullOrWhiteSpace($explicitDefinitionKey)) {
-            if ($explicitDefinitionKey -match '^\d+$') {
-              return [string]$explicitDefinitionKey
-            }
-            return Get-DefinitionIdByName -name $explicitDefinitionKey
-          }
-
-          $currentDefinitionId = "$(Build.DefinitionId)"
-          if (-not [string]::IsNullOrWhiteSpace($currentDefinitionId)) {
-            return [string]$currentDefinitionId
-          }
-
-          $currentDefinitionName = "$(Build.DefinitionName)"
-          if ([string]::IsNullOrWhiteSpace($currentDefinitionName)) {
-            throw "Neither definitionKey parameter nor Build.DefinitionId/Build.DefinitionName are available."
-          }
-          return Get-DefinitionIdByName -name $currentDefinitionName
-        }
-
-        function Get-RequiredTag([string]$baseTag, [string]$prefix, [string]$suffix) {
-          $finalTag = $baseTag
-          if (-not [string]::IsNullOrWhiteSpace($suffix)) {
-            $finalTag = "$finalTag-$suffix"
-          }
-          if (-not [string]::IsNullOrWhiteSpace($prefix)) {
-            $finalTag = "$prefix/$finalTag"
-          }
-          return $finalTag
-        }
+        function Get-EnvValue([string]$name) { $candidates = @($name, $name.ToUpperInvariant(), $name.Replace('.', '_'), $name.Replace('.', '_').ToUpperInvariant()) | Select-Object -Unique; foreach ($candidate in $candidates) { $item = Get-Item -LiteralPath "env:$candidate" -ErrorAction SilentlyContinue; if ($null -ne $item -and $null -ne $item.Value -and $item.Value -ne '') { return $item.Value } }; return '' }
+        function Get-DefinitionIdByName([string]$name) { $uri = "$collectionUri$project/_apis/build/definitions?name=$([uri]::EscapeDataString($name))&api-version=7.1"; $defs = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers; if (-not $defs.value -or $defs.value.Count -eq 0) { throw "No build definition found for '$name'." }; return [string]$defs.value[0].id }
+        function Get-EffectiveDefinitionId([string]$explicitDefinitionKey) { if (-not [string]::IsNullOrWhiteSpace($explicitDefinitionKey)) { if ($explicitDefinitionKey -match '^\d+$') { return [string]$explicitDefinitionKey }; return Get-DefinitionIdByName -name $explicitDefinitionKey }; $currentDefinitionId = "$(Build.DefinitionId)"; if (-not [string]::IsNullOrWhiteSpace($currentDefinitionId)) { return [string]$currentDefinitionId }; $currentDefinitionName = "$(Build.DefinitionName)"; if ([string]::IsNullOrWhiteSpace($currentDefinitionName)) { throw "Neither definitionKey parameter nor Build.DefinitionId/Build.DefinitionName are available." }; return Get-DefinitionIdByName -name $currentDefinitionName }
+        function Get-RequiredTag([string]$baseTag, [string]$prefix, [string]$suffix) { $finalTag = $baseTag; if (-not [string]::IsNullOrWhiteSpace($suffix)) { $finalTag = "$finalTag-$suffix" }; if (-not [string]::IsNullOrWhiteSpace($prefix)) { $finalTag = "$prefix/$finalTag" }; return $finalTag }
 
         $tagCache = @{}
-        function Get-BuildTags([int]$buildId) {
-          if ($tagCache.ContainsKey($buildId)) {
-            return $tagCache[$buildId]
-          }
-          $tagsUri = "$collectionUri$project/_apis/build/builds/$buildId/tags?api-version=7.1"
-          $tagsResponse = Invoke-RestMethod -Method Get -Uri $tagsUri -Headers $headers
-          $tags = @()
-          if ($tagsResponse.value) { $tags = @($tagsResponse.value) }
-          $tagCache[$buildId] = $tags
-          return $tags
-        }
+        function Get-BuildTags([int]$buildId) { if ($tagCache.ContainsKey($buildId)) { return $tagCache[$buildId] }; $tagsUri = "$collectionUri$project/_apis/build/builds/$buildId/tags?api-version=7.1"; $tagsResponse = Invoke-RestMethod -Method Get -Uri $tagsUri -Headers $headers; $tags = @(); if ($tagsResponse.value) { $tags = @($tagsResponse.value) }; $tagCache[$buildId] = $tags; return $tags }
 
         $baseTag = "${{ parameters.tag }}".Trim()
         if ([string]::IsNullOrWhiteSpace($baseTag)) {
@@ -156,12 +93,12 @@ steps:
         Write-Host "##vso[task.setvariable variable=Pending]$pending"
 
         # Export variables for the next stage/job
+        Write-Host ""
+        Write-Host "--- Exporting variables for the next stage ---"
         $outputsJson = @'
         ${{ convertToJson(parameters.outputVariables) }}
         '@
         $outputs = $outputsJson | ConvertFrom-Json -AsHashtable
-        
-        Write-Host "--- Exporting variables for the next stage ---"
         if ($null -ne $outputs) {
           foreach ($externalVar in $outputs.Keys) {
             $internalKey = [string]$outputs[$externalVar]
@@ -226,6 +163,11 @@ steps:
 #   - Do NOT enforce output-level parity beyond this shared contract.
 #
 #   If any shared-contract rule changes in one template, update all three.
+#
+# - Formatting note:
+#   Keep helper functions in compact single-line form (as in
+#   `detect-publishable-changes-git.yml` and `detect-publishable-changes-dotnet.yml`).
+#   Do not expand them to multi-line style unless there is a strong debugging reason.
 #
 # - Data sources:
 #   1. Azure DevOps REST API:
