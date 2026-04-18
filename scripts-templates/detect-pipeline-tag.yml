@@ -163,13 +163,17 @@ steps:
         
         Write-Host "--- Exporting variables for the next stage ---"
         if ($null -ne $outputs) {
-          foreach ($sourceKey in $outputs.Keys) {
-            $targetVar = $outputs[$sourceKey]
-            
-            $val = Get-EnvValue -name $sourceKey
-            
-            Write-Host "Exporting: $targetVar = $val"
-            Write-Host "##vso[task.setvariable variable=$targetVar;isOutput=true]$val"
+          foreach ($externalVar in $outputs.Keys) {
+            $internalKey = [string]$outputs[$externalVar]
+            if ([string]::IsNullOrWhiteSpace($internalKey)) {
+              continue
+            }
+
+            $internalValue = Get-Variable -Name $internalKey -ValueOnly -ErrorAction SilentlyContinue
+            $val = if ($null -ne $internalValue -and [string]$internalValue -ne '') { [string]$internalValue } else { Get-EnvValue -name $internalKey }
+
+            Write-Host "Exporting: $externalVar = $val (from $internalKey)"
+            Write-Host "##vso[task.setvariable variable=$externalVar;isOutput=true]$val"
           }
         }
 
@@ -201,6 +205,9 @@ steps:
 #     - empty => uses current running definition fallback.
 #   - parameter definitionBranch:
 #     branch used in build lookup. Defaults to `$(Build.SourceBranch)`.
+#   - parameter outputVariables:
+#     optional output remap dictionary using `externalVariable: internalVariable`.
+#     Example: `isDeployable: Pending`, `buildId: CandidateRunId`.
 #
 # - Parity note (limited contract parity only):
 #   DO NOT DIVERGE: keep shared-contract rules aligned across the 3 detector templates.
