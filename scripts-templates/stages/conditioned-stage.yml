@@ -41,7 +41,7 @@ stages:
           value: ${{ pair.value }}
       # 2. Dependency resolution (mappingVariables)
       - ${{ each pair in parameters.mappingVariables }}:
-        - name: ${{ pair.value }}
+        - name: ${{ coalesce(pair.value, pair.key) }}
           value: $[ stageDependencies.${{ parameters.conditionalStage }}.${{ parameters.conditionalJob }}.outputs['${{ parameters.conditionalTask }}.${{ pair.key }}'] ]
       # 3. Parent Summary Variable
       - name: ${{ parameters.conditionalVariable }}

@@ -43,7 +43,7 @@ steps:
         $project = "$(System.TeamProject)"
         $headers = @{ Authorization = "Bearer $($env:SYSTEM_ACCESSTOKEN)" }
 
-        function Get-EnvValue([string]$name) { $candidates = @($name, $name.ToUpperInvariant(), $name.Replace('.', '_'), $name.Replace('.', '_').ToUpperInvariant()) | Select-Object -Unique; foreach ($candidate in $candidates) { $item = Get-Item -LiteralPath "env:$candidate" -ErrorAction SilentlyContinue; if ($null -ne $item -and $null -ne $item.Value -and $item.Value -ne '') { return $item.Value } }; return '' }
+        function Resolve-OutputValue([string]$name) { $var = Get-Variable -Name $name -Scope Local -ErrorAction SilentlyContinue; if ($null -ne $var) { return [string]$var.Value }; return '' }
         function Get-DefinitionIdByName([string]$name) { $uri = "$collectionUri$project/_apis/build/definitions?name=$([uri]::EscapeDataString($name))&api-version=7.1"; $defs = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers; if (-not $defs.value -or $defs.value.Count -eq 0) { throw "No build definition found for '$name'." }; return [string]$defs.value[0].id }
         function Get-EffectiveDefinitionId([string]$explicitDefinitionKey) { if (-not [string]::IsNullOrWhiteSpace($explicitDefinitionKey)) { if ($explicitDefinitionKey -match '^\d+$') { return [string]$explicitDefinitionKey }; return Get-DefinitionIdByName -name $explicitDefinitionKey }; $currentDefinitionId = "$(Build.DefinitionId)"; if (-not [string]::IsNullOrWhiteSpace($currentDefinitionId)) { return [string]$currentDefinitionId }; $currentDefinitionName = "$(Build.DefinitionName)"; if ([string]::IsNullOrWhiteSpace($currentDefinitionName)) { throw "Neither definitionKey parameter nor Build.DefinitionId/Build.DefinitionName are available." }; return Get-DefinitionIdByName -name $currentDefinitionName }
         function Get-RequiredTag([string]$baseTag, [string]$prefix, [string]$suffix) { $finalTag = $baseTag; if (-not [string]::IsNullOrWhiteSpace($suffix)) { $finalTag = "$finalTag-$suffix" }; if (-not [string]::IsNullOrWhiteSpace($prefix)) { $finalTag = "$prefix/$finalTag" }; return $finalTag }
@@ -103,12 +103,9 @@ steps:
           foreach ($externalVar in $outputs.Keys) {
             $internalKey = [string]$outputs[$externalVar]
             if ([string]::IsNullOrWhiteSpace($internalKey)) {
-              continue
+              $internalKey = [string]$externalVar
             }
-
-            $internalValue = Get-Variable -Name $internalKey -ValueOnly -ErrorAction SilentlyContinue
-            $val = if ($null -ne $internalValue -and [string]$internalValue -ne '') { [string]$internalValue } else { Get-EnvValue -name $internalKey }
-
+            $val = Resolve-OutputValue -name $internalKey
             Write-Host "Exporting: $externalVar = $val (from $internalKey)"
             Write-Host "##vso[task.setvariable variable=$externalVar;isOutput=true]$val"
           }
@@ -147,6 +144,8 @@ steps:
 #     Example: `isDeployable: Pending`, `buildId: CandidateRunId`.
 #     If internal value is empty/null, external key name is used as fallback.
 #     Example: `isDeployable:` => `isDeployable: isDeployable`.
+#     Resolution uses current task local variables only (no env fallback), to avoid
+#     carrying values from previous task invocations in the same job.
 #
 # - Parity note (limited contract parity only):
 #   DO NOT DIVERGE: keep shared-contract rules aligned across the 3 detector templates.
