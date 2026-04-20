@@ -29,7 +29,7 @@ steps:
         $version = "$($packageJson.version)".Trim()
         if ([string]::IsNullOrWhiteSpace($version)) {
           $version = '0.1.0'
-          Write-Warning "Version could not be obtained from '$($packageJsonFile.FullName)'. Defaulting to '$version'."
+          Write-Host "##vso[task.logissue type=warning]Version could not be obtained from '$($packageJsonFile.FullName)'. Defaulting to '$version'."
         }
 
         $description = "$($packageJson.description)".Trim()

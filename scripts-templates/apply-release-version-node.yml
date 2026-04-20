@@ -21,7 +21,7 @@ steps:
         }
 
         if ([string]::IsNullOrWhiteSpace($version)) {
-          Write-Warning 'No release version calculated. Skipping package.json update.'
+          Write-Host "##vso[task.logissue type=warning]No release version calculated. Skipping package.json update."
           exit 0
         }
 

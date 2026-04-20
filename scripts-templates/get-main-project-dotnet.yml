@@ -83,7 +83,7 @@ steps:
           Write-Host "##vso[task.setvariable variable=Solution.NugetConfig]$($nugetConfig.FullName)";
         } 
         else {
-          write-warning "Nuget config file not found for pattern '$path'.";
+          Write-Host "##vso[task.logissue type=warning]Nuget config file not found for pattern '$path'.";
           Write-Host "##vso[task.setvariable variable=Solution.NugetFeedToUse]select";
           Write-Host "##vso[task.setvariable variable=Solution.NugetConfig]";
         }
