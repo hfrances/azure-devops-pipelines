@@ -47,5 +47,5 @@ steps:
           Invoke-RestMethod -Method Put -Uri $uri -Headers $headers | Out-Null
         }
         Write-Host "##vso[task.setvariable variable=BuildParameters.$finalTag]true";
-    displayName: Mark build as ${{ parameters.tag }}
+    displayName: Mark as ${{ parameters.tag }}
     condition: ${{ parameters.condition }}
