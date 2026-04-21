@@ -21,6 +21,24 @@ steps:
       script: |
         $ErrorActionPreference = 'Stop'
 
+        function Normalize-RegistryUrl([string]$value) {
+          $normalized = [string]$value
+          if ([string]::IsNullOrWhiteSpace($normalized)) {
+            throw 'Registry auth entry is empty.'
+          }
+
+          $normalized = $normalized.Trim()
+          if ($normalized -match '^[a-z]+://') {
+            $normalized = ([System.Uri]$normalized).Host
+          }
+
+          if ($normalized.Contains('/')) {
+            $normalized = $normalized.Split('/')[0]
+          }
+
+          return $normalized.TrimEnd('/')
+        }
+
         $dockerConfigPath = Join-Path $env:DOCKER_CONFIG 'config.json'
         if (-not (Test-Path $dockerConfigPath)) {
           throw "Docker config not found at '$dockerConfigPath'. Run Docker login first."
@@ -32,7 +50,7 @@ steps:
           throw "No registry auth entry found in '$dockerConfigPath'."
         }
 
-        $registryUrl = [string]$registryAuth.Name
+        $registryUrl = Normalize-RegistryUrl -value ([string]$registryAuth.Name)
         $acrName = if ($registryUrl.Contains('.')) { $registryUrl.Split('.')[0] } else { $registryUrl }
 
         Write-Host "Registry detected (registryUrl): $registryUrl"
