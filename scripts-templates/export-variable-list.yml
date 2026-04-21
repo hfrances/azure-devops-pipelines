@@ -15,7 +15,7 @@ steps:
       pwsh: true
       targetType: 'inline'
       script: |
-        $var = (gci env:*).GetEnumerator() | Sort-Object Name
+        $var = Get-ChildItem -Path Env: | Sort-Object Name
         $out = ""
         Foreach ($v in $var) {$out = $out + "`t{0,-28} = {1,-28}`n" -f $v.Name, $v.Value}
 
