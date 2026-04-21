@@ -1114,3 +1114,235 @@ stages:
             name: VerifyTemplatedStagesExecution
             displayName: Verify Templated
 
+  # Stage aislado: prueba conjuntamente mappingVariables, additionalVariables y output variables entre jobs.
+  - stage: TestVariableContracts
+    displayName: Test variable contracts
+    dependsOn: []
+    condition: not(canceled())
+    jobs:
+      - job: PrepareVariableContracts
+        displayName: Prepare variable contracts
+        steps:
+          - pwsh: |
+              Write-Output "contractsEnabled: true (output=true)"
+              Write-Output "##vso[task.setvariable variable=contractsEnabled;isOutput=true]true"
+
+              Write-Output "sourceAlpha: alpha-value (output=true)"
+              Write-Output "##vso[task.setvariable variable=sourceAlpha;isOutput=true]alpha-value"
+
+              Write-Output "sourceBeta: beta-value (output=true)"
+              Write-Output "##vso[task.setvariable variable=sourceBeta;isOutput=true]beta-value"
+
+              Write-Output "localOnly: hidden-value (output=false)"
+              Write-Output "##vso[task.setvariable variable=localOnly]hidden-value"
+            name: SetContractInputs
+            displayName: Set contract inputs
+
+      - template: /scripts-templates/jobs/conditioned-job.yml
+        parameters:
+          jobName: ConditionedContractProducer
+          displayName: Contract Producer
+          conditionalStage: ''
+          conditionalJob: PrepareVariableContracts
+          conditionalTask: SetContractInputs
+          conditionalVariable: contractsEnabled
+          condition: not(canceled())
+          mappingVariables:
+            mappedAlpha: sourceAlpha
+            mappedBeta: sourceBeta
+            mappedLocalOnly: localOnly
+          additionalVariables:
+            suffix: contract-ok
+          steps:
+            - pwsh: |
+                $hasErrors = $false
+
+                function Fail([string]$message) {
+                  Write-Output "##vso[task.logissue type=error]$message"
+                  $script:hasErrors = $true
+                }
+
+                Write-Output "contractsEnabled: $(contractsEnabled)"
+                Write-Output "mappedAlpha: $(mappedAlpha)"
+                Write-Output "mappedBeta: $(mappedBeta)"
+                Write-Output "mappedLocalOnly: $(mappedLocalOnly)"
+                Write-Output "suffix: $(suffix)"
+
+                if ('$(contractsEnabled)' -ne 'true') {
+                  Fail "contractsEnabled should be true."
+                }
+                if ('$(mappedAlpha)' -ne 'alpha-value') {
+                  Fail "mappedAlpha expected 'alpha-value' but got '$(mappedAlpha)'."
+                }
+                if ('$(mappedBeta)' -ne 'beta-value') {
+                  Fail "mappedBeta expected 'beta-value' but got '$(mappedBeta)'."
+                }
+                if (-not [string]::IsNullOrWhiteSpace('$(mappedLocalOnly)')) {
+                  Fail "mappedLocalOnly should be empty because localOnly was not output."
+                }
+                if ('$(suffix)' -ne 'contract-ok') {
+                  Fail "suffix expected 'contract-ok' but got '$(suffix)'."
+                }
+
+                if ($hasErrors) {
+                  Write-Output "##vso[task.complete result=Failed;]DONE"
+                  exit 1
+                }
+              name: ValidateProducerInputs
+              displayName: Validate Producer Inputs
+
+            - pwsh: |
+                $exportedAlpha = "$(mappedAlpha)|$(suffix)"
+                $exportedBeta = "$(mappedBeta)|$(suffix)"
+
+                Write-Output "contractReady: true (output=true)"
+                Write-Output "##vso[task.setvariable variable=contractReady;isOutput=true]true"
+
+                Write-Output "exportedAlpha: $exportedAlpha (output=true)"
+                Write-Output "##vso[task.setvariable variable=exportedAlpha;isOutput=true]$exportedAlpha"
+
+                Write-Output "exportedBeta: $exportedBeta (output=true)"
+                Write-Output "##vso[task.setvariable variable=exportedBeta;isOutput=true]$exportedBeta"
+              name: SetOutputs
+              displayName: Export Contract Outputs
+
+      - template: /scripts-templates/jobs/conditioned-job.yml
+        parameters:
+          jobName: ConditionedContractConsumer
+          displayName: Contract Consumer
+          conditionalStage: ''
+          conditionalJob: ConditionedContractProducer
+          conditionalTask: SetOutputs
+          conditionalVariable: contractReady
+          condition: not(canceled())
+          dependsOn:
+            - ConditionedContractProducer
+          mappingVariables:
+            receivedAlpha: exportedAlpha
+            receivedBeta: exportedBeta
+          additionalVariables:
+            expectedAlpha: alpha-value|contract-ok
+            expectedBeta: beta-value|contract-ok
+          steps:
+            - pwsh: |
+                $hasErrors = $false
+
+                function Fail([string]$message) {
+                  Write-Output "##vso[task.logissue type=error]$message"
+                  $script:hasErrors = $true
+                }
+
+                Write-Output "contractReady: $(contractReady)"
+                Write-Output "receivedAlpha: $(receivedAlpha)"
+                Write-Output "receivedBeta: $(receivedBeta)"
+                Write-Output "expectedAlpha: $(expectedAlpha)"
+                Write-Output "expectedBeta: $(expectedBeta)"
+
+                if ('$(contractReady)' -ne 'true') {
+                  Fail "contractReady should be true."
+                }
+                if ('$(receivedAlpha)' -ne '$(expectedAlpha)') {
+                  Fail "receivedAlpha expected '$(expectedAlpha)' but got '$(receivedAlpha)'."
+                }
+                if ('$(receivedBeta)' -ne '$(expectedBeta)') {
+                  Fail "receivedBeta expected '$(expectedBeta)' but got '$(receivedBeta)'."
+                }
+
+                if ($hasErrors) {
+                  Write-Output "##vso[task.complete result=Failed;]DONE"
+                  exit 1
+                }
+
+                Write-Output "Conditioned contract consumer passed."
+              name: ValidateContractConsumer
+              displayName: Validate Contract Consumer
+
+      - template: /scripts-templates/jobs/conditioned-job-wrapper.yml
+        parameters:
+          template: /tests/templates/conditioned-wrapper-target-job.yml
+          conditionalStage: ''
+          conditionalJob: ConditionedContractProducer
+          conditionalTask: SetOutputs
+          conditionalVariable: contractReady
+          condition: not(canceled())
+          dependsOn:
+            - ConditionedContractConsumer
+          mappingVariables:
+            wrapperReceivedAlpha: exportedAlpha
+            wrapperReceivedBeta: exportedBeta
+          additionalVariables:
+            expectedAlpha: alpha-value|contract-ok
+            expectedBeta: beta-value|contract-ok
+          parameters:
+            jobName: ConditionedContractWrapperConsumer
+            displayName: Contract Wrapper Consumer
+            steps:
+              - pwsh: |
+                  $hasErrors = $false
+
+                  function Fail([string]$message) {
+                    Write-Output "##vso[task.logissue type=error]$message"
+                    $script:hasErrors = $true
+                  }
+
+                  Write-Output "contractReady: $(contractReady)"
+                  Write-Output "wrapperReceivedAlpha: $(wrapperReceivedAlpha)"
+                  Write-Output "wrapperReceivedBeta: $(wrapperReceivedBeta)"
+                  Write-Output "expectedAlpha: $(expectedAlpha)"
+                  Write-Output "expectedBeta: $(expectedBeta)"
+
+                  if ('$(contractReady)' -ne 'true') {
+                    Fail "contractReady should be true."
+                  }
+                  if ('$(wrapperReceivedAlpha)' -ne '$(expectedAlpha)') {
+                    Fail "wrapperReceivedAlpha expected '$(expectedAlpha)' but got '$(wrapperReceivedAlpha)'."
+                  }
+                  if ('$(wrapperReceivedBeta)' -ne '$(expectedBeta)') {
+                    Fail "wrapperReceivedBeta expected '$(expectedBeta)' but got '$(wrapperReceivedBeta)'."
+                  }
+
+                  if ($hasErrors) {
+                    Write-Output "##vso[task.complete result=Failed;]DONE"
+                    exit 1
+                  }
+
+                  Write-Output "Conditioned contract wrapper consumer passed."
+                name: ValidateContractWrapperConsumer
+                displayName: Validate Contract Wrapper Consumer
+
+      - job: VerifyVariableContracts
+        displayName: Verify Variable Contracts
+        dependsOn:
+          - ConditionedContractProducer
+          - ConditionedContractConsumer
+          - ConditionedContractWrapperConsumer
+        condition: not(canceled())
+        variables:
+          resConditionedContractProducer: $[ dependencies.ConditionedContractProducer.result ]
+          resConditionedContractConsumer: $[ dependencies.ConditionedContractConsumer.result ]
+          resConditionedContractWrapperConsumer: $[ dependencies.ConditionedContractWrapperConsumer.result ]
+        steps:
+          - pwsh: |
+              $hasErrors = $false
+
+              function CheckEqual([string]$key, [string]$actual, [string]$expected) {
+                Write-Output "${key}: $actual"
+                if ($actual -ne $expected) {
+                  Write-Output "##vso[task.logissue type=error]${key} expected '$expected' but got '$actual'."
+                  $script:hasErrors = $true
+                }
+              }
+
+              CheckEqual 'ConditionedContractProducer.result' '$(resConditionedContractProducer)' 'Succeeded'
+              CheckEqual 'ConditionedContractConsumer.result' '$(resConditionedContractConsumer)' 'Succeeded'
+              CheckEqual 'ConditionedContractWrapperConsumer.result' '$(resConditionedContractWrapperConsumer)' 'Succeeded'
+
+              if ($hasErrors) {
+                Write-Output "##vso[task.complete result=Failed;]DONE"
+                exit 1
+              }
+
+              Write-Output "Variable contracts verification passed."
+            name: VerifyVariableContractResults
+            displayName: Verify Variable Contract Results
+
