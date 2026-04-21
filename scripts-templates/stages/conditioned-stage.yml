@@ -45,8 +45,8 @@ stages:
       # 2. Dependency resolution (mappingVariables)
       - ${{ if ne(parameters.conditionalStage, '') }}:
         - ${{ each pair in parameters.mappingVariables }}:
-          - name: ${{ coalesce(pair.value, pair.key) }}
-            value: $[ stageDependencies.${{ parameters.conditionalStage }}.${{ parameters.conditionalJob }}.outputs['${{ parameters.conditionalTask }}.${{ pair.key }}'] ]
+          - name: ${{ pair.key }}
+            value: $[ stageDependencies.${{ parameters.conditionalStage }}.${{ parameters.conditionalJob }}.outputs['${{ parameters.conditionalTask }}.${{ coalesce(pair.value, pair.key) }}'] ]
       # 3. Parent Summary Variable
       - ${{ if and(ne(parameters.conditionalStage, ''), ne(parameters.conditionalVariable, '')) }}:
         - name: ${{ parameters.conditionalVariable }}
