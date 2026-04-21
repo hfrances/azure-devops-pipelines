@@ -4,7 +4,7 @@ parameters:
     default: ''
   - name: displayName
     type: string
-    default: 'Detect ACR name from login'
+    default: 'Detect ACR from login'
   - name: condition
     type: string
     default: succeeded()
