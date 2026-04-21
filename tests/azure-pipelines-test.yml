@@ -90,10 +90,10 @@ stages:
           conditionalVariable: isTested
           condition: not(canceled())
           mappingVariables:
-            outBuildId: mappedOutBuildId
-            outDefinitionName: mappedOutDefinitionName
-            outSourceBranch: mappedOutSourceBranch
-            plainLocalOnly: mappedPlainLocalOnly
+            mappedOutBuildId: outBuildId
+            mappedOutDefinitionName: outDefinitionName
+            mappedOutSourceBranch: outSourceBranch
+            mappedPlainLocalOnly: plainLocalOnly
           additionalVariables:
             expectedBuildId: $(Build.BuildId)
             expectedDefinitionName: $(Build.DefinitionName)
@@ -158,10 +158,10 @@ stages:
           dependsOn:
             - ConditionedJobCheckAlone
           mappingVariables:
-            outBuildId: wrapperMappedOutBuildId
-            outDefinitionName: wrapperMappedOutDefinitionName
-            outSourceBranch: wrapperMappedOutSourceBranch
-            plainLocalOnly: wrapperMappedPlainLocalOnly
+            wrapperMappedOutBuildId: outBuildId
+            wrapperMappedOutDefinitionName: outDefinitionName
+            wrapperMappedOutSourceBranch: outSourceBranch
+            wrapperMappedPlainLocalOnly: plainLocalOnly
           additionalVariables:
             expectedBuildId: $(Build.BuildId)
             expectedDefinitionName: $(Build.DefinitionName)
@@ -376,10 +376,10 @@ stages:
           conditionalVariable: isTested
           condition: not(canceled())
           mappingVariables:
-            outBuildId: mappedOutBuildId
-            outDefinitionName: mappedOutDefinitionName
-            outSourceBranch: mappedOutSourceBranch
-            plainLocalOnly: mappedPlainLocalOnly
+            mappedOutBuildId: outBuildId
+            mappedOutDefinitionName: outDefinitionName
+            mappedOutSourceBranch: outSourceBranch
+            mappedPlainLocalOnly: plainLocalOnly
           additionalVariables:
             expectedBuildId: $(Build.BuildId)
             expectedDefinitionName: $(Build.DefinitionName)
@@ -445,10 +445,10 @@ stages:
           dependsOn:
             - ConditionedJobCheck
           mappingVariables:
-            outBuildId: wrapperMappedOutBuildId
-            outDefinitionName: wrapperMappedOutDefinitionName
-            outSourceBranch: wrapperMappedOutSourceBranch
-            plainLocalOnly: wrapperMappedPlainLocalOnly
+            wrapperMappedOutBuildId: outBuildId
+            wrapperMappedOutDefinitionName: outDefinitionName
+            wrapperMappedOutSourceBranch: outSourceBranch
+            wrapperMappedPlainLocalOnly: plainLocalOnly
           additionalVariables:
             expectedBuildId: $(Build.BuildId)
             expectedDefinitionName: $(Build.DefinitionName)
@@ -729,10 +729,10 @@ stages:
           conditionalVariable: isTestedA
           condition: not(canceled())
           mappingVariables:
-            outBuildIdA: mappedOutBuildIdA
-            outDefinitionNameA: mappedOutDefinitionNameA
-            outSourceBranchA: mappedOutSourceBranchA
-            plainLocalOnlyA: mappedPlainLocalOnlyA
+            mappedOutBuildIdA: outBuildIdA
+            mappedOutDefinitionNameA: outDefinitionNameA
+            mappedOutSourceBranchA: outSourceBranchA
+            mappedPlainLocalOnlyA: plainLocalOnlyA
           additionalVariables:
             expectedBuildId: $(Build.BuildId)
             expectedDefinitionName: $(Build.DefinitionName)
@@ -772,10 +772,10 @@ stages:
           dependsOn:
             - ConditionedJobCheckA
           mappingVariables:
-            outBuildIdA: wrapperMappedOutBuildIdA
-            outDefinitionNameA: wrapperMappedOutDefinitionNameA
-            outSourceBranchA: wrapperMappedOutSourceBranchA
-            plainLocalOnlyA: wrapperMappedPlainLocalOnlyA
+            wrapperMappedOutBuildIdA: outBuildIdA
+            wrapperMappedOutDefinitionNameA: outDefinitionNameA
+            wrapperMappedOutSourceBranchA: outSourceBranchA
+            wrapperMappedPlainLocalOnlyA: plainLocalOnlyA
           additionalVariables:
             expectedBuildId: $(Build.BuildId)
             expectedDefinitionName: $(Build.DefinitionName)
@@ -867,10 +867,10 @@ stages:
           dependsOn:
             - ConditionedJobWrapperBrokenCheckA
           mappingVariables:
-            outBuildIdB: mappedOutBuildIdB
-            outDefinitionNameB: mappedOutDefinitionNameB
-            outSourceBranchB: mappedOutSourceBranchB
-            plainLocalOnlyB: mappedPlainLocalOnlyB
+            mappedOutBuildIdB: outBuildIdB
+            mappedOutDefinitionNameB: outDefinitionNameB
+            mappedOutSourceBranchB: outSourceBranchB
+            mappedPlainLocalOnlyB: plainLocalOnlyB
           additionalVariables:
             expectedBuildId: $(Build.BuildId)
             expectedDefinitionName: $(Build.DefinitionName)
@@ -910,10 +910,10 @@ stages:
           dependsOn:
             - ConditionedJobCheckB
           mappingVariables:
-            outBuildIdB: wrapperMappedOutBuildIdB
-            outDefinitionNameB: wrapperMappedOutDefinitionNameB
-            outSourceBranchB: wrapperMappedOutSourceBranchB
-            plainLocalOnlyB: wrapperMappedPlainLocalOnlyB
+            wrapperMappedOutBuildIdB: outBuildIdB
+            wrapperMappedOutDefinitionNameB: outDefinitionNameB
+            wrapperMappedOutSourceBranchB: outSourceBranchB
+            wrapperMappedPlainLocalOnlyB: plainLocalOnlyB
           additionalVariables:
             expectedBuildId: $(Build.BuildId)
             expectedDefinitionName: $(Build.DefinitionName)
@@ -1113,5 +1113,4 @@ stages:
               Write-Output "Templated stages execution verification passed."
             name: VerifyTemplatedStagesExecution
             displayName: Verify Templated
-
 
