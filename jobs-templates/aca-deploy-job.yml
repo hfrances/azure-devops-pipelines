@@ -55,18 +55,17 @@ parameters:
   - name: acaIngressType
     type: string
     default: 'external'
-  # Target port exposed by the application.
+  # Target port exposed by the application (required).
   - name: acaTargetPort
     type: string
-    default: '80'
   # CPU allocation for the Container App.
   - name: acaCpu
     type: string
-    default: '0.5'
+    default: '0.25'
   # Memory allocation for the Container App.
   - name: acaMemory
     type: string
-    default: '1.0Gi'
+    default: '0.5Gi'
   # Minimum replica count.
   - name: acaMinReplicas
     type: string
