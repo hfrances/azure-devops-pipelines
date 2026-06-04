@@ -113,7 +113,8 @@ ASP.NET change detection can republish because of files like:
 You can override the matching rules with:
 
 ```text
-.azuredevops/publish-extra-paths.txt
+.azuredevops/publish-extra-paths.conf
 ```
 
 Full format: [Change detection](../features/change-detection.md)
+

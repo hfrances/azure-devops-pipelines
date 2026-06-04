@@ -96,13 +96,13 @@ If `excludedPatterns` is informed, it replaces the default exclude list.
 Override file in the consumer repo:
 
 ```text
-.azuredevops/publish-extra-paths.txt
+.azuredevops/publish-extra-paths.conf
 ```
 
 If `workingDirectory` is set, the detector first looks for:
 
 ```text
-<workingDirectory>/.azuredevops/publish-extra-paths.txt
+<workingDirectory>/.azuredevops/publish-extra-paths.conf
 ```
 
 and falls back to the repo-root file only if that scoped file does not exist.
@@ -170,7 +170,7 @@ The `git` detector is intended for components without a .NET solution graph, suc
 When `workingDirectory` is set:
 - git diff is restricted to that subtree
 - include/exclude matching is evaluated relative to that subtree
-- `.azuredevops/publish-extra-paths.txt` is resolved from `<workingDirectory>` first, then from repo root
+- `.azuredevops/publish-extra-paths.conf` is resolved from `<workingDirectory>` first, then from repo root
 
 Build and publish decisions are path-based:
 - `build` compares against the latest successful `compiled[-suffix]` baseline
@@ -196,7 +196,7 @@ azure-pipelines*.yml
 The same override file format is supported:
 
 ```text
-.azuredevops/publish-extra-paths.txt
+.azuredevops/publish-extra-paths.conf
 ```
 
 Artifacts exported by the `git` detector:
@@ -210,3 +210,4 @@ If `tagSuffix` is set, the exported file names include it. Example:
 Failure mode is also fail-open:
 - build stays on
 - publish stays on
+
