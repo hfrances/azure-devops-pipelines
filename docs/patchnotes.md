@@ -28,7 +28,7 @@ Highlights:
 - update `aspnet` and `libnet` templates to skip build or publish work when nothing relevant changed
 - add conditional support to shared script templates
 - expand docs with template guides, feature guides, and usage examples
-- keep ASP.NET extra publish file support through `.azuredevops/publish-extra-paths.conf`
+- keep ASP.NET extra publish file support through `publish-extra-paths.conf` overrides in `workingDirectory` or `.azuredevops`
 
 Main files:
 - `scripts-templates/detect-publishable-changes-dotnet.yml`
@@ -84,4 +84,3 @@ Main files introduced:
 - `scripts-templates/calculate-release-version-dotnet.yml`
 - `scripts-templates/calculate-target-frameworks-dotnet.yml`
 - `scripts-templates/get-main-project-dotnet.yml`
-

@@ -76,6 +76,7 @@ When disabled:
 ## ASP.NET Extra Publish File
 
 ```text
+<workingDirectory>/publish-extra-paths.conf
 .azuredevops/publish-extra-paths.conf
 ```
 
@@ -93,4 +94,3 @@ docs/**
 **/bin/**
 **/obj/**
 ```
-

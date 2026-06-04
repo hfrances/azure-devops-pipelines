@@ -39,7 +39,7 @@ Canonical alias policy:
 - Use `hf-azure-pipelines-repo` as the repository alias for this template repository.
 - Do not use alternative aliases if you want nested template calls to resolve consistently.
 
-For template behavior, branch rules, required variables, and optional files such as `.azuredevops/publish-extra-paths.conf`, use the docs linked above.
+For template behavior, branch rules, required variables, and optional files such as `<workingDirectory>/publish-extra-paths.conf` or `.azuredevops/publish-extra-paths.conf`, use the docs linked above.
 
 ## 📖 Official Documentation
 
@@ -54,4 +54,3 @@ Issues and pull requests are welcome! See the contribution guidelines (coming so
 
 ## 📜 License
 This project is licensed under the terms of the [GNU General Public License v3.0](LICENSE).
-
