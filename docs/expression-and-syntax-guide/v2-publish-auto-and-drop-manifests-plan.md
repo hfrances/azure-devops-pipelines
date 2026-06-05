@@ -17,10 +17,10 @@ Restaurar en `v2.0` el comportamiento de `Publish=auto|true|false` para que la p
 
 ### Fase 1
 
-1. Añadir `publishEnabledBranches` a [hmygroup/azure-pipelines-templates/v2.0/templates/components-pipeline-stages.yml](../../../../../hmygroup/azure-pipelines-templates/v2.0/templates/components-pipeline-stages.yml).
-2. Resolver `publishEnabled` en [hmygroup/azure-pipelines-templates/v2.0/templates/prepare-components-job.yml](../../../../../hmygroup/azure-pipelines-templates/v2.0/templates/prepare-components-job.yml).
+1. Añadir `publishEnabledBranches` a [hmygroup/azure-pipelines-templates/gen2/templates/components-pipeline-stages.yml](../../../../../hmygroup/azure-pipelines-templates/gen2/templates/components-pipeline-stages.yml).
+2. Resolver `publishEnabled` en [hmygroup/azure-pipelines-templates/gen2/templates/prepare-components-job.yml](../../../../../hmygroup/azure-pipelines-templates/gen2/templates/prepare-components-job.yml).
 3. Convertir `ComponentShouldPublish_*` en el valor efectivo final, no sólo el detectado por cambios.
-4. Hacer que [hmygroup/azure-pipelines-templates/v2.0/templates/build-components-jobs.yml](../../../../../hmygroup/azure-pipelines-templates/v2.0/templates/build-components-jobs.yml) reutilice ese valor efectivo para `Push image`, `mark-build-published` y `BuildSummary`.
+4. Hacer que [hmygroup/azure-pipelines-templates/gen2/templates/build-components-jobs.yml](../../../../../hmygroup/azure-pipelines-templates/gen2/templates/build-components-jobs.yml) reutilice ese valor efectivo para `Push image`, `mark-build-published` y `BuildSummary`.
 5. Guardar `deployment-manifest-<component>.json` en `$(Build.ArtifactStagingDirectory)/drop`.
 6. Eliminar la publicación de artifacts `deployment-manifest-*` separados.
 

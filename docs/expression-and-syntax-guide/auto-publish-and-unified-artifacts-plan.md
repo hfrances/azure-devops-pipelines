@@ -1,4 +1,4 @@
-User: @workspace /explain analiza cómo son los proyectos dummy-combi, dummy-aspnet y dummy-reactjs los cuales están usando la v2.0 de las plantillas de "C:\source\repos\hmygroup\azure-pipelines-templates\v2.0". Quiero que entiendas la filosofía de "component".
+User: @workspace /explain analiza cómo son los proyectos dummy-combi, dummy-aspnet y dummy-reactjs los cuales están usando la v2.0 de las plantillas de "C:\source\repos\hmygroup\azure-pipelines-templates\gen2". Quiero que entiendas la filosofía de "component".
 
 Por otro lado, analiza cómo se está gestionando la parte de Deploy en dummy-vue y HMY.IA.ImageCompare, en los cuales hay dos formas diferentes de gestionar los deploys
 - dummy-vue despliega en la rec interna de la empresa y en public
@@ -396,7 +396,7 @@ Eso permitiría que:
 
 Para un análisis real de la v2.0, harían falta estos YAML:
 
-- template principal de `component` en `azure-pipelines-templates\v2.0`
+- template principal de `component` en `azure-pipelines-templates\gen2`
 - azure-pipelines.yml de:
   - dummy-combi
   - dummy-aspnet
@@ -417,7 +417,7 @@ User: - Quiero que los jobs de build and publish generen un manifiest (uno por j
 
 GitHub Copilot: Research pipeline templates
 
-Searched for files matching `**/c:/source/repos/hmygroup/azure-pipelines-templates/v2.0/**/*.yml`, no matches
+Searched for files matching `**/c:/source/repos/hmygroup/azure-pipelines-templates/gen2/**/*.yml`, no matches
 
 Searched for files matching `**/c:/source/repos/hmyiabi/dummy-combi/**/*.yml`, no matches
 
@@ -429,9 +429,9 @@ Searched for files matching `**/c:/source/repos/hmyiabi/dummy-vue/**/*.yml`, no 
 
 Searched for files matching `**/c:/source/repos/hmyiabi/HMY.IA.ImageCompare/**/*.yml`, no matches
 
-Searched for regex `components-pipeline-stages|deployment-manifest|ComponentShouldDeploy|Publish deployment-manifest artifact|stageNameBase|parentStageName|parentJobNameBase` (`**/c:/source/repos/hmygroup/azure-pipelines-templates/v2.0/**/*.yml`), no results
+Searched for regex `components-pipeline-stages|deployment-manifest|ComponentShouldDeploy|Publish deployment-manifest artifact|stageNameBase|parentStageName|parentJobNameBase` (`**/c:/source/repos/hmygroup/azure-pipelines-templates/gen2/**/*.yml`), no results
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2)
 
 Read [](file:///c%3A/source/repos/hmyiabi/dummy-combi)
 
@@ -443,7 +443,7 @@ Read [](file:///c%3A/source/repos/hmyiabi/dummy-vue)
 
 Read [](file:///c%3A/source/repos/hmyiabi/HMY.IA.ImageCompare)
 
-Searched for files matching `**/azure-pipelines-templates/v2.0/**/*.yml`, 13 matches
+Searched for files matching `**/azure-pipelines-templates/gen2/**/*.yml`, 13 matches
 
 Searched for files matching `**/dummy-combi/.azuredevops/**/*.yml`, 1 match
 
@@ -459,7 +459,7 @@ Searched for files matching `**/azure-pipelines-templates/**/*.instructions.*`, 
 
 Searched for files matching `**/hmyiabi/**/*.instructions.*`, no matches
 
-Searched for regex `template:|components-pipeline-stages|deploy-components-jobs|build-components-jobs|prepare-components-job|deployment-manifest|Publish deployment-manifest artifact|ComponentShouldDeploy|isOutput=true` (`**/azure-pipelines-templates/v2.0/**/*.yml`), 6 results
+Searched for regex `template:|components-pipeline-stages|deploy-components-jobs|build-components-jobs|prepare-components-job|deployment-manifest|Publish deployment-manifest artifact|ComponentShouldDeploy|isOutput=true` (`**/azure-pipelines-templates/gen2/**/*.yml`), 6 results
 
 Searched for regex `azure-pipelines-templates|components-pipeline-stages|deploy-components-jobs|build-components-jobs|prepare-components-job|deployment-manifest|Publish deployment-manifest artifact` (`**/dummy-*/.azuredevops/**/*.yml`), 18 results
 
@@ -467,15 +467,15 @@ Searched for regex `deployment-manifest|Publish deployment-manifest artifact|Com
 
 Searched codebase for "v2.0 Azure DevOps component pipeline templates preparation build deploy manifest component outputs ComponentShouldDeploy deployment-manifest", 15 results
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/components-pipeline-stages.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/components-pipeline-stages.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/prepare-components-job.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/prepare-components-job.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/build-components-jobs.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/build-components-jobs.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-jobs.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-jobs.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/component-template-job.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/component-template-job.yml)
 
 Read [](file:///c%3A/source/repos/hmyiabi/dummy-combi/.azuredevops/azure-pipelines.yml)
 
@@ -489,15 +489,15 @@ Read [](file:///c%3A/source/repos/hmyiabi/HMY.IA.ImageCompare/.azuredevops/azure
 
 Read [](file:///c%3A/source/repos/hmyiabi/HMY.IA.ImageCompare/.azuredevops/azure-pipelines-cd.yml#1-1), lines 1 to 340
 
-Searched for regex `isOutput=true|PublishBuildArtifacts|PublishPipelineArtifact|artifact:|export-variable-list|BuildParameters\.` (`**/azure-pipelines-templates/v2.0/templates/**/*.yml`), no results
+Searched for regex `isOutput=true|PublishBuildArtifacts|PublishPipelineArtifact|artifact:|export-variable-list|BuildParameters\.` (`**/azure-pipelines-templates/gen2/templates/**/*.yml`), no results
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/build-component-pnpm-steps.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/build-component-pnpm-steps.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/build-component-npm-steps.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/build-component-npm-steps.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/build-component-aspnet-steps.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/build-component-aspnet-steps.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/resolve-docker-paths-task.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/resolve-docker-paths-task.yml)
 
 Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/jobs-templates/prepare-node-job.yml)
 
@@ -531,7 +531,7 @@ Searched for regex `deployment-manifest|PublishPipelineArtifact|azure-pipelines-
 
 Searched for regex `deployment-manifest|PublishPipelineArtifact|azure-pipelines-cd|PublishDeploymentManifest|Publish deployment-manifest artifact` (`**/dummy-reactjs/.azuredevops/**/*.yml`), no results
 
-Searched for regex `stage: Preparation|stage: BuildAndPush|stage: Deploy|hasAnyBuildCandidate|hasAnyDeployCandidate|ComponentShouldBuild_|ComponentShouldPublish_|ComponentShouldDeploy|Publish Artifact: drop` (`**/azure-pipelines-templates/v2.0/templates/*.yml`), 6 results
+Searched for regex `stage: Preparation|stage: BuildAndPush|stage: Deploy|hasAnyBuildCandidate|hasAnyDeployCandidate|ComponentShouldBuild_|ComponentShouldPublish_|ComponentShouldDeploy|Publish Artifact: drop` (`**/azure-pipelines-templates/gen2/templates/*.yml`), 6 results
 
 Searched for regex `components-pipeline-stages.yml@azure-pipelines-repo|name: api|name: ui|name: ui-next|templateType: aspnet|templateType: pnpm|dependsOn:|workingDirectory:` (`**/dummy-combi/.azuredevops/azure-pipelines.yml`), 12 results
 
@@ -543,37 +543,37 @@ Searched for regex `stage: Preparation|build-and-push-template-stage.yml|deploy-
 
 Searched for regex `stage: PublishDeploymentManifest|Publish deployment-manifest artifact|deployment-manifest|ExportImageMetadata|ImageRepository|ImageTag|ImagePublished|stage: ResolvePending|stage: Deploy_TEST|stage: Deploy_PRE|stage: Deploy_PRO` (`**/HMY.IA.ImageCompare/.azuredevops/*.yml`), 140 results
 
-Searched for regex `ExportPrepareSummary|ComponentShouldBuild_|ComponentShouldPublish_|hasAnyBuildCandidate|hasAnyDeployCandidate|shouldBuild =|shouldPublish =` (`**/azure-pipelines-templates/v2.0/templates/prepare-components-job.yml`), no results
+Searched for regex `ExportPrepareSummary|ComponentShouldBuild_|ComponentShouldPublish_|hasAnyBuildCandidate|hasAnyDeployCandidate|shouldBuild =|shouldPublish =` (`**/azure-pipelines-templates/gen2/templates/prepare-components-job.yml`), no results
 
-Searched for regex `mappingVariables:|ComponentShouldBuild: ShouldBuild|ComponentShouldPublish: ShouldPublish|outputVariables:|ShouldPublish: ComponentShouldDeploy|condition: "and\(succeeded\(\), eq\(variables\['ShouldBuild'\], 'true'\)\)"|Publish Artifact: drop` (`**/azure-pipelines-templates/v2.0/templates/build-components-jobs.yml`), no results
+Searched for regex `mappingVariables:|ComponentShouldBuild: ShouldBuild|ComponentShouldPublish: ShouldPublish|outputVariables:|ShouldPublish: ComponentShouldDeploy|condition: "and\(succeeded\(\), eq\(variables\['ShouldBuild'\], 'true'\)\)"|Publish Artifact: drop` (`**/azure-pipelines-templates/gen2/templates/build-components-jobs.yml`), no results
 
-Searched for regex `job: \$\{\{|stageDependencies\.|ExportPrepareSummary\.|SetOutputs|outputVariables|mappingVariables` (`**/azure-pipelines-templates/v2.0/templates/component-template-job.yml`), no results
+Searched for regex `job: \$\{\{|stageDependencies\.|ExportPrepareSummary\.|SetOutputs|outputVariables|mappingVariables` (`**/azure-pipelines-templates/gen2/templates/component-template-job.yml`), no results
 
-Searched for regex `condition: \$\{\{ format\('and\(succeeded\(\), eq\(stageDependencies\.|imageTag: \$\{\{ coalesce\(component.imageTag, '\$\(Build.BuildId\)'\) \}\}|acaName: \$\{\{ component.acaName \}\}` (`**/azure-pipelines-templates/v2.0/templates/deploy-components-jobs.yml`), no results
+Searched for regex `condition: \$\{\{ format\('and\(succeeded\(\), eq\(stageDependencies\.|imageTag: \$\{\{ coalesce\(component.imageTag, '\$\(Build.BuildId\)'\) \}\}|acaName: \$\{\{ component.acaName \}\}` (`**/azure-pipelines-templates/gen2/templates/deploy-components-jobs.yml`), no results
 
-Searched for text `ExportPrepareSummary` (`**/azure-pipelines-templates/v2.0/templates/prepare-components-job.yml`), no results
+Searched for text `ExportPrepareSummary` (`**/azure-pipelines-templates/gen2/templates/prepare-components-job.yml`), no results
 
-Searched for text `ComponentShouldDeploy` (`**/azure-pipelines-templates/v2.0/templates/build-components-jobs.yml`), no results
+Searched for text `ComponentShouldDeploy` (`**/azure-pipelines-templates/gen2/templates/build-components-jobs.yml`), no results
 
-Searched for text `stageDependencies.` (`**/azure-pipelines-templates/v2.0/templates/component-template-job.yml`), no results
+Searched for text `stageDependencies.` (`**/azure-pipelines-templates/gen2/templates/component-template-job.yml`), no results
 
-Searched for text `SetOutputs` (`**/azure-pipelines-templates/v2.0/templates/component-template-job.yml`), no results
+Searched for text `SetOutputs` (`**/azure-pipelines-templates/gen2/templates/component-template-job.yml`), no results
 
-Searched for text `ComponentShouldBuild_` (`**/azure-pipelines-templates/v2.0/templates/prepare-components-job.yml`), no results
+Searched for text `ComponentShouldBuild_` (`**/azure-pipelines-templates/gen2/templates/prepare-components-job.yml`), no results
 
-Searched for text `hasAnyBuildCandidate` (`**/azure-pipelines-templates/v2.0/templates/prepare-components-job.yml`), no results
+Searched for text `hasAnyBuildCandidate` (`**/azure-pipelines-templates/gen2/templates/prepare-components-job.yml`), no results
 
-Searched for text `Publish Artifact: drop` (`**/azure-pipelines-templates/v2.0/templates/build-components-jobs.yml`), no results
+Searched for text `Publish Artifact: drop` (`**/azure-pipelines-templates/gen2/templates/build-components-jobs.yml`), no results
 
-Searched for text `stageDependencies.` (`**/azure-pipelines-templates/v2.0/templates/deploy-components-jobs.yml`), no results
+Searched for text `stageDependencies.` (`**/azure-pipelines-templates/gen2/templates/deploy-components-jobs.yml`), no results
 
-Searched for regex `hasAnyBuildCandidate|hasAnyDeployCandidate|ComponentShouldDeploy|ExportPrepareSummary|SetOutputs` (`**/azure-pipelines-templates/v2.0/**/*.yml`), 4 results
+Searched for regex `hasAnyBuildCandidate|hasAnyDeployCandidate|ComponentShouldDeploy|ExportPrepareSummary|SetOutputs` (`**/azure-pipelines-templates/gen2/**/*.yml`), 4 results
 
 Searched for regex `ImageRepository|ImageTag|ImagePublished|ExportImageMetadata|CandidateRunId|Pending|ShouldDeploy_TEST|ShouldDeploy_PRE|ShouldDeploy_PRO` (`**/HMY.IA.ImageCompare/.azuredevops/**/*.yml`), 120 results
 
 Searched for regex `ExportPreparation.BuildParameters.HasAffectedPublishProjects|ExportPreparation.BuildParameters.DockerVersion|ExportPreparation.BuildParameters.HasAffectedBuildProjects` (`**/azure-pipelines-templates/**/*.yml`), no results
 
-Searched for regex `Publish Artifact: drop|ComponentShouldDeploy|ShouldPublish: ComponentShouldDeploy|ComponentShouldBuild: ShouldBuild|ComponentShouldPublish: ShouldPublish` (`**/azure-pipelines-templates/v2.0/**/*.yml`), no results
+Searched for regex `Publish Artifact: drop|ComponentShouldDeploy|ShouldPublish: ComponentShouldDeploy|ComponentShouldBuild: ShouldBuild|ComponentShouldPublish: ShouldPublish` (`**/azure-pipelines-templates/gen2/**/*.yml`), no results
 
 Searched for regex `ExportPreparation.BuildParameters.HasAffectedPublishProjects|ExportPreparation.BuildParameters.DockerVersion|ExportPreparation.BuildParameters.HasAffectedBuildProjects|ExportPreparation.MainProjectVersion` (`**/azure-pipelines-templates/**/*.yml`), no results
 
@@ -587,13 +587,13 @@ Read [](file:///c%3A/source/repos/hmyiabi/HMY.IA.ImageCompare/.azuredevops/templ
 
 Read [](file:///c%3A/source/repos/hmyiabi/HMY.IA.ImageCompare/.azuredevops/templates/build-push-dotnet-template-job.yml)
 
-Searched for text `ExportPrepareSummary` (`**/azure-pipelines-templates/v2.0/**/*.yml`), 2 results
+Searched for text `ExportPrepareSummary` (`**/azure-pipelines-templates/gen2/**/*.yml`), 2 results
 
-Searched for text `ComponentShouldDeploy` (`**/azure-pipelines-templates/v2.0/**/*.yml`), no results
+Searched for text `ComponentShouldDeploy` (`**/azure-pipelines-templates/gen2/**/*.yml`), no results
 
-Searched for text `Publish Artifact: drop` (`**/azure-pipelines-templates/v2.0/**/*.yml`), no results
+Searched for text `Publish Artifact: drop` (`**/azure-pipelines-templates/gen2/**/*.yml`), no results
 
-Searched for text `stageDependencies.` (`**/azure-pipelines-templates/v2.0/**/*.yml`), no results
+Searched for text `stageDependencies.` (`**/azure-pipelines-templates/gen2/**/*.yml`), no results
 
 Searched for text `component:` (`**/dummy-aspnet/.azuredevops/azure-pipelines.yml`), 1 result
 
@@ -615,11 +615,11 @@ Searched for text `ref:` (`**/HMY.IA.ImageCompare/.azuredevops/azure-pipelines-c
 
 Asked 3 questions (Manifest, DeployRoot, ImageVar)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/build-components-jobs.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/build-components-jobs.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-jobs.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-jobs.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/component-template-job.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/component-template-job.yml)
 
 Read [](file:///c%3A/source/repos/hmyiabi/HMY.IA.ImageCompare/.azuredevops/azure-pipelines.yml#130-130), lines 130 to 191
 
@@ -631,9 +631,9 @@ Read [](file:///c%3A/source/repos/hmyiabi/dummy-reactjs/.azuredevops/azure-pipel
 
 Read [](file:///c%3A/source/repos/hmyiabi/dummy-vue/.azuredevops/azure-pipelines.yml#55-55), lines 55 to 124
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/components-pipeline-stages.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/components-pipeline-stages.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/prepare-components-job.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/prepare-components-job.yml)
 
 Read [](file:///c%3A/source/repos/hmyiabi/HMY.IA.ImageCompare/.azuredevops/templates/export-image-metadata.yml)
 
@@ -641,28 +641,28 @@ Read [](file:///c%3A/source/repos/hmyiabi/HMY.IA.ImageCompare/.azuredevops/templ
 
 **DRAFT**
 
-Separar `build/publish` de `deploy` en v2.0 y mover la decisión de despliegue al azure-pipelines.yml raíz. La base ya existe: cada job de build exporta `ComponentShouldDeploy`, así que el refactor puede reutilizar ese contrato y ampliarlo con metadata de imagen y un manifiesto por job, inspirado en ImageCompare pero ampliado por componente. La propuesta deja azure-pipelines-templates/v2.0/templates/components-pipeline-stages.yml como pipeline de `Preparation` + `BuildAndPush`, y crea una nueva plantilla de stage de deploy que reconstruye el nombre del job padre con `stageNameBase`/`suffix`/`parent*`. Así cada proyecto podrá componer su estrategia en el root YAML: deploy simple, deploy dual tipo dummy-vue o pipeline separado tipo ImageCompare.
+Separar `build/publish` de `deploy` en v2.0 y mover la decisión de despliegue al azure-pipelines.yml raíz. La base ya existe: cada job de build exporta `ComponentShouldDeploy`, así que el refactor puede reutilizar ese contrato y ampliarlo con metadata de imagen y un manifiesto por job, inspirado en ImageCompare pero ampliado por componente. La propuesta deja azure-pipelines-templates/gen2/templates/components-pipeline-stages.yml como pipeline de `Preparation` + `BuildAndPush`, y crea una nueva plantilla de stage de deploy que reconstruye el nombre del job padre con `stageNameBase`/`suffix`/`parent*`. Así cada proyecto podrá componer su estrategia en el root YAML: deploy simple, deploy dual tipo dummy-vue o pipeline separado tipo ImageCompare.
 
 **Steps**
-1. Revisar y fijar el contrato de salida del build en azure-pipelines-templates/v2.0/templates/build-components-jobs.yml y azure-pipelines-templates/v2.0/templates/component-template-job.yml: mantener `ComponentShouldDeploy` y añadir outputs nuevos para la imagen, con una referencia completa tipo `repository:tag` como decisión principal, además de `imageRepository`, `imageTag` y `published` para no perder trazabilidad.
+1. Revisar y fijar el contrato de salida del build en azure-pipelines-templates/gen2/templates/build-components-jobs.yml y azure-pipelines-templates/gen2/templates/component-template-job.yml: mantener `ComponentShouldDeploy` y añadir outputs nuevos para la imagen, con una referencia completa tipo `repository:tag` como decisión principal, además de `imageRepository`, `imageTag` y `published` para no perder trazabilidad.
 
 2. Añadir en el flujo de build/publish un manifiesto por job, tomando como referencia el patrón de hmyiabi/HMY.IA.ImageCompare/.azuredevops/azure-pipelines.yml y hmyiabi/HMY.IA.ImageCompare/.azuredevops/templates/export-image-metadata.yml. El manifiesto debería ser ampliado por componente e incluir al menos `componentName`, `jobName`, `sourceBranch`, `buildId`, `runId`, `imageRepository`, `imageTag`, `imageRef`, `published`, `dockerfilePath` y `dockerBuildContext`.
 
-3. Publicar ese manifiesto como artifact independiente por job de build, con nombre único derivado del job calculado, para evitar colisiones. La decisión aquí es explícita: uno por job, no consolidado. El punto natural para generarlo es dentro de azure-pipelines-templates/v2.0/templates/build-components-jobs.yml, justo después del `push` y antes del publish final de artifacts.
+3. Publicar ese manifiesto como artifact independiente por job de build, con nombre único derivado del job calculado, para evitar colisiones. La decisión aquí es explícita: uno por job, no consolidado. El punto natural para generarlo es dentro de azure-pipelines-templates/gen2/templates/build-components-jobs.yml, justo después del `push` y antes del publish final de artifacts.
 
-4. Eliminar el stage `Deploy` de azure-pipelines-templates/v2.0/templates/components-pipeline-stages.yml, dejando esa plantilla limitada a `Preparation` y `BuildAndPush`. Esto preserva la filosofía de `component`: construir, publicar y exponer metadata; no decidir política de despliegue.
+4. Eliminar el stage `Deploy` de azure-pipelines-templates/gen2/templates/components-pipeline-stages.yml, dejando esa plantilla limitada a `Preparation` y `BuildAndPush`. Esto preserva la filosofía de `component`: construir, publicar y exponer metadata; no decidir política de despliegue.
 
-5. Crear una nueva plantilla de stage en azure-pipelines-templates/v2.0/templates para orquestar deploy desde el root YAML. El contrato del stage debe aceptar `stageNameBase`, `suffix`, `components`, `parentStageName`, `parentJobNameBase` y `parentSuffix`, con defaults alineados a `BuildAndPush`, `Build` y `''`, pero dejando `parentStageName` obligatorio según el requisito.
+5. Crear una nueva plantilla de stage en azure-pipelines-templates/gen2/templates para orquestar deploy desde el root YAML. El contrato del stage debe aceptar `stageNameBase`, `suffix`, `components`, `parentStageName`, `parentJobNameBase` y `parentSuffix`, con defaults alineados a `BuildAndPush`, `Build` y `''`, pero dejando `parentStageName` obligatorio según el requisito.
 
-6. En esa nueva plantilla, replicar exactamente la lógica actual de composición de nombres vista en azure-pipelines-templates/v2.0/templates/build-components-jobs.yml y azure-pipelines-templates/v2.0/templates/component-template-job.yml, incluyendo sanitización y tratamiento de componentes anónimos. Este punto es crítico porque hoy ya existe riesgo de desalineación con suffixes y con casos como hmyiabi/dummy-aspnet/.azuredevops/azure-pipelines.yml y hmyiabi/dummy-reactjs/.azuredevops/azure-pipelines.yml.
+6. En esa nueva plantilla, replicar exactamente la lógica actual de composición de nombres vista en azure-pipelines-templates/gen2/templates/build-components-jobs.yml y azure-pipelines-templates/gen2/templates/component-template-job.yml, incluyendo sanitización y tratamiento de componentes anónimos. Este punto es crítico porque hoy ya existe riesgo de desalineación con suffixes y con casos como hmyiabi/dummy-aspnet/.azuredevops/azure-pipelines.yml y hmyiabi/dummy-reactjs/.azuredevops/azure-pipelines.yml.
 
-7. Definir la condición del nuevo stage como “algún `ComponentShouldDeploy` del parent es `true`”. Como Azure DevOps no simplifica bien un `any()` dinámico en compile-time, la forma más robusta será generar una expresión `or(...)` por componente, construida con los nombres de job padre calculados. La referencia conceptual es la condición actual de azure-pipelines-templates/v2.0/templates/deploy-components-jobs.yml, pero elevada a nivel stage.
+7. Definir la condición del nuevo stage como “algún `ComponentShouldDeploy` del parent es `true`”. Como Azure DevOps no simplifica bien un `any()` dinámico en compile-time, la forma más robusta será generar una expresión `or(...)` por componente, construida con los nombres de job padre calculados. La referencia conceptual es la condición actual de azure-pipelines-templates/gen2/templates/deploy-components-jobs.yml, pero elevada a nivel stage.
 
-8. Hacer que el stage genere un job de despliegue por componente, pero manteniendo la plantilla genérica en orquestación. La forma más flexible es que el stage reciba o use un `deployJobTemplate` con un default ACA, reutilizando lo que hoy hace azure-pipelines-templates/v2.0/templates/deploy-components-jobs.yml. Así el root YAML podrá escoger estrategia por proyecto sin volver a acoplar `component` con `deploy`.
+8. Hacer que el stage genere un job de despliegue por componente, pero manteniendo la plantilla genérica en orquestación. La forma más flexible es que el stage reciba o use un `deployJobTemplate` con un default ACA, reutilizando lo que hoy hace azure-pipelines-templates/gen2/templates/deploy-components-jobs.yml. Así el root YAML podrá escoger estrategia por proyecto sin volver a acoplar `component` con `deploy`.
 
 9. Para cada job de deploy, resolver la imagen desde los outputs del build padre usando la referencia completa exportada en el paso 1. Esto evita depender de `$(Build.BuildId)` en el deploy y lo alinea con el patrón más explícito de ImageCompare. Si más adelante un proyecto quiere pipeline separado, el mismo contrato podrá ser leído desde el manifiesto sin rehacer build.
 
-10. Mantener temporalmente azure-pipelines-templates/v2.0/templates/deploy-components-jobs.yml como compatibilidad o deprecated wrapper, pero sacarlo de la ruta principal. Así la migración de consumidores no rompe de golpe.
+10. Mantener temporalmente azure-pipelines-templates/gen2/templates/deploy-components-jobs.yml como compatibilidad o deprecated wrapper, pero sacarlo de la ruta principal. Así la migración de consumidores no rompe de golpe.
 
 11. Actualizar los roots de hmyiabi/dummy-combi/.azuredevops/azure-pipelines.yml, hmyiabi/dummy-aspnet/.azuredevops/azure-pipelines.yml y hmyiabi/dummy-reactjs/.azuredevops/azure-pipelines.yml para que compongan:
     1. stage común de componentes
@@ -673,7 +673,7 @@ Separar `build/publish` de `deploy` en v2.0 y mover la decisión de despliegue a
     - ImageCompare valida el caso “build publica metadata/manifiesto; deploy vive fuera”
 
 **Verification**
-- Validar que azure-pipelines-templates/v2.0/templates/components-pipeline-stages.yml ya no contenga el stage `Deploy`.
+- Validar que azure-pipelines-templates/gen2/templates/components-pipeline-stages.yml ya no contenga el stage `Deploy`.
 - Ejecutar validación YAML en pipelines con:
   - componente con `name`
   - componente anónimo
@@ -695,7 +695,7 @@ Separar `build/publish` de `deploy` en v2.0 y mover la decisión de despliegue a
 - El manifiesto será por job y ampliado por componente, no consolidado.
 - El contrato principal de deploy será una referencia completa de imagen, sin perder campos atómicos.
 - La nueva plantilla de deploy será genérica en orquestación, con posibilidad de usar un job template ACA por defecto.
-- Se mantendrá compatibilidad temporal con azure-pipelines-templates/v2.0/templates/deploy-components-jobs.yml mientras migran los consumidores.
+- Se mantendrá compatibilidad temporal con azure-pipelines-templates/gen2/templates/deploy-components-jobs.yml mientras migran los consumidores.
 
 User: Start implementation
 
@@ -707,7 +707,7 @@ Searched for files matching `**/deploy-aca-from-preparation.yml`, 2 matches
 
 Searched for regex `imageRepository|imageTag|containerApp` (`**/aca-deploy-job.yml`), 30 results
 
-Generating patch (123 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/build-components-jobs.yml)
+Generating patch (123 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/build-components-jobs.yml)
 
 
 ```
@@ -715,9 +715,9 @@ Generating patch (123 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipe
 ```
 
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/build-components-jobs.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/build-components-jobs.yml)
 
-Generating patch (28 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/components-pipeline-stages.yml)
+Generating patch (28 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/components-pipeline-stages.yml)
 
 
 ```
@@ -725,15 +725,15 @@ Generating patch (28 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipel
 ```
 
 
-Created [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-component-job.yml)
+Created [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-component-job.yml)
 
-Created [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml)
+Created [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-component-job.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-component-job.yml)
 
-Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/build-components-jobs.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/components-pipeline-stages.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-component-job.yml), no problems found
+Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/build-components-jobs.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/components-pipeline-stages.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-component-job.yml), no problems found
 
 Completed: *Inspect deploy job contract* (1/5)
 
@@ -768,28 +768,28 @@ Si se quiere, el siguiente turno puede dejar listo ese adapter ACA y un ejemplo 
 
 Made changes.
 
-User: - Adapta los pipelines de C:\source\repos\hmygroup\azure-pipelines-templates\v2.0\testing\.azuredevops con el nuevo caso.
+User: - Adapta los pipelines de C:\source\repos\hmygroup\azure-pipelines-templates\gen2\testing\.azuredevops con el nuevo caso.
 - Actualiza la documentación de "C:\source\repos\github\qckdev-suite\azure-devops-pipelines\docs\expression-and-syntax-guide"
 
 GitHub Copilot: Created 5 todos
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops)
 
 Read [](file:///c%3A/source/repos/github/qckdev-suite/azure-devops-pipelines/docs/expression-and-syntax-guide)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
 Read [](file:///c%3A/source/repos/github/qckdev-suite/azure-devops-pipelines/docs/expression-and-syntax-guide/README.md)
 
 Read [](file:///c%3A/source/repos/github/qckdev-suite/azure-devops-pipelines/docs/expression-and-syntax-guide/04-common-use-cases.md#1-1), lines 1 to 260
 
-Searched for regex `deploy-components-stage.yml|components-pipeline-stages.yml` (`**/v2.0/testing/.azuredevops/**`), 2 results
+Searched for regex `deploy-components-stage.yml|components-pipeline-stages.yml` (`**/gen2/testing/.azuredevops/**`), 2 results
 
 Searched for regex `expression-and-syntax-guide|stageDependencies|outputs\['SetOutputs` (`**/docs/expression-and-syntax-guide/**`), 12 results
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing)
 
 Read [](file:///c%3A/source/repos/github/qckdev-suite/azure-devops-pipelines/jobs-templates/aca-deploy-job.yml#1-1), lines 1 to 120
 
@@ -801,9 +801,9 @@ Read [](file:///c%3A/source/repos/github/qckdev-suite/azure-devops-pipelines/doc
 
 Read [](file:///c%3A/source/repos/github/qckdev-suite/azure-devops-pipelines/docs/expression-and-syntax-guide/component-catalog-current-state.md)
 
-Created [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-aca-component-job.yml)
+Created [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-aca-component-job.yml)
 
-Generating patch (161 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+Generating patch (161 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
 
 ```
@@ -843,13 +843,13 @@ Generating patch (285 lines) in [](file:///c%3A/source/repos/github/qckdev-suite
 ```
 
 
-Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-aca-component-job.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml), no problems found
+Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-aca-component-job.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml), no problems found
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
-Generating patch (15 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+Generating patch (15 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
 
 ```
@@ -857,7 +857,7 @@ Generating patch (15 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipel
 ```
 
 
-Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-aca-component-job.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml), no problems found
+Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-aca-component-job.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml), no problems found
 
 Read changed files in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates)
 
@@ -869,10 +869,10 @@ Hecho.
 
 Cambios principales:
 - Adapté los pipelines de prueba para usar el nuevo modelo `BuildAndPush` + deploy root:
-  - azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml
-  - azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml
+  - azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml
+  - azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml
 - Añadí un wrapper ACA para el nuevo stage genérico:
-  - azure-pipelines-templates/v2.0/templates/deploy-aca-component-job.yml
+  - azure-pipelines-templates/gen2/templates/deploy-aca-component-job.yml
 
 Documentación actualizada:
 - azure-devops-pipelines/docs/expression-and-syntax-guide/README.md
@@ -885,7 +885,7 @@ Documentación actualizada:
 Qué quedó probado:
 - Los YAML modificados no muestran errores.
 - Los pipelines de testing ya no dependen del template remoto para `components-pipeline-stages`.
-- El deploy de testing ahora se compone desde root con azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml y consume outputs del build.
+- El deploy de testing ahora se compone desde root con azure-pipelines-templates/gen2/templates/deploy-components-stage.yml y consume outputs del build.
 
 Siguiente paso lógico:
 - adaptar también los roots reales de dummy-aspnet, dummy-reactjs y dummy-combi al mismo patrón.
@@ -905,15 +905,15 @@ He observado que ha creado tres jobs y que solo hay un fichero deployment-manife
   "imageTag": "7725",
   "imageRef": "azure-devops/azure-pipelines-templates-v2-combi-app1:7725",
   "published": true,
-  "dockerfilePath": "/home/vsts/work/1/s/v2.0/testing/src/services/dummy-test-app-1/Dockerfile",
-  "dockerBuildContext": "/home/vsts/work/1/s/v2.0/testing/src/services/dummy-test-app-1"
+  "dockerfilePath": "/home/vsts/work/1/s/gen2/testing/src/services/dummy-test-app-1/Dockerfile",
+  "dockerBuildContext": "/home/vsts/work/1/s/gen2/testing/src/services/dummy-test-app-1"
 }
 Este no es el resultado que yo esperaba.
 Yo esperaba que Build and push app1 generase un manifest "deployment-manifest-app1" y app2 generase un manifest "deployment-manifest-app2" 
 
 Además de esto, yo esperaba que hubiera un stage Deploy.
 
-GitHub Copilot: Generating patch (77 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/build-components-jobs.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+GitHub Copilot: Generating patch (77 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/build-components-jobs.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
 
 ```
@@ -929,7 +929,7 @@ GitHub Copilot: Generating patch (77 lines) in [](file:///c%3A/source/repos/hmyg
 ```
 
 
-Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/build-components-jobs.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml), no problems found
+Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/build-components-jobs.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml), no problems found
 
 Correcto. Había dos causas:
 
@@ -940,15 +940,15 @@ Ya lo dejé corregido.
 
 ### Cambios aplicados
 
-- En azure-pipelines-templates/v2.0/templates/build-components-jobs.yml:
+- En azure-pipelines-templates/gen2/templates/build-components-jobs.yml:
   - el artifact ahora se nombra por componente:
     - `deployment-manifest-app1`
     - `deployment-manifest-app2`
   - el `BuildSummary` ahora calcula `HasAnyComponentShouldDeploy` de forma más robusta
 
 - En los pipelines de testing:
-  - azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml
-  - azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml
+  - azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml
+  - azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml
 
   `Deployable` pasa a `true` por defecto, para que aparezca el stage `Deploy` en los tests.
 
@@ -982,15 +982,15 @@ Made changes.
 
 User: recuerda que uno de los objetivos era sacar el stage de Deployment a la raíz del pipeline (azure-pipelines-xxx.yml). En el combi no hay ninguna llamada al deploy-components-stage.yml que creaste
 
-GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
-Generating patch (141 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml)
+Generating patch (141 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
-Generating patch (81 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml)
+Generating patch (81 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml)
 
 
 ```
@@ -1002,14 +1002,14 @@ Generating patch (81 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipel
 ```
 
 
-Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml), no problems found
+Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml), no problems found
 
 Corregido.
 
 En el estado actual, `test-combi` seguía apuntando al template remoto y no tenía el stage root de deploy. Ya está arreglado:
 
-- `test-combi` ahora llama a azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml desde el root en azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml
-- `test-single` también quedó alineado para usar los templates locales en azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml
+- `test-combi` ahora llama a azure-pipelines-templates/gen2/templates/deploy-components-stage.yml desde el root en azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml
+- `test-single` también quedó alineado para usar los templates locales en azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml
 
 Punto importante:
 - Ambos pipelines ya no usan `components-pipeline-stages.yml@azure-pipelines-repo`
@@ -1029,7 +1029,7 @@ Made changes.
 User: se está mezclando lo que debería ir en components-pipeline-stages.yml@azure-pipelines-repo y lo que debería ir en deploy-components-stage
 Haz que a la hora de definir los components en deploy-components-stage sea con la información de deploy y quitala de build
 ```
-  - template: v2.0/templates/deploy-components-stage.yml
+  - template: gen2/templates/deploy-components-stage.yml
     parameters:
       stageNameBase: Deploy
       parentStageName: BuildAndPush
@@ -1041,21 +1041,17 @@ Haz que a la hora de definir los components en deploy-components-stage sea con l
           acaName: $(appAcaName)
           caeName: $(caeName)
           ...
-      jobTemplate: v2.0/templates/deploy-aca-component-job.yml
+      jobTemplate: gen2/templates/deploy-aca-component-job.yml
 ```
 
-GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml)
+GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-aca-component-job.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-aca-component-job.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
-Generating patch (216 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+Generating patch (216 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
-
-```
-
-```
 
 ```
 
@@ -1065,15 +1061,19 @@ Generating patch (216 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipe
 
 ```
 
+```
 
-Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml), no problems found
+```
+
+
+Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml), no problems found
 
 Hecho.
 
 Ahora deploy-components-stage.yml acepta `components` como objetos con información de deploy, y esa configuración ya no va en el bloque de build.
 
 Cambios:
-- Actualizado azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml
+- Actualizado azure-pipelines-templates/gen2/templates/deploy-components-stage.yml
   - ahora resuelve `componentName` desde `name/component`
   - acepta propiedades de deploy por componente:
     - `acaName`
@@ -1093,11 +1093,11 @@ Cambios:
     - `subnetName`
   - soporta `dependsOn` por componente también en deploy
 
-- Actualizado azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml
+- Actualizado azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml
   - el bloque de build ya solo define datos de build
   - el bloque root de deploy ahora define la configuración ACA del componente
 
-- Actualizado azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml
+- Actualizado azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml
   - build limpio, sin configuración ACA
   - deploy root con `components` de tipo objeto y configuración de despliegue por componente
 
@@ -1106,8 +1106,8 @@ Resultado esperado:
 - el root YAML define la estrategia y configuración de `Deploy`
 
 Ejemplo ya soportado:
-- en azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml
-- en azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml
+- en azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml
+- en azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml
 
 Validación:
 - sin errores en los YAML modificados.
@@ -1123,13 +1123,13 @@ User: has corrompido los ficheros, deshago los cambios y vuelve a intentarlo, as
 
 GitHub Copilot: Created 5 todos
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
-Generating patch (196 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+Generating patch (196 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
 
 ```
@@ -1145,14 +1145,14 @@ Generating patch (196 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipe
 ```
 
 
-Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml), no problems found
+Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml), no problems found
 
 Completed: *Read current YAML files* (1/5)
 
 Hecho, esta vez partiendo de la foto actual de los 3 ficheros.
 
 Qué he cambiado:
-- azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml
+- azure-pipelines-templates/gen2/templates/deploy-components-stage.yml
   - ahora acepta `components` como objetos
   - resuelve `componentName` desde `name` / `component`
   - soporta `dependsOn` por componente en deploy
@@ -1173,12 +1173,12 @@ Qué he cambiado:
     - `vnetName`
     - `subnetName`
 
-- azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml
+- azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml
   - quité la configuración ACA del bloque de build
   - la moví al bloque root de:
-    azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml
+    azure-pipelines-templates/gen2/templates/deploy-components-stage.yml
 
-- azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml
+- azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml
   - quité la configuración ACA de `app1` y `app2` en build
   - añadí el stage root de deploy con `components` como objetos de deploy
   - preservé las líneas comentadas de “No borrar estas líneas”
@@ -1196,11 +1196,11 @@ Si quieres, el siguiente paso es aplicar el mismo patrón a los pipelines reales
 Made changes.
 
 User: me da este error:
-/v2.0/templates/build-components-jobs.yml@azure-pipelines-repo (Line: 246, Col: 19): The directive 'each' is not allowed in this context. Directives are not supported for expressions that are embedded within a string. Directives are only supported when the entire value is an expression.
+/gen2/templates/build-components-jobs.yml@azure-pipelines-repo (Line: 246, Col: 19): The directive 'each' is not allowed in this context. Directives are not supported for expressions that are embedded within a string. Directives are only supported when the entire value is an expression.
 
-GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/build-components-jobs.yml#200-200), lines 200 to 262
+GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/build-components-jobs.yml#200-200), lines 200 to 262
 
-Generating patch (43 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/build-components-jobs.yml)
+Generating patch (43 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/build-components-jobs.yml)
 
 
 ```
@@ -1208,7 +1208,7 @@ Generating patch (43 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipel
 ```
 
 
-Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/build-components-jobs.yml), no problems found
+Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/build-components-jobs.yml), no problems found
 
 Arreglado.
 
@@ -1216,7 +1216,7 @@ La causa era exactamente esta:
 - había un `${{ each ... }}` metido dentro del texto del `script`
 - Azure Pipelines no permite directivas `each` embebidas dentro de un string multilínea
 
-Lo he corregido en azure-pipelines-templates/v2.0/templates/build-components-jobs.yml sustituyendo esa parte por una lectura de variables de entorno `COMPONENTSHOULDDEPLOY_*`, que sí es válida en runtime.
+Lo he corregido en azure-pipelines-templates/gen2/templates/build-components-jobs.yml sustituyendo esa parte por una lectura de variables de entorno `COMPONENTSHOULDDEPLOY_*`, que sí es válida en runtime.
 
 Estado:
 - el archivo ya no da errores de YAML
@@ -1226,14 +1226,14 @@ Puedes relanzar el pipeline. Si aparece otro error de compilación/runtime, sigo
 Made changes.
 
 User: ahora tengo estos errores:
-/v2.0/templates/deploy-components-stage.yml@azure-pipelines-repo (Line: 72, Col: 24): Unexpected symbol: '{0}'. Located at position 47 within expression: 'format("and(succeeded(), eq(stageDependencies.{0}.{1}.outputs[''SetOutputs.ComponentShouldDeploy''], ''true''))", parameters.parentStageName, replace(replace(replace(format('{0}_{1}_{2}', coalesce(parameters.parentJobNameBase, 'Build'), replace(replace(replace(coalesce(component.name, component.component, component, '~'), '-', ''), '.', '_'), [...]
+/gen2/templates/deploy-components-stage.yml@azure-pipelines-repo (Line: 72, Col: 24): Unexpected symbol: '{0}'. Located at position 47 within expression: 'format("and(succeeded(), eq(stageDependencies.{0}.{1}.outputs[''SetOutputs.ComponentShouldDeploy''], ''true''))", parameters.parentStageName, replace(replace(replace(format('{0}_{1}_{2}', coalesce(parameters.parentJobNameBase, 'Build'), replace(replace(replace(coalesce(component.name, component.component, component, '~'), '-', ''), '.', '_'), [...]
 7736
-/v2.0/templates/deploy-components-stage.yml@azure-pipelines-repo (Line: 89, Col: 22): Unexpected symbol: '['. Located at position 29 within expression: 'coalesce(component.envVars, [])'. For more help, refer to https://go.microsoft.com/fwlink/?linkid=842996
+/gen2/templates/deploy-components-stage.yml@azure-pipelines-repo (Line: 89, Col: 22): Unexpected symbol: '['. Located at position 29 within expression: 'coalesce(component.envVars, [])'. For more help, refer to https://go.microsoft.com/fwlink/?linkid=842996
 7736
 
-GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml)
+GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage.yml)
 
-Generating patch (38 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml)
+Generating patch (38 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage.yml)
 
 
 ```
@@ -1241,11 +1241,11 @@ Generating patch (38 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipel
 ```
 
 
-Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml), no problems found
+Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage.yml), no problems found
 
 Corregido.
 
-Los dos errores venían de azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml:
+Los dos errores venían de azure-pipelines-templates/gen2/templates/deploy-components-stage.yml:
 
 1. `format("and(...{0}...)")`
 - Azure estaba interpretando mal esa expresión
@@ -1258,7 +1258,7 @@ Los dos errores venían de azure-pipelines-templates/v2.0/templates/deploy-compo
   - si no existe, el `jobTemplate` usa su default
 
 Estado:
-- el YAML de azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml ya no muestra errores
+- el YAML de azure-pipelines-templates/gen2/templates/deploy-components-stage.yml ya no muestra errores
 
 Puedes relanzar. Si sale otro error de compilación de plantilla, sigo sobre ese punto.
 
@@ -1266,7 +1266,7 @@ Made changes.
 
 User: revisa este error:
 
-/v2.0/templates/deploy-components-stage.yml@azure-pipelines-repo: File /v2.0/templates/v2.0/templates/deploy-aca-component-job.yml not found in repository https://dev.azure.com/hmygroup/azure-devops/_git/azure-pipelines-templates branch refs/tags/3.5.0-alpha version 7feb3010e0b1b86cc30a59cc480370565ca8ab3b.
+/gen2/templates/deploy-components-stage.yml@azure-pipelines-repo: File /gen2/templates/gen2/templates/deploy-aca-component-job.yml not found in repository https://dev.azure.com/hmygroup/azure-devops/_git/azure-pipelines-templates branch refs/tags/3.5.0-alpha version 7feb3010e0b1b86cc30a59cc480370565ca8ab3b.
 
 No quites esto:
     - repository: azure-pipelines-repo
@@ -1274,13 +1274,13 @@ No quites esto:
       name: azure-devops/azure-pipelines-templates
       ref: refs/tags/3.5.0-alpha
 
-GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml)
+GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage.yml)
 
-Generating patch (28 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+Generating patch (28 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
 
 ```
@@ -1292,21 +1292,21 @@ Generating patch (28 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipel
 ```
 
 
-Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml), no problems found
+Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml), no problems found
 
 El error era la ruta del `jobTemplate`.
 
 Causa:
 - `deploy-components-stage.yml@azure-pipelines-repo` ya está dentro de templates
-- al pasar `v2.0/templates/deploy-aca-component-job.yml@azure-pipelines-repo`, Azure lo resolvía relativo a esa carpeta
+- al pasar `gen2/templates/deploy-aca-component-job.yml@azure-pipelines-repo`, Azure lo resolvía relativo a esa carpeta
 - resultado: intentaba abrir deploy-aca-component-job.yml
 
 Ya está corregido en:
-- azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml
-- azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml
+- azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml
+- azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml
 
 Cambio aplicado:
-- de `v2.0/templates/deploy-aca-component-job.yml@azure-pipelines-repo`
+- de `gen2/templates/deploy-aca-component-job.yml@azure-pipelines-repo`
 - a `deploy-aca-component-job.yml@azure-pipelines-repo`
 
 No he tocado esto:
@@ -1321,18 +1321,18 @@ Made changes.
 
 User: - no termino de entender por qué me podía ahorrar el path si tenemos en cuenta que estoy referenciando al "@azure-pipelines-repo" por lo que entiendo que la ruta partiría de cero
 - ahora revisa estos errores:
-/v2.0/templates/deploy-components-stage.yml@azure-pipelines-repo (Line: 80, Col: 30): Unexpected parameter 'parentStageName'
+/gen2/templates/deploy-components-stage.yml@azure-pipelines-repo (Line: 80, Col: 30): Unexpected parameter 'parentStageName'
 7743
-/v2.0/templates/deploy-components-stage.yml@azure-pipelines-repo (Line: 81, Col: 28): Unexpected parameter 'parentJobName'
+/gen2/templates/deploy-components-stage.yml@azure-pipelines-repo (Line: 81, Col: 28): Unexpected parameter 'parentJobName'
 7743
-/v2.0/templates/deploy-components-stage.yml@azure-pipelines-repo (Line: 102, Col: 20): Unexpected parameter 'steps'
+/gen2/templates/deploy-components-stage.yml@azure-pipelines-repo (Line: 102, Col: 20): Unexpected parameter 'steps'
 7743
 
-GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-aca-component-job.yml)
+GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-aca-component-job.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml#60-60), lines 60 to 103
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage.yml#60-60), lines 60 to 103
 
-Generating patch (26 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-aca-component-job.yml)
+Generating patch (26 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-aca-component-job.yml)
 
 
 ```
@@ -1340,7 +1340,7 @@ Generating patch (26 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipel
 ```
 
 
-Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-aca-component-job.yml), no problems found
+Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-aca-component-job.yml), no problems found
 
 Sobre la ruta: en Azure Pipelines, el `@azure-pipelines-repo` fija **el repositorio**, pero no siempre implica que la ruta se resuelva “desde raíz” en un template anidado. En este caso, al pasar un `template` como parámetro dentro de otro template, Azure estaba resolviendo la ruta de forma relativa al contexto del template padre, por eso terminaba intentando buscar:
 
@@ -1354,10 +1354,10 @@ Ahora, sobre los errores nuevos:
 - `Unexpected parameter 'parentJobName'`
 - `Unexpected parameter 'steps'`
 
-La causa era que azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml pasa esos parámetros al `jobTemplate`, pero azure-pipelines-templates/v2.0/templates/deploy-aca-component-job.yml no los declaraba.
+La causa era que azure-pipelines-templates/gen2/templates/deploy-components-stage.yml pasa esos parámetros al `jobTemplate`, pero azure-pipelines-templates/gen2/templates/deploy-aca-component-job.yml no los declaraba.
 
 Ya está corregido:
-- añadí en azure-pipelines-templates/v2.0/templates/deploy-aca-component-job.yml los parámetros:
+- añadí en azure-pipelines-templates/gen2/templates/deploy-aca-component-job.yml los parámetros:
   - `parentStageName`
   - `parentJobName`
   - `steps`
@@ -1440,7 +1440,7 @@ Es decir:
 
 - deploy-components-stage.yml no debería intentar ser universal con `${{ insert }}`
 - mejor crear un template específico tipo:
-  - v2.0/templates/deploy-components-aca-stage.yml
+  - gen2/templates/deploy-components-aca-stage.yml
 
 Ese template ya sabe exactamente qué parámetros ACA necesita y los mapea explícitamente.
 
@@ -1513,15 +1513,15 @@ Si se quiere, el siguiente paso puede ser refactorizarlo así y eliminar `${{ in
 
 User: no desploya a pesar de que dice que debería. Investiga las causas
 
-GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/build-components-jobs.yml)
+GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/build-components-jobs.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-aca-component-job.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-aca-component-job.yml)
 
 Read [](file:///c%3A/source/repos/github/qckdev-suite/azure-devops-pipelines/jobs-templates/aca-deploy-job.yml#1-1), lines 1 to 140
 
-Generating patch (17 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml)
+Generating patch (17 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage.yml)
 
 
 ```
@@ -1529,7 +1529,7 @@ Generating patch (17 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipel
 ```
 
 
-Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml), no problems found
+Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage.yml), no problems found
 
 La causa más probable es que **el stage sí entra, pero los jobs de deploy se están saltando por su propia `condition`**.
 
@@ -1545,7 +1545,7 @@ Eso normalmente significa:
 
 ## Causa detectada
 
-En azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml, cada job tenía esta idea:
+En azure-pipelines-templates/gen2/templates/deploy-components-stage.yml, cada job tenía esta idea:
 
 - el **stage** ya se filtra con `parameters.condition`
 - y además el **job** volvía a meter `parameters.condition`
@@ -1567,7 +1567,7 @@ Es decir:
 Eso encaja mejor con el diseño que estabas buscando.
 
 Archivo ajustado:
-- azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml
+- azure-pipelines-templates/gen2/templates/deploy-components-stage.yml
 
 ## Sobre la duda anterior de la ruta
 
@@ -1673,13 +1673,13 @@ User: ahora hay que añadir los siguientes parámetros en deploy-aca-job-wratter
 El objetivo es que en variables termine estando cargadas las variables mapeadas + additionalVariables.
 Ya haces en algun otro fichero del repo cosas similares
 
-GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml)
+GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/component-template-job.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/component-template-job.yml)
 
 Searched for regex `deploy-job-wrapper.yml|deploy-job-wrapper` (`**/*.{yml,yaml}`), no results
 
-Generating patch (45 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml)
+Generating patch (45 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml)
 
 
 ```
@@ -1687,7 +1687,7 @@ Generating patch (45 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipel
 ```
 
 
-Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml), no problems found
+Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml), no problems found
 
 Hecho.
 
@@ -1742,7 +1742,7 @@ Made changes.
 User: Audita el deploy-job-wrapper a ver si es posible lo que he hecho es posible y si jobTemplatePath es posible hacerlo.
 
 Revisa también este error
-/v2.0/testing/.azuredevops/azure-pipelines-single.yml: (Line: 100, Col: 22, Idx: 2847) - (Line: 100, Col: 22, Idx: 2847): Mapping values are not allowed in this context.
+/gen2/testing/.azuredevops/azure-pipelines-single.yml: (Line: 100, Col: 22, Idx: 2847) - (Line: 100, Col: 22, Idx: 2847): Mapping values are not allowed in this context.
 
 GitHub Copilot: Sí, **`jobTemplatePath` puede ser viable**, pero con matices.
 
@@ -1769,7 +1769,7 @@ también es viable.
 2. **La ruta del template puede resolverse raro**
    - especialmente en templates anidados
    - más seguro usar rutas absolutas dentro del repo, por ejemplo:
-   - `/v2.0/templates/mock-aca-deploy-job.yml@azure-pipelines-repo`
+   - `/gen2/templates/mock-aca-deploy-job.yml@azure-pipelines-repo`
 
 3. **`variables:` solo sirve si el template destino admite `variables`**
    - en tu caso, aca-deploy-job.yml sí lo admite
@@ -1838,13 +1838,13 @@ Con tu wrapper actual, **`component` está tipado como `object`**, así que esta
 Sí, se puede usar, pero mejor así:
 
 ```yaml
-jobTemplatePath: '/v2.0/templates/mock-aca-deploy-job.yml@azure-pipelines-repo'
+jobTemplatePath: '/gen2/templates/mock-aca-deploy-job.yml@azure-pipelines-repo'
 ```
 
 mejor que:
 
 ```yaml
-jobTemplatePath: 'v2.0/templates/mock-aca-deploy-job.yml@azure-pipelines-repo'
+jobTemplatePath: 'gen2/templates/mock-aca-deploy-job.yml@azure-pipelines-repo'
 ```
 
 porque reduces ambigüedad de resolución.
@@ -1863,7 +1863,7 @@ Si quieres, en el siguiente paso te lo dejo corregido en azure-pipelines-single.
 User: - resuelve todo lo que me has propuesto.
 - una cosa que no entiendo es por qué aquí puedo hacer lo de component: app
 ```
-  - template: v2.0/templates/components-pipeline-stages.yml@azure-pipelines-repo
+  - template: gen2/templates/components-pipeline-stages.yml@azure-pipelines-repo
     parameters:
       Publish: ${{ parameters.Publish }}
       Deployable: ${{ parameters.Deployable }}
@@ -1871,7 +1871,7 @@ User: - resuelve todo lo que me has propuesto.
       components:
         - component: app
           templateType: pnpm
-          workingDirectory: 'v2.0/testing/src/services/dummy-test-app-1'
+          workingDirectory: 'gen2/testing/src/services/dummy-test-app-1'
           dockerBuildContext: .
           dockerfilePath: Dockerfile
           imageRepository: $(appImageRepository)
@@ -1886,10 +1886,10 @@ pero aquí no:
       parentSummaryVariableName: hasAnyComponentShouldDeploy
       condition: and(succeeded(), ${{ parameters.Deployable }})
       jobs:
-        - template: v2.0/templates/deploy-aca-jobs-wrapper.yml@azure-pipelines-repo
+        - template: gen2/templates/deploy-aca-jobs-wrapper.yml@azure-pipelines-repo
           parameters:
             #jobTemplatePath: '/jobs-templates/aca-deploy-job.yml@hf-azure-pipelines-repo'
-            jobTemplatePath: 'v2.0/templates/mock-aca-deploy-job.yml@azure-pipelines-repo'
+            jobTemplatePath: 'gen2/templates/mock-aca-deploy-job.yml@azure-pipelines-repo'
             parentStage: BuildAndPush
             parentJobNameBase: Build
             component: app
@@ -1905,19 +1905,19 @@ pero aquí no:
 
 GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-devops-pipelines/scripts-templates/stages/conditioned-stage.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml)
 
-Searched for files matching `**/v2.0/templates/*deploy*wrapper*.yml`, 1 match
+Searched for files matching `**/gen2/templates/*deploy*wrapper*.yml`, 1 match
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
 Searched for files matching `**/mock-aca-deploy-job.yml`, 2 matches
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/mock-aca-deploy-job.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/mock-aca-deploy-job.yml)
 
-Generating patch (136 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+Generating patch (136 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
 
 ```
@@ -1929,27 +1929,27 @@ Generating patch (136 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipe
 ```
 
 
-Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml), no problems found
+Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml), no problems found
 
 He dejado aplicado lo que te proponía.
 
 ## Cambios hechos
 
 ### `single`
-Actualizado azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml
+Actualizado azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml
 
 - corregido `parentSummaryVariableName` a `HasAnyComponentShouldDeploy`
 - corregido el nombre del wrapper:
   - de `deploy-aca-jobs-wrapper.yml`
   - a deploy-job-wrapper.yml
 - `jobTemplatePath` ahora va absoluto:
-  - `/v2.0/templates/mock-aca-deploy-job.yml@azure-pipelines-repo`
+  - `/gen2/templates/mock-aca-deploy-job.yml@azure-pipelines-repo`
 - `component` ahora se pasa como **objeto**
 - se mapea `ComponentImageTag -> ResolvedImageTag`
 - `imageTag` del deploy se alimenta con `$(ResolvedImageTag)`
 
 ### `combi`
-Actualizado azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml
+Actualizado azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml
 
 - mismo patrón que en `single`
 - dos jobs de deploy usando el wrapper
@@ -1959,7 +1959,7 @@ Actualizado azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-
 
 Sí, **es posible**.
 
-En azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml tienes:
+En azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml tienes:
 
 ```yaml
 - template: ${{ parameters.jobTemplatePath }}
@@ -1971,15 +1971,15 @@ Eso es válido porque:
 
 Lo más seguro es usar ruta absoluta en el repo:
 
-- `/v2.0/templates/mock-aca-deploy-job.yml@azure-pipelines-repo`
+- `/gen2/templates/mock-aca-deploy-job.yml@azure-pipelines-repo`
 
-mejor que una relativa con `v2.0/templates/...`
+mejor que una relativa con `gen2/templates/...`
 
 ## Por qué aquí sí funciona `component: app`
 
 En este bloque:
 
-azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml
+azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml
 
 ```yaml
 components:
@@ -2046,39 +2046,39 @@ component:
 ## Estado
 
 Validado sin errores:
-- azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml
-- azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml
-- azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml
+- azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml
+- azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml
+- azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml
 
 Si quieres, el siguiente paso es revisar si azure-devops-pipelines/scripts-templates/stages/conditioned-stage.yml está bien diseñado o si conviene simplificarlo también.
 
 Made changes.
 
 User: me da los siguientes errores, entiendo que porque la firma del mock-aca-deploy-job no es idéntica a la del aca-deploy-job:
-/v2.0/templates/deploy-job-wrapper.yml@azure-pipelines-repo (Line: 53, Col: 7): Unexpected parameter 'caeLocation'
+/gen2/templates/deploy-job-wrapper.yml@azure-pipelines-repo (Line: 53, Col: 7): Unexpected parameter 'caeLocation'
 7786
-/v2.0/templates/deploy-job-wrapper.yml@azure-pipelines-repo (Line: 53, Col: 7): Unexpected parameter 'useSubnet'
+/gen2/templates/deploy-job-wrapper.yml@azure-pipelines-repo (Line: 53, Col: 7): Unexpected parameter 'useSubnet'
 7786
-/v2.0/templates/deploy-job-wrapper.yml@azure-pipelines-repo (Line: 53, Col: 7): Unexpected parameter 'resourceGroupVNet'
+/gen2/templates/deploy-job-wrapper.yml@azure-pipelines-repo (Line: 53, Col: 7): Unexpected parameter 'resourceGroupVNet'
 7786
-/v2.0/templates/deploy-job-wrapper.yml@azure-pipelines-repo (Line: 53, Col: 7): Unexpected parameter 'vnetName'
+/gen2/templates/deploy-job-wrapper.yml@azure-pipelines-repo (Line: 53, Col: 7): Unexpected parameter 'vnetName'
 7786
-/v2.0/templates/deploy-job-wrapper.yml@azure-pipelines-repo (Line: 53, Col: 7): Unexpected parameter 'subnetName'
+/gen2/templates/deploy-job-wrapper.yml@azure-pipelines-repo (Line: 53, Col: 7): Unexpected parameter 'subnetName'
 7786
-/v2.0/testing/.azuredevops/azure-pipelines-single.yml: Object reference not set to an instance of an object.
+/gen2/testing/.azuredevops/azure-pipelines-single.yml: Object reference not set to an instance of an object.
 7786
 
-GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/mock-aca-deploy-job.yml)
+GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/mock-aca-deploy-job.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml)
 
 Read [](file:///c%3A/source/repos/hmygroup/azure-devops-pipelines/scripts-templates/stages/conditioned-stage.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
-Generating patch (70 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/mock-aca-deploy-job.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+Generating patch (70 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/mock-aca-deploy-job.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
 
 ```
@@ -2094,7 +2094,7 @@ Generating patch (70 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipel
 ```
 
 
-Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/mock-aca-deploy-job.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml), no problems found
+Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/mock-aca-deploy-job.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml), no problems found
 
 He revisado y corregido lo necesario.
 
@@ -2114,7 +2114,7 @@ Eso implica que el template destino tiene que aceptar esos parámetros.
 El mock no los aceptaba, por eso fallaba.
 
 Ya lo corregí en:
-- azure-pipelines-templates/v2.0/templates/mock-aca-deploy-job.yml
+- azure-pipelines-templates/gen2/templates/mock-aca-deploy-job.yml
 
 Le añadí:
 - `caeLocation`
@@ -2127,11 +2127,11 @@ Le añadí:
 ## 2. El `Object reference not set to an instance of an object`
 La causa más probable era esta:
 
-en azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml y en el `combi` estabas usando:
+en azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml y en el `combi` estabas usando:
 
 - `parentSummaryVariableName: hasAnyComponentShouldDeploy`
 
-pero el output real que exporta azure-pipelines-templates/v2.0/templates/build-components-jobs.yml es:
+pero el output real que exporta azure-pipelines-templates/gen2/templates/build-components-jobs.yml es:
 
 - `HasAnyComponentShouldDeploy`
 
@@ -2140,8 +2140,8 @@ con `H` mayúscula.
 Como azure-devops-pipelines/scripts-templates/stages/conditioned-stage.yml construye dinámicamente referencias a outputs con ese nombre, el case mismatch podía romper la resolución.
 
 Ya está corregido en:
-- azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml
-- azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml
+- azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml
+- azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml
 
 ## Sobre tu duda de `component: app`
 
@@ -2180,15 +2180,15 @@ Y así es como ya quedó en tus pipelines de test.
 
 ## Estado final
 Sin errores en:
-- azure-pipelines-templates/v2.0/templates/mock-aca-deploy-job.yml
-- azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml
-- azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml
+- azure-pipelines-templates/gen2/templates/mock-aca-deploy-job.yml
+- azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml
+- azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml
 
 Siguiente paso lógico: relanzar `test-single` o `test-combi` y comprobar si ya ejecuta el mock deploy.
 
 Made changes.
 
-User: - Aplica los cambios que hemos hecho en "C:\source\repos\hmygroup\azure-pipelines-templates\v2.0\testing\.azuredevops" a los repositorios dummy-aspnet, dummy-reactjs y dummy-combi.
+User: - Aplica los cambios que hemos hecho en "C:\source\repos\hmygroup\azure-pipelines-templates\gen2\testing\.azuredevops" a los repositorios dummy-aspnet, dummy-reactjs y dummy-combi.
 - Para dummy-combi el despliegue es solo interno.
 - Para dummy-aspnet y dummy-reactjs el despliegue es privado y público (como actualente hace dummy-vue, aunque sea una plantilla obsoleta).
 - Revisa la documentación en "C:\source\repos\github\qckdev-suite\azure-devops-pipelines\docs\expression-and-syntax-guide" y actualíza lo que sea necesario por acambio de patrón
@@ -2201,9 +2201,9 @@ Read [](file:///c%3A/source/repos/hmyiabi/dummy-reactjs/.azuredevops/azure-pipel
 
 Read [](file:///c%3A/source/repos/hmyiabi/dummy-combi/.azuredevops/azure-pipelines.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
 Read [](file:///c%3A/source/repos/github/qckdev-suite/azure-devops-pipelines/docs/expression-and-syntax-guide/component-catalog-current-state.md)
 
@@ -2303,55 +2303,55 @@ Searched for regex `stageNameBase|stageName|component\)|parameters\.component|co
 
 Searched for regex ``fallback|single component|name \(or `component` as fallback\)|component as fallback|parameters.component.name|parameters.component.component`` (`**/*.{yml,md}`), 24 results
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/prepare-components-job.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/prepare-components-job.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/build-components-jobs.yml#1-1), lines 1 to 260
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/build-components-jobs.yml#1-1), lines 1 to 260
 
 Read [](file:///c%3A/source/repos/hmyiabi/dummy-reactjs/.azuredevops/azure-pipelines.yml)
 
 Read [](file:///c%3A/source/repos/hmyiabi/dummy-combi/.azuredevops/azure-pipelines.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/component-template-job.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/component-template-job.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/components-pipeline-stages.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/components-pipeline-stages.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
 Searched for regex `length\(parameters\.components\)|length\(|eq\(length` (`**/*.{yml,md}`), 20 results
 
 Read [](file:///c%3A/source/repos/github/qckdev-suite/azure-devops-pipelines/jobs-templates/aca-deploy-job.yml#1-1), lines 1 to 180
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/mock-aca-deploy-job.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/mock-aca-deploy-job.yml)
 
 Searched for regex `envVars: \$\{\{ variables\.|variables\.[A-Za-z0-9_]+.*envVars|&[A-Za-z0-9_-]+EnvVars|\*.*EnvVars` (`**/*.yml`), no results
 
-Searched for regex `coalesce\((parameters\.component\.name, parameters\.component\.component|component\.name, component\.component)(?!, )` (`**/hmygroup/azure-pipelines-templates/v2.0/templates/*.yml`), no results
+Searched for regex `coalesce\((parameters\.component\.name, parameters\.component\.component|component\.name, component\.component)(?!, )` (`**/hmygroup/azure-pipelines-templates/gen2/templates/*.yml`), no results
 
-Searched for regex `coalesce\((parameters\.component\.name, parameters\.component\.component|component\.name, component\.component)(?!, )` (`**/v2.0/templates/*.yml`), 1 result
+Searched for regex `coalesce\((parameters\.component\.name, parameters\.component\.component|component\.name, component\.component)(?!, )` (`**/gen2/templates/*.yml`), 1 result
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-jobs.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-jobs.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage.yml)
 
 Searched for text `stageNameBase` (`**/*.{yml,md}`), 8 results
 
 Starting: *Refactor dummy-aspnet deploy* (2/6)
 
-Generating patch (272 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-jobs.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage-new-copy.yml), [](file:///c%3A/source/repos/hmyiabi/dummy-aspnet/.azuredevops/azure-pipelines.yml), [](file:///c%3A/source/repos/hmyiabi/dummy-reactjs/.azuredevops/azure-pipelines.yml), [](file:///c%3A/source/repos/hmyiabi/dummy-combi/.azuredevops/azure-pipelines.yml)
+Generating patch (272 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-jobs.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage-new-copy.yml), [](file:///c%3A/source/repos/hmyiabi/dummy-aspnet/.azuredevops/azure-pipelines.yml), [](file:///c%3A/source/repos/hmyiabi/dummy-reactjs/.azuredevops/azure-pipelines.yml), [](file:///c%3A/source/repos/hmyiabi/dummy-combi/.azuredevops/azure-pipelines.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml#1-1), lines 1 to 80
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage.yml#1-1), lines 1 to 80
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage-new-copy.yml#1-1), lines 1 to 60
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage-new-copy.yml#1-1), lines 1 to 60
 
 Read [](file:///c%3A/source/repos/hmyiabi/dummy-reactjs/.azuredevops/azure-pipelines.yml)
 
 Read [](file:///c%3A/source/repos/hmyiabi/dummy-combi/.azuredevops/azure-pipelines.yml#120-120), lines 120 to 170
 
-Generating patch (53 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-jobs.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage-new-copy.yml)
+Generating patch (53 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-jobs.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage-new-copy.yml)
 
 
 ```
@@ -2393,7 +2393,7 @@ Generating patch (193 lines) in [](file:///c%3A/source/repos/hmyiabi/dummy-aspne
 
 Searched for text `stageNameBase` (`**/*.{yml,md}`), 6 results
 
-Searched for regex `coalesce\(parameters\.component\.name, parameters\.component\.component\)|coalesce\(component\.name, component\.component, ''\)|coalesce\(component\.name, component\.component\)` (`**/v2.0/templates/*.yml`), 15 results
+Searched for regex `coalesce\(parameters\.component\.name, parameters\.component\.component\)|coalesce\(component\.name, component\.component, ''\)|coalesce\(component\.name, component\.component\)` (`**/gen2/templates/*.yml`), 15 results
 
 Read [](file:///c%3A/source/repos/hmyiabi/dummy-aspnet/.azuredevops/azure-pipelines.yml)
 
@@ -2401,7 +2401,7 @@ Read [](file:///c%3A/source/repos/hmyiabi/dummy-reactjs/.azuredevops/azure-pipel
 
 Read [](file:///c%3A/source/repos/hmyiabi/dummy-combi/.azuredevops/azure-pipelines.yml#124-124), lines 124 to 145
 
-Generating patch (22 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/prepare-components-job.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-jobs.yml)
+Generating patch (22 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/prepare-components-job.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-jobs.yml)
 
 
 ```
@@ -2413,7 +2413,7 @@ Generating patch (22 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipel
 ```
 
 
-Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-jobs.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage-new-copy.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/prepare-components-job.yml), [](file:///c%3A/source/repos/hmyiabi/dummy-aspnet/.azuredevops/azure-pipelines.yml), [](file:///c%3A/source/repos/hmyiabi/dummy-reactjs/.azuredevops/azure-pipelines.yml), [](file:///c%3A/source/repos/hmyiabi/dummy-combi/.azuredevops/azure-pipelines.yml), no problems found
+Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-jobs.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage-new-copy.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/prepare-components-job.yml), [](file:///c%3A/source/repos/hmyiabi/dummy-aspnet/.azuredevops/azure-pipelines.yml), [](file:///c%3A/source/repos/hmyiabi/dummy-reactjs/.azuredevops/azure-pipelines.yml), [](file:///c%3A/source/repos/hmyiabi/dummy-combi/.azuredevops/azure-pipelines.yml), no problems found
 
 Completed: *Refactor dummy-aspnet deploy* (2/6)
 
@@ -2421,13 +2421,13 @@ Hecho.
 
 Cambios principales:
 - Corregido el fallback de componente único sin nombre en:
-  - v2.0/templates/deploy-job-wrapper.yml
-  - v2.0/templates/deploy-components-jobs.yml
+  - gen2/templates/deploy-job-wrapper.yml
+  - gen2/templates/deploy-components-jobs.yml
 - Ajustado el nombre del parámetro de stage a `stageName` en:
-  - v2.0/templates/deploy-components-stage.yml
-  - v2.0/templates/deploy-components-stage-new-copy.yml
+  - gen2/templates/deploy-components-stage.yml
+  - gen2/templates/deploy-components-stage-new-copy.yml
 - Limpiado detalle restante del fallback en preparación:
-  - v2.0/templates/prepare-components-job.yml
+  - gen2/templates/prepare-components-job.yml
 
 Pipelines actualizados:
 - dummy-aspnet/.azuredevops/azure-pipelines.yml
@@ -2575,21 +2575,21 @@ User: En el stage de deploy-job-wrapper:
 - Debe haber un despendsOn a nivel de component (el cual requiere nombres de componentes)
 
 
-GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml)
+GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml)
 
 Read [](file:///c%3A/source/repos/github/qckdev-suite/azure-devops-pipelines/jobs-templates/aca-deploy-job.yml#1-1), lines 1 to 140
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/mock-aca-deploy-job.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/mock-aca-deploy-job.yml)
 
 Searched for text `deploy-job-wrapper.yml@azure-pipelines-repo` (`**/*.yml`), 10 results
 
 Read [](file:///c%3A/source/repos/hmyiabi/dummy-combi/.azuredevops/azure-pipelines.yml#130-130), lines 130 to 240
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml#80-80), lines 80 to 122
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml#80-80), lines 80 to 122
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml#100-100), lines 100 to 175
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml#100-100), lines 100 to 175
 
-Generating patch (78 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml), [](file:///c%3A/source/repos/hmyiabi/dummy-combi/.azuredevops/azure-pipelines.yml)
+Generating patch (78 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml), [](file:///c%3A/source/repos/hmyiabi/dummy-combi/.azuredevops/azure-pipelines.yml)
 
 
 ```
@@ -2605,11 +2605,11 @@ Generating patch (78 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipel
 ```
 
 
-Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml), [](file:///c%3A/source/repos/hmyiabi/dummy-combi/.azuredevops/azure-pipelines.yml), no problems found
+Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml), [](file:///c%3A/source/repos/hmyiabi/dummy-combi/.azuredevops/azure-pipelines.yml), no problems found
 
 Hecho.
 
-Implementado en v2.0/templates/deploy-job-wrapper.yml:
+Implementado en gen2/templates/deploy-job-wrapper.yml:
 - `dependsOn` a nivel de job:
   - se sigue pasando como lista de nombres de jobs
 - `component.dependsOn` a nivel de componente:
@@ -2618,7 +2618,7 @@ Implementado en v2.0/templates/deploy-job-wrapper.yml:
 - `component.dependsOn` ya no se reenvía al template final como parámetro bruto
 
 Además lo apliqué en ejemplos reales:
-- v2.0/testing/.azuredevops/azure-pipelines-combi.yml
+- gen2/testing/.azuredevops/azure-pipelines-combi.yml
   - `app2` ahora usa `component.dependsOn: [app1]`
 - dummy-combi/.azuredevops/azure-pipelines.yml
   - `ui` y `ui-next` ahora usan `component.dependsOn: [api]`
@@ -2633,16 +2633,16 @@ Comportamiento resultante:
 
 Made changes.
 
-User: - El parámetro suffix de "template: v2.0/templates/deploy-job-wrapper.yml@azure-pipelines-repo" se puede propagar a component para poder autogenerar el nombre de la dependncia?
+User: - El parámetro suffix de "template: gen2/templates/deploy-job-wrapper.yml@azure-pipelines-repo" se puede propagar a component para poder autogenerar el nombre de la dependncia?
 - Quizás sea necesario añadir un jobNameBase como en otros templates
 
-GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml)
+GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
-Searched for text `jobNameBase:|DeployToACA_|component.dependsOn|dependsOn:` (`**/v2.0/**/*.yml`), 28 results
+Searched for text `jobNameBase:|DeployToACA_|component.dependsOn|dependsOn:` (`**/gen2/**/*.yml`), 28 results
 
-Generating patch (58 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+Generating patch (58 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
 
 ```
@@ -2654,11 +2654,11 @@ Generating patch (58 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipel
 ```
 
 
-Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml), no problems found
+Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml), no problems found
 
 Sí.
 
-Lo dejé soportado en v2.0/templates/deploy-job-wrapper.yml:
+Lo dejé soportado en gen2/templates/deploy-job-wrapper.yml:
 - nuevo parámetro `jobNameBase`
 - el `jobName` autogenerado ahora usa:
   - `jobNameBase`
@@ -2666,7 +2666,7 @@ Lo dejé soportado en v2.0/templates/deploy-job-wrapper.yml:
   - `coalesce(component.suffix, suffix)`
 - las dependencias por `component.dependsOn` también usan ese mismo sufijo resuelto, así que ya pueden autogenerar correctamente el nombre del job dependiente
 
-También ajusté el ejemplo en v2.0/testing/.azuredevops/azure-pipelines-combi.yml:
+También ajusté el ejemplo en gen2/testing/.azuredevops/azure-pipelines-combi.yml:
 - cambié el uso extraño de `prefix` por `suffix: internal`
 - añadí `jobNameBase: DeployToACA`
 - actualicé el `dependsOn` de job a `DeployToACA_app1_internal`
@@ -2681,22 +2681,22 @@ Validado:
 Made changes.
 
 User: tengo estos errores:
-/v2.0/templates/deploy-job-wrapper.yml@azure-pipelines-repo (Line: 42, Col: 16): Unexpected symbol: ')'. Located at position 401 within expression: 'coalesce(parameters.jobName, replace(replace(replace(replace(replace(replace(replace(replace(format('{0}_{1}_{2}', coalesce(parameters.jobNameBase, 'DeployToACA'), coalesce(parameters.component.name, parameters.component.component, '~'), coalesce(parameters.component.suffix, parameters.suffix, '~')), '_~_~', ''), '_~', ''), '~_', ''), '~', ''), [...]
+/gen2/templates/deploy-job-wrapper.yml@azure-pipelines-repo (Line: 42, Col: 16): Unexpected symbol: ')'. Located at position 401 within expression: 'coalesce(parameters.jobName, replace(replace(replace(replace(replace(replace(replace(replace(format('{0}_{1}_{2}', coalesce(parameters.jobNameBase, 'DeployToACA'), coalesce(parameters.component.name, parameters.component.component, '~'), coalesce(parameters.component.suffix, parameters.suffix, '~')), '_~_~', ''), '_~', ''), '~_', ''), '~', ''), [...]
 7802
-/v2.0/templates/deploy-job-wrapper.yml@azure-pipelines-repo (Line: 49, Col: 15): Unexpected symbol: ','. Located at position 307 within expression: 'replace(replace(replace(replace(replace(replace(replace(replace(format('{0}_{1}_{2}', coalesce(parameters.jobNameBase, 'DeployToACA'), coalesce(dep, '~'), coalesce(parameters.component.suffix, parameters.suffix, '~')), '_~_~', ''), '_~', ''), '~_', ''), '~', ''), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '/', '_')'. For more help, refer to htt[...]
+/gen2/templates/deploy-job-wrapper.yml@azure-pipelines-repo (Line: 49, Col: 15): Unexpected symbol: ','. Located at position 307 within expression: 'replace(replace(replace(replace(replace(replace(replace(replace(format('{0}_{1}_{2}', coalesce(parameters.jobNameBase, 'DeployToACA'), coalesce(dep, '~'), coalesce(parameters.component.suffix, parameters.suffix, '~')), '_~_~', ''), '_~', ''), '~_', ''), '~', ''), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '/', '_')'. For more help, refer to htt[...]
 7802
-/v2.0/testing/.azuredevops/azure-pipelines-combi.yml: Object reference not set to an instance of an object.
+/gen2/testing/.azuredevops/azure-pipelines-combi.yml: Object reference not set to an instance of an object.
 7802
 
-GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml)
+GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml#100-100), lines 100 to 184
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml#100-100), lines 100 to 184
 
 Read [](file:///c%3A/source/repos/hmyiabi/dummy-combi/.azuredevops/azure-pipelines.yml#130-130), lines 130 to 240
 
-Searched for text `jobNameBase|component.suffix|suffix: internal|DeployToACA_app1_internal` (`**/v2.0/**/*.yml`), 40 results
+Searched for text `jobNameBase|component.suffix|suffix: internal|DeployToACA_app1_internal` (`**/gen2/**/*.yml`), 40 results
 
-Generating patch (42 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+Generating patch (42 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
 
 ```
@@ -2708,12 +2708,12 @@ Generating patch (42 lines) in [](file:///c%3A/source/repos/hmygroup/azure-pipel
 ```
 
 
-Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml), [](file:///c%3A/source/repos/hmyiabi/dummy-combi/.azuredevops/azure-pipelines.yml), no problems found
+Checked [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml), [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml), [](file:///c%3A/source/repos/hmyiabi/dummy-combi/.azuredevops/azure-pipelines.yml), no problems found
 
 Corregido.
 
 Qué pasaba:
-- la expresión del `jobName` en v2.0/templates/deploy-job-wrapper.yml quedó demasiado compleja y Azure no la estaba parseando bien
+- la expresión del `jobName` en gen2/templates/deploy-job-wrapper.yml quedó demasiado compleja y Azure no la estaba parseando bien
 - además, el acceso a `parameters.component.suffix` no aportaba mucho y complicaba la resolución
 
 Qué he dejado:
@@ -2724,7 +2724,7 @@ Qué he dejado:
   - `suffix` del wrapper
 - `component.dependsOn` ahora autogenera dependencias usando ese mismo `suffix` del wrapper
 
-También ajusté v2.0/testing/.azuredevops/azure-pipelines-combi.yml:
+También ajusté gen2/testing/.azuredevops/azure-pipelines-combi.yml:
 - activado `jobNameBase: DeployToACA`
 - mantenido `suffix: internal`
 
@@ -2734,19 +2734,19 @@ Resultado:
 
 Validación:
 - sin errores en:
-  - v2.0/templates/deploy-job-wrapper.yml
-  - v2.0/testing/.azuredevops/azure-pipelines-combi.yml
+  - gen2/templates/deploy-job-wrapper.yml
+  - gen2/testing/.azuredevops/azure-pipelines-combi.yml
   - dummy-combi/.azuredevops/azure-pipelines.yml
 
 Si quieres, el siguiente paso lógico es propagar `jobNameBase` también a los pipelines reales que usen sufijos de deploy para dejar el patrón totalmente uniforme.
 
 Made changes.
 
-User: utilizando como referencia las plantillas de "C:\source\repos\hmygroup\azure-pipelines-templates\v2.0\testing\.azuredevops", actualiza los pipelines de dummy-aspnet, dummy-reactjs y dummy-combi
+User: utilizando como referencia las plantillas de "C:\source\repos\hmygroup\azure-pipelines-templates\gen2\testing\.azuredevops", actualiza los pipelines de dummy-aspnet, dummy-reactjs y dummy-combi
 
-GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml)
+GitHub Copilot: Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
 Read [](file:///c%3A/source/repos/hmyiabi/dummy-aspnet/.azuredevops/azure-pipelines.yml)
 
@@ -2774,7 +2774,7 @@ Checked [](file:///c%3A/source/repos/hmyiabi/dummy-aspnet/.azuredevops/azure-pip
 
 Actualizados.
 
-He alineado estos pipelines con la referencia de v2.0/testing/.azuredevops/azure-pipelines-single.yml y v2.0/testing/.azuredevops/azure-pipelines-combi.yml:
+He alineado estos pipelines con la referencia de gen2/testing/.azuredevops/azure-pipelines-single.yml y gen2/testing/.azuredevops/azure-pipelines-combi.yml:
 
 - dummy-aspnet/.azuredevops/azure-pipelines.yml
 - dummy-reactjs/.azuredevops/azure-pipelines.yml
@@ -2797,7 +2797,7 @@ Made changes.
 
 User: explicame por qué ocurre este error:
 	
-/v2.0/templates/deploy-job-wrapper.yml@azure-pipelines-repo (Line: 61, Col: 7): The 'caeManaged' parameter value '$(caeManaged)' is not a valid Boolean.
+/gen2/templates/deploy-job-wrapper.yml@azure-pipelines-repo (Line: 61, Col: 7): The 'caeManaged' parameter value '$(caeManaged)' is not a valid Boolean.
 682
 /.azuredevops/azure-pipelines.yml: Object reference not set to an instance of an object.
 682
@@ -2818,7 +2818,7 @@ La forma correcta es:
 - usar un `parameter` booleano, no una `variable` macro.
 
 2. El “Object reference not set to an instance of an object” viene del wrapper
-En v2.0/templates/deploy-job-wrapper.yml el wrapper usa `component.name` o `component.component` para:
+En gen2/templates/deploy-job-wrapper.yml el wrapper usa `component.name` o `component.component` para:
 - autogenerar el nombre del job de deploy
 - resolver el job de build padre (`Build_<componente>`)
 - traducir `component.dependsOn` a nombres de jobs
@@ -2858,7 +2858,7 @@ Usar este bloque para sustituir el stage `Deploy`:
       parentSummaryVariableName: HasAnyComponentShouldDeploy
       condition: and(succeeded(), ${{ parameters.Deployable }})
       jobs:
-        - template: v2.0/templates/deploy-job-wrapper.yml@azure-pipelines-repo
+        - template: gen2/templates/deploy-job-wrapper.yml@azure-pipelines-repo
           parameters:
             jobNameBase: DeployToACA
             suffix: internal
@@ -2892,7 +2892,7 @@ Usar este bloque para sustituir el stage `Deploy`:
               envVars:
                 - ASPNETCORE_ENVIRONMENT=Staging
 
-        - template: v2.0/templates/deploy-job-wrapper.yml@azure-pipelines-repo
+        - template: gen2/templates/deploy-job-wrapper.yml@azure-pipelines-repo
           parameters:
             jobNameBase: DeployToACA
             suffix: internal
@@ -2931,7 +2931,7 @@ Usar este bloque para sustituir el stage `Deploy`:
                 - NGINX_DIAGNOSTICS_LIVE_BASE_URL=http://$(liveAcaName)
                 - ENABLE_NGINX_DIAGNOSTICS=true
 
-        - template: v2.0/templates/deploy-job-wrapper.yml@azure-pipelines-repo
+        - template: gen2/templates/deploy-job-wrapper.yml@azure-pipelines-repo
           parameters:
             jobNameBase: DeployToACA
             suffix: internal
@@ -2996,7 +2996,7 @@ variables:
 
 # ...existing code...
 
-- template: v2.0/templates/deploy-job-wrapper.yml@azure-pipelines-repo
+- template: gen2/templates/deploy-job-wrapper.yml@azure-pipelines-repo
   parameters:
     component:
       # ...existing code...
@@ -3013,7 +3013,7 @@ variables:
 
 # ...existing code...
 
-- template: v2.0/templates/deploy-job-wrapper.yml@azure-pipelines-repo
+- template: gen2/templates/deploy-job-wrapper.yml@azure-pipelines-repo
   parameters:
     component:
       # ...existing code...
@@ -3131,7 +3131,7 @@ Read [](file:///c%3A/source/repos/hmyiabi/dummy-combi/.azuredevops/azure-pipelin
 
 Searched for files matching `**/deploy-job-wrapper.yml`, 1 match
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml)
 
 Aplico un parche al pipeline dummy-combi para que el job `api` use el mismo `jobNameBase` y `suffix` que `ui` (soluciona la dependencia faltante).
 
@@ -3155,7 +3155,7 @@ Made changes.
 
 User: - Qué es lo que falta para que el comando Publish, que tiene los valores "auto", "true", "false", funcione como funcionaba originalmente (antes llamado Deploy) que, si estaba en auto, en base a la rama que estaba (master, main, ...), hacía el publish o no? 
 - ¿Cómo se podría personalizar esto en el cada pipeline? Es decir, que por defecto sea para todos igual, pero pueda cambiarlo en el azure-pipelines.yml
-- ¿Qué elementos de "C:\source\repos\hmygroup\azure-pipelines-templates\v2.0" han quedado en desuso?
+- ¿Qué elementos de "C:\source\repos\hmygroup\azure-pipelines-templates\gen2" han quedado en desuso?
 - ¿Cómo es posible que los "variable-list-xxx" esten en un solo artifact llamado "drop" y que los de deployment-manifest estén separados en varios? (ver imagen adjunta). Me gustaría que estuvieran en "drop" con el nombre deployment-manifest-<component>.json
 
 
@@ -3165,57 +3165,57 @@ Research pipeline behavior
 
 Searched for regex `\b(Publish|Deploy|deployment-manifest|variable-list|drop)\b` (`**/azure-pipelines-templates/**`), no results
 
-Searched for files matching `**/azure-pipelines-templates/v2.0/**`, 31 matches
+Searched for files matching `**/azure-pipelines-templates/gen2/**`, 31 matches
 
 Searched for regex `\b(Publish|Deploy|deployment-manifest|variable-list|drop)\b` (`**/azure-devops-pipelines/**`), no results
 
-Searched for regex `publish|deploy|deployment manifest|variable list|artifact` (`**/azure-pipelines-templates/v2.0/**`), no results
+Searched for regex `publish|deploy|deployment manifest|variable list|artifact` (`**/azure-pipelines-templates/gen2/**`), no results
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/README.md)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/README.md)
 
 Searched for regex `publish|deploy|deployment manifest|variable list|artifact` (`**/azure-pipelines-templates/**`), no results
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/jobs-templates)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/jobs-templates)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/stages-templates)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/stages-templates)
 
 Searched codebase for "azure-pipelines-templates Publish parameter auto true false Deploy parameter branch master main deployment-manifest variable-list artifact drop v2.0", 26 results
 
 Searched codebase for "PublishEnabled HasAffectedPublishProjects Deployable PublishChangeDetection azure-devops-pipelines YAML implementation", 26 results
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-single.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-single.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/testing/.azuredevops/azure-pipelines-combi.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/testing/.azuredevops/azure-pipelines-combi.yml)
 
 Read [](file:///c%3A/source/repos/github/qckdev-suite/azure-devops-pipelines/docs/templates/aspnet.md)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/components-pipeline-stages.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/components-pipeline-stages.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/build-components-jobs.yml#1-1), lines 1 to 260
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/build-components-jobs.yml#1-1), lines 1 to 260
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/component-template-job.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/component-template-job.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/prepare-components-job.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/prepare-components-job.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/build-components-jobs.yml#261-261), lines 261 to 271
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/build-components-jobs.yml#261-261), lines 261 to 271
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-jobs.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-jobs.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-components-stage-new-copy.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-components-stage-new-copy.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/deploy-component-job.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/deploy-component-job.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/mock-aca-deploy-job.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/mock-aca-deploy-job.yml)
 
 Read [](file:///c%3A/source/repos/hmygroup/azure-devops-pipelines/scripts-templates/stages/conditioned-stage.yml)
 
@@ -3271,13 +3271,13 @@ Searched codebase for ""deploy-components-jobs.yml" references in workspace v2.0
 
 Searched codebase for ""conditioned-job.yml" references in workspace v2.0", 18 results
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/build-component-pnpm-steps.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/build-component-pnpm-steps.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/build-component-npm-steps.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/build-component-npm-steps.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/build-component-aspnet-steps.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/build-component-aspnet-steps.yml)
 
-Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/v2.0/templates/resolve-docker-paths-task.yml)
+Read [](file:///c%3A/source/repos/hmygroup/azure-pipelines-templates/gen2/templates/resolve-docker-paths-task.yml)
 
 Read [](file:///c%3A/source/repos/github/qckdev-suite/azure-devops-pipelines/jobs-templates/aca-deploy-job.yml#320-320), lines 320 to 586
 
@@ -3308,25 +3308,25 @@ Read [](file:///c%3A/source/repos/hmyiabi/dummy-test/.azuredevops/templates)
 Falta reintroducir en v2.0 una capa de decisión equivalente al antiguo `Deploy=auto`: hoy `Publish` existe como parámetro, pero no decide ni el push de imagen ni el despliegue por rama. Además, el flujo de artifacts mezcla dos contratos: `drop` se usa como artifact agregado de diagnósticos, mientras que los manifests se publican como artifacts separados por componente. También hay varias piezas en v2.0 que parecen vacías, duplicadas o superadas por el patrón actual.
 
 **Steps**
-1. Reintroducir la lógica de “auto por rama” en azure-pipelines-templates/v2.0/templates/components-pipeline-stages.yml, azure-pipelines-templates/v2.0/templates/prepare-components-job.yml y azure-pipelines-templates/v2.0/templates/build-components-jobs.yml, tomando como referencia el patrón antiguo de azure-devops-pipelines/standard/azure-pipelines-template-aspnet.yml y azure-devops-pipelines/standard/azure-pipelines-template-libnet.yml.
+1. Reintroducir la lógica de “auto por rama” en azure-pipelines-templates/gen2/templates/components-pipeline-stages.yml, azure-pipelines-templates/gen2/templates/prepare-components-job.yml y azure-pipelines-templates/gen2/templates/build-components-jobs.yml, tomando como referencia el patrón antiguo de azure-devops-pipelines/standard/azure-pipelines-template-aspnet.yml y azure-devops-pipelines/standard/azure-pipelines-template-libnet.yml.
 2. Añadir parámetros compartidos para ramas permitidas, por ejemplo `publishEnabledBranches`, con valor por defecto en plantilla compartida y sobreescribible desde cada azure-pipelines.yml. El cálculo esperado sería:
    - `false` → nunca publica ni despliega
    - `true` → siempre publica si hay cambios
    - `auto` → publica sólo si la rama actual está en la lista permitida
 3. Hacer que el resultado anterior gobierne dos sitios a la vez:
-   - el push de imagen en azure-pipelines-templates/v2.0/templates/build-components-jobs.yml
+   - el push de imagen en azure-pipelines-templates/gen2/templates/build-components-jobs.yml
    - la condición del stage `Deploy`, hoy externalizada en consumidores mediante azure-devops-pipelines/scripts-templates/stages/conditioned-stage.yml
 4. Mantener la personalización por pipeline exponiendo esos parámetros en el azure-pipelines.yml consumidor. La plantilla común define el default global y cada pipeline puede cambiar sólo su lista de ramas o incluso su estrategia completa de `Publish`.
 5. Limpiar o marcar como obsoletos los elementos con evidencia de desuso en v2.0:
-   - azure-pipelines-templates/v2.0/jobs-templates vacío
-   - azure-pipelines-templates/v2.0/stages-templates vacío
+   - azure-pipelines-templates/gen2/jobs-templates vacío
+   - azure-pipelines-templates/gen2/stages-templates vacío
    - azure-devops-pipelines/scripts-templates/jobs/conditioned-job.yml vacío
-   - azure-pipelines-templates/v2.0/templates/deploy-components-stage-new-copy.yml copia sobrante
-   - Probablemente superados por el patrón actual: azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml y azure-pipelines-templates/v2.0/templates/deploy-components-jobs.yml, porque los ejemplos activos usan azure-devops-pipelines/scripts-templates/stages/conditioned-stage.yml + azure-pipelines-templates/v2.0/templates/deploy-job-wrapper.yml
+   - azure-pipelines-templates/gen2/templates/deploy-components-stage-new-copy.yml copia sobrante
+   - Probablemente superados por el patrón actual: azure-pipelines-templates/gen2/templates/deploy-components-stage.yml y azure-pipelines-templates/gen2/templates/deploy-components-jobs.yml, porque los ejemplos activos usan azure-devops-pipelines/scripts-templates/stages/conditioned-stage.yml + azure-pipelines-templates/gen2/templates/deploy-job-wrapper.yml
 6. Reconciliar la documentación, porque ahora mismo se contradice:
-   - azure-pipelines-templates/v2.0/templates/README.md describe un flujo `Deploy` que ya no coincide con el código
-   - azure-devops-pipelines/docs/expression-and-syntax-guide/component-catalog-current-state.md dice que no se usan manifests, pero azure-pipelines-templates/v2.0/templates/build-components-jobs.yml sí los genera
-7. Cambiar el contrato de artifacts en azure-pipelines-templates/v2.0/templates/build-components-jobs.yml si se quiere que todo quede en `drop`:
+   - azure-pipelines-templates/gen2/templates/README.md describe un flujo `Deploy` que ya no coincide con el código
+   - azure-devops-pipelines/docs/expression-and-syntax-guide/component-catalog-current-state.md dice que no se usan manifests, pero azure-pipelines-templates/gen2/templates/build-components-jobs.yml sí los genera
+7. Cambiar el contrato de artifacts en azure-pipelines-templates/gen2/templates/build-components-jobs.yml si se quiere que todo quede en `drop`:
    - seguir escribiendo los `variable-list-*` en `$(Build.ArtifactStagingDirectory)/drop`
    - generar también ahí los manifests con nombre `deployment-manifest-<component>.json`
    - dejar de publicar un artifact separado por componente para `deployment-manifest-*`
@@ -3359,25 +3359,25 @@ Contenido propuesto para guardar en azure-devops-pipelines/docs/expression-and-s
 Restaurar en v2.0 el comportamiento original de `Deploy=auto`, ahora expuesto como `Publish=auto|true|false`, para que decida si se publica y despliega en función de la rama. Mantener un valor por defecto común en plantillas compartidas y permitir override por pipeline. Además, unificar los `deployment-manifest` dentro del artifact `drop` con nombres `deployment-manifest-<component>.json`, y limpiar plantillas/documentación que han quedado obsoletas.
 
 **Steps**
-1. Añadir una capa de resolución de intención de publicación en azure-pipelines-templates/v2.0/templates/components-pipeline-stages.yml, inspirada en azure-devops-pipelines/standard/azure-pipelines-template-aspnet.yml y azure-devops-pipelines/standard/azure-pipelines-template-libnet.yml.
+1. Añadir una capa de resolución de intención de publicación en azure-pipelines-templates/gen2/templates/components-pipeline-stages.yml, inspirada en azure-devops-pipelines/standard/azure-pipelines-template-aspnet.yml y azure-devops-pipelines/standard/azure-pipelines-template-libnet.yml.
 2. Introducir parámetros compartidos como `publishEnabledBranches` con defaults globales en v2.0, y permitir override desde cada azure-pipelines.yml.
-3. Propagar la resolución de `Publish` a azure-pipelines-templates/v2.0/templates/prepare-components-job.yml y azure-pipelines-templates/v2.0/templates/build-components-jobs.yml para que el push de imagen ocurra sólo si:
+3. Propagar la resolución de `Publish` a azure-pipelines-templates/gen2/templates/prepare-components-job.yml y azure-pipelines-templates/gen2/templates/build-components-jobs.yml para que el push de imagen ocurra sólo si:
    - hay cambios publicables
    - y la política resuelta de `Publish` lo permite
 4. Alinear el stage `Deploy` para que use la misma política resuelta y no trate `auto` como equivalente a `true`.
 5. Exponer en cada pipeline consumidor la posibilidad de sobreescribir `publishEnabledBranches` sin duplicar lógica.
-6. Cambiar en azure-pipelines-templates/v2.0/templates/build-components-jobs.yml la publicación de manifests:
+6. Cambiar en azure-pipelines-templates/gen2/templates/build-components-jobs.yml la publicación de manifests:
    - escribir `deployment-manifest-<component>.json` dentro de `$(Build.ArtifactStagingDirectory)/drop`
    - dejar de publicar `deployment-manifest-<component>` como artifacts separados
 7. Revisar consumidores de manifests, especialmente hmyiabi/HMY.IA.ImageCompare/.azuredevops/azure-pipelines-cd.yml, para adaptar la descarga desde `drop`.
 8. Limpiar o marcar como obsoletos los elementos con evidencia de desuso en v2.0:
-   - azure-pipelines-templates/v2.0/jobs-templates
-   - azure-pipelines-templates/v2.0/stages-templates
+   - azure-pipelines-templates/gen2/jobs-templates
+   - azure-pipelines-templates/gen2/stages-templates
    - azure-devops-pipelines/scripts-templates/jobs/conditioned-job.yml
-   - azure-pipelines-templates/v2.0/templates/deploy-components-stage-new-copy.yml
-   - validar si azure-pipelines-templates/v2.0/templates/deploy-components-stage.yml y azure-pipelines-templates/v2.0/templates/deploy-components-jobs.yml siguen siendo parte del flujo real o sólo legado
+   - azure-pipelines-templates/gen2/templates/deploy-components-stage-new-copy.yml
+   - validar si azure-pipelines-templates/gen2/templates/deploy-components-stage.yml y azure-pipelines-templates/gen2/templates/deploy-components-jobs.yml siguen siendo parte del flujo real o sólo legado
 9. Actualizar documentación desalineada:
-   - azure-pipelines-templates/v2.0/templates/README.md
+   - azure-pipelines-templates/gen2/templates/README.md
    - azure-devops-pipelines/docs/expression-and-syntax-guide/component-catalog-current-state.md
 
 **Verification**
