@@ -18,6 +18,8 @@ steps:
         $sourcesDirectory = "${{ parameters.sourcesDirectory }}"
         $failOnViolations = [System.Convert]::ToBoolean("${{ parameters.failOnViolations }}")
         $ErrorActionPreference = "Stop"
+        function Complete-WithError([string]$Message){Write-Host "##vso[task.logissue type=error]$Message";Write-Host "##vso[task.complete result=Failed;]$Message";exit 0}
+        trap {$message=if($null -ne $_.Exception -and -not [string]::IsNullOrWhiteSpace($_.Exception.Message)){$_.Exception.Message}else{[string]$_};Complete-WithError $message}
 
         $root = (Resolve-Path $sourcesDirectory).Path
         $methodRegex = [regex]'(?ms)^\s*(?:\[[^\]]+\]\s*)*(?<mods>(?:(?:public|private|protected|internal|file|static|virtual|override|sealed|partial|new|extern|unsafe|async)\s+)+)(?:(?:readonly)\s+)?(?:global::)?(?:[\w\.]+\s+)?(?:Task|ValueTask)(?:\s*<[^;\r\n{}=>]+>)?\s+(?<name>[A-Za-z_]\w*)\s*\((?<params>.*?)\)\s*(?:where\s+[^\r\n{;=>]+\s*)*(?:\{|=>|;)'

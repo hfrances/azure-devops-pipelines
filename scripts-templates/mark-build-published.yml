@@ -22,6 +22,9 @@ steps:
       pwsh: true
       targetType: inline
       script: |
+        $ErrorActionPreference = 'Stop'
+        function Complete-WithError([string]$Message){Write-Host "##vso[task.logissue type=error]$Message";Write-Host "##vso[task.complete result=Failed;]$Message";exit 0}
+        trap {$message=if($null -ne $_.Exception -and -not [string]::IsNullOrWhiteSpace($_.Exception.Message)){$_.Exception.Message}else{[string]$_};Complete-WithError $message}
         $finalTag = "${{ parameters.tag }}"
         if (-not [string]::IsNullOrWhiteSpace("${{ parameters.tagSuffix }}")) {
           $finalTag = "$finalTag-${{ parameters.tagSuffix }}"

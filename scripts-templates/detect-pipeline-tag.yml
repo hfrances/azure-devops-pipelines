@@ -38,6 +38,8 @@ steps:
       targetType: inline
       script: |
         $ErrorActionPreference = 'Stop'
+        function Complete-WithError([string]$Message){Write-Host "##vso[task.logissue type=error]$Message";Write-Host "##vso[task.complete result=Failed;]$Message";exit 0}
+        trap {$message=if($null -ne $_.Exception -and -not [string]::IsNullOrWhiteSpace($_.Exception.Message)){$_.Exception.Message}else{[string]$_};Complete-WithError $message}
         if ([string]::IsNullOrWhiteSpace($env:SYSTEM_ACCESSTOKEN)) {
           throw "System.AccessToken is not available. Enable OAuth token access for scripts."
         }

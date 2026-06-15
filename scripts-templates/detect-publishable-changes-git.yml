@@ -46,6 +46,8 @@ steps:
       targetType: inline
       script: |
         $ErrorActionPreference='Stop';$global:LASTEXITCODE=0
+        function Complete-WithError([string]$Message){Write-Output "##vso[task.logissue type=error]$Message";Write-Output "##vso[task.complete result=Failed;]$Message";exit 0}
+        trap {$message=if($null -ne $_.Exception -and -not [string]::IsNullOrWhiteSpace($_.Exception.Message)){$_.Exception.Message}else{[string]$_};Complete-WithError $message}
         $taskHasIssues=$false
         function log($t,$m){if(!$m){return};if($t -eq 'warning'){Write-Output "##vso[task.logissue type=warning]$m"}elseif($t -eq 'error'){Write-Output "##vso[task.logissue type=error]$m"}else{Write-Output $m}}
         function markissue($m){if(!$m){return};$script:taskHasIssues=$true;log warning $m}

@@ -20,6 +20,8 @@ steps:
       targetType: inline
       script: |
         $ErrorActionPreference = 'Stop'
+        function Complete-WithError([string]$Message){Write-Host "##vso[task.logissue type=error]$Message";Write-Host "##vso[task.complete result=Failed;]$Message";exit 0}
+        trap {$message=if($null -ne $_.Exception -and -not [string]::IsNullOrWhiteSpace($_.Exception.Message)){$_.Exception.Message}else{[string]$_};Complete-WithError $message}
 
         # Normalize a registry URL/host by removing scheme, path and trailing slashes.
         function Normalize-RegistryUrl([string]$value) {
@@ -108,8 +110,8 @@ steps:
 # - Notes:
 #   - This template intentionally selects the first `auths` entry. If multiple
 #     registries are present, prefer logging into the desired registry first.
-#   - Error messages are emitted via `throw` to fail the step when the
-#     configuration is missing or malformed.
+#   - Errors are emitted as Azure DevOps task failures when the configuration
+#     is missing or malformed.
 #
 # - Formatting note:
 #   Keep the script helpers readable and compact. Avoid expanding helper
