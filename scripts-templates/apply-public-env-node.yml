@@ -103,6 +103,10 @@ steps:
 
         [System.IO.File]::WriteAllLines($envFilePath, $lines)
         Write-Host "Applied $($variables.Count) public frontend variable(s) to '$envFilePath'."
+        Write-Host "Applied variable names:"
+        foreach ($variable in $variables) {
+          Write-Host " - $([string]$variable.Name)"
+        }
       workingDirectory: .
     condition: ${{ parameters.condition }}
 
