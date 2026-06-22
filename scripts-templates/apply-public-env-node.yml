@@ -14,10 +14,10 @@ parameters:
       - PUBLIC_
       - NUXT_PUBLIC_
       - EXPO_PUBLIC_
-  - name: caseInsensitive
+  - name: ignoreKeyCase
     type: boolean
     default: true
-  - name: full
+  - name: appendMissing
     type: boolean
     default: false
   - name: condition
@@ -33,8 +33,8 @@ steps:
       script: |
         $workingDirectory = '${{ parameters.workingDirectory }}'
         $envFile = '${{ parameters.envFile }}'
-        $caseInsensitive = '${{ parameters.caseInsensitive }}' -eq 'True'
-        $full = '${{ parameters.full }}' -eq 'True'
+        $ignoreKeyCase = '${{ parameters.ignoreKeyCase }}' -eq 'True'
+        $appendMissing = '${{ parameters.appendMissing }}' -eq 'True'
         $prefixesJson = @'
         ${{ convertToJson(parameters.prefixes) }}
         '@
@@ -52,10 +52,10 @@ steps:
         function Get-LookupKey {
           param(
             [string]$Name,
-            [bool]$CaseInsensitive
+            [bool]$IgnoreKeyCase
           )
 
-          if ($CaseInsensitive) {
+          if ($IgnoreKeyCase) {
             return $Name.ToUpperInvariant()
           }
 
@@ -106,7 +106,7 @@ steps:
         for ($i = 0; $i -lt $lines.Count; $i++) {
           if ($lines[$i] -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=') {
             $lineName = [string]$matches[1]
-            $lookupKey = Get-LookupKey -Name $lineName -CaseInsensitive $caseInsensitive
+            $lookupKey = Get-LookupKey -Name $lineName -IgnoreKeyCase $ignoreKeyCase
 
             if ($lineIndexByName.ContainsKey($lookupKey)) {
               Write-Host "##vso[task.logissue type=warning]Duplicate env entry detected for '$lineName' with lookup key '$lookupKey'. Keeping the last occurrence."
@@ -121,7 +121,7 @@ steps:
         foreach ($variable in $variables) {
           $name = [string]$variable.Name
           $value = if ($null -eq $variable.Value) { '' } else { [string]$variable.Value }
-          $lookupKey = Get-LookupKey -Name $name -CaseInsensitive $caseInsensitive
+          $lookupKey = Get-LookupKey -Name $name -IgnoreKeyCase $ignoreKeyCase
 
           if ($lineIndexByName.ContainsKey($lookupKey)) {
             $resolvedName = [string]$lineNameByKey[$lookupKey]
@@ -133,7 +133,7 @@ steps:
               Value = $value
             }) | Out-Null
           }
-          elseif ($full) {
+          elseif ($appendMissing) {
             $payload = "$name=$value"
             $lineIndexByName[$lookupKey] = $lines.Count
             $lineNameByKey[$lookupKey] = $name
@@ -147,7 +147,7 @@ steps:
         }
 
         if ($appliedVariables.Count -eq 0) {
-          if ($full) {
+          if ($appendMissing) {
             Write-Host "No public frontend variables were applied to '$envFilePath'."
           }
           else {
@@ -188,9 +188,9 @@ steps:
   #     list of environment variable prefixes to copy. Default:
   #     `REACT_APP_`, `NEXT_PUBLIC_`, `VITE_`, `PUBLIC_`,
   #     `NUXT_PUBLIC_`, `EXPO_PUBLIC_`.
-  #   - parameter caseInsensitive:
+  #   - parameter ignoreKeyCase:
   #     `true` to match existing env keys ignoring case. Default: `true`.
-  #   - parameter full:
+  #   - parameter appendMissing:
   #     `true` to append missing env keys; `false` to update only keys that
   #     already exist in the target file. Default: `false`.
   #   - parameter condition:
@@ -198,11 +198,11 @@ steps:
   # - Behavior:
   #   - Reads matching variables from the current agent environment.
   #   - Updates existing entries using case-insensitive matching by default.
-  #   - Appends missing entries only when `full=true`.
+  #   - Appends missing entries only when `appendMissing=true`.
   #   - Creates the env file when it does not exist yet.
   # - High-level flow:
   #   1. Resolve the target env file path.
   #   2. Collect agent environment variables whose names match the configured
   #      prefixes.
   #   3. Update matching `NAME=value` entries and optionally append missing
-  #      ones when `full=true`.
+  #      ones when `appendMissing=true`.
