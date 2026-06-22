@@ -1,0 +1,132 @@
+parameters:
+  - name: workingDirectory
+    type: string
+    default: '.'
+  - name: envFile
+    type: string
+    default: '.env'
+  - name: prefixes
+    type: object
+    default:
+      - REACT_APP_
+      - NEXT_PUBLIC_
+      - VITE_
+      - PUBLIC_
+      - NUXT_PUBLIC_
+      - EXPO_PUBLIC_
+  - name: condition
+    type: string
+    default: succeeded()
+
+steps:
+  - task: PowerShell@2
+    displayName: Apply public frontend env vars
+    inputs:
+      pwsh: true
+      targetType: inline
+      script: |
+        $workingDirectory = '${{ parameters.workingDirectory }}'
+        $envFile = '${{ parameters.envFile }}'
+        $prefixesJson = @'
+        ${{ convertToJson(parameters.prefixes) }}
+        '@
+
+        $resolvedWorkingDirectory = if ([string]::IsNullOrWhiteSpace($workingDirectory)) { '.' } else { $workingDirectory }
+        $resolvedEnvFile = if ([string]::IsNullOrWhiteSpace($envFile)) { '.env' } else { $envFile }
+        $envFilePath = Join-Path $resolvedWorkingDirectory $resolvedEnvFile
+
+        $prefixes = @($prefixesJson | ConvertFrom-Json -Depth 20 | ForEach-Object { [string]$_ })
+        if ($prefixes.Count -eq 0) {
+          Write-Host "##vso[task.logissue type=warning]No prefixes configured. Skipping env file update."
+          exit 0
+        }
+
+        function Test-IncludedVariable {
+          param(
+            [string]$Name,
+            [string[]]$Prefixes
+          )
+
+          foreach ($prefix in $Prefixes) {
+            if ([string]::IsNullOrWhiteSpace($prefix)) {
+              continue
+            }
+
+            if ($Name.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+              return $true
+            }
+          }
+
+          return $false
+        }
+
+        $variables = @(Get-ChildItem -Path Env: |
+          Where-Object { Test-IncludedVariable -Name $_.Name -Prefixes $prefixes } |
+          Sort-Object Name)
+
+        if ($variables.Count -eq 0) {
+          Write-Host "No matching public frontend variables found for prefixes: $($prefixes -join ', ')"
+          exit 0
+        }
+
+        $lines = New-Object System.Collections.Generic.List[string]
+        if (Test-Path -LiteralPath $envFilePath) {
+          Get-Content -LiteralPath $envFilePath | ForEach-Object { $lines.Add($_) }
+        }
+        else {
+          $envDirectory = Split-Path -Path $envFilePath -Parent
+          if (-not [string]::IsNullOrWhiteSpace($envDirectory) -and -not (Test-Path -LiteralPath $envDirectory)) {
+            New-Item -ItemType Directory -Path $envDirectory -Force | Out-Null
+          }
+        }
+
+        $lineIndexByName = @{}
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+          if ($lines[$i] -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=') {
+            $lineIndexByName[$matches[1]] = $i
+          }
+        }
+
+        foreach ($variable in $variables) {
+          $name = [string]$variable.Name
+          $value = if ($null -eq $variable.Value) { '' } else { [string]$variable.Value }
+          $payload = "$name=$value"
+
+          if ($lineIndexByName.ContainsKey($name)) {
+            $lines[$lineIndexByName[$name]] = $payload
+          }
+          else {
+            $lineIndexByName[$name] = $lines.Count
+            $lines.Add($payload)
+          }
+        }
+
+        [System.IO.File]::WriteAllLines($envFilePath, $lines)
+        Write-Host "Applied $($variables.Count) public frontend variable(s) to '$envFilePath'."
+      workingDirectory: .
+    condition: ${{ parameters.condition }}
+
+  # Documentation
+  # - Purpose:
+  #   Materialize selected public frontend environment variables into a `.env`-style
+  #   file before the Node build runs.
+  # - Inputs:
+  #   - parameter workingDirectory:
+  #     component root where the env file lives.
+  #   - parameter envFile:
+  #     target env file relative to `workingDirectory`. Default: `.env`.
+  #   - parameter prefixes:
+  #     list of environment variable prefixes to copy. Default:
+  #     `REACT_APP_`, `NEXT_PUBLIC_`, `VITE_`, `PUBLIC_`,
+  #     `NUXT_PUBLIC_`, `EXPO_PUBLIC_`.
+  #   - parameter condition:
+  #     execution condition for the step.
+  # - Behavior:
+  #   - Reads matching variables from the current agent environment.
+  #   - Updates existing entries in the env file and appends missing ones.
+  #   - Creates the env file when it does not exist yet.
+  # - High-level flow:
+  #   1. Resolve the target env file path.
+  #   2. Collect agent environment variables whose names match the configured
+  #      prefixes.
+  #   3. Update or append `NAME=value` entries in the target file.
