@@ -107,6 +107,17 @@ steps:
         foreach ($variable in $variables) {
           Write-Host " - $([string]$variable.Name)"
         }
+        Write-Host "##vso[task.debug]Applied variable values:"
+        foreach ($variable in $variables) {
+          $name = [string]$variable.Name
+          $value = if ($null -eq $variable.Value) { '' } else { [string]$variable.Value }
+          Write-Host "##vso[task.debug]${name}=$value"
+        }
+
+        Write-Host "##vso[task.debug]Effective '$resolvedEnvFile' content:"
+        Get-Content -LiteralPath $envFilePath | ForEach-Object {
+          Write-Host "##vso[task.debug]$_"
+        }
       workingDirectory: .
     condition: ${{ parameters.condition }}
 
