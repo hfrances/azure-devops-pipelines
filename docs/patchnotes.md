@@ -1,16 +1,42 @@
 # Patch Notes
 
-## 3.4.0
-
-Status: current working tree, not tagged yet.
+## 3.5.0
 
 Highlights:
-- add publish change detection with baseline comparison and `dotnet-affected`
+- add shared `aca-deploy-job` to provision or validate Container Apps environments, deploy revisions, and tag published runs
+- add `prepare-dotnet-job.yml` plus baseline-based `detect-publishable-changes-dotnet.yml` and `detect-publishable-changes-git.yml`
+- add `detect-pipeline-tag.yml`, `mark-build-published.yml`, and reusable conditioned job and stage wrappers
+- add Node.js helpers such as `apply-public-env-node.yml`, `apply-release-version-node.yml`, and `get-project-properties-node.yml`
+- update `aspnet` and `libnet` templates to consume prepare outputs and skip restore, build, test, publish, pack, analysis, and Docker work when nothing affected changed
+- expand repository docs with feature guides, template guides, expression and syntax references, and a dedicated test pipeline README
+
+Main files:
+- `jobs-templates/aca-deploy-job.yml`
+- `jobs-templates/prepare-dotnet-job.yml`
+- `scripts-templates/detect-publishable-changes-dotnet.yml`
+- `scripts-templates/detect-publishable-changes-git.yml`
+- `scripts-templates/detect-pipeline-tag.yml`
+- `scripts-templates/mark-build-published.yml`
+- `scripts-templates/calculate-release-version.yml` (renamed from `calculate-release-version-dotnet.yml`)
+- `scripts-templates/apply-public-env-node.yml`
+- `scripts-templates/apply-release-version-node.yml`
+- `scripts-templates/get-project-properties-node.yml`
+- `scripts-templates/jobs/conditioned-job.yml`
+- `scripts-templates/jobs/conditioned-job-wrapper.yml`
+- `scripts-templates/stages/conditioned-stage.yml`
+- `standard/azure-pipelines-template-aspnet.yml`
+- `standard/azure-pipelines-template-libnet.yml`
+- `tests/azure-pipelines-test.yml`
+
+## 3.4.0
+
+Highlights:
+- add `Enable change detection` with baseline comparison and `dotnet-affected`
 - add `mark-build-published.yml` and tag successful runs as `compiled` / `published`
 - update `aspnet` and `libnet` templates to skip build or publish work when nothing relevant changed
 - add conditional support to shared script templates
 - expand docs with template guides, feature guides, and usage examples
-- keep ASP.NET extra publish file support through `.azuredevops/publish-extra-paths.txt`
+- keep ASP.NET extra publish file support through `publish-extra-paths.conf` overrides in `workingDirectory` or `.azuredevops`
 
 Main files:
 - `scripts-templates/detect-publishable-changes-dotnet.yml`

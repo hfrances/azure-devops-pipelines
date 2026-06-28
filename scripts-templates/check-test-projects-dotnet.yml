@@ -17,10 +17,10 @@ steps:
           $files = Get-ChildItem $testResultsDirectory -File;
           $hasTests = $files.Count -gt 0;
         } else {
-          write-output "Directory $testResultsDirectory does not exist.";
+          Write-Host "Directory $testResultsDirectory does not exist.";
           $hasTests = $false;
         }
-        write-output "HasTests: $hasTests";
-        write-output "##vso[task.setvariable variable=HasTests]$hasTests";
+        Write-Host "HasTests: $hasTests";
+        Write-Host "##vso[task.setvariable variable=HasTests]$hasTests";
     displayName: 'Coverage: Check if there are test projects'
     condition: ${{ parameters.condition }}

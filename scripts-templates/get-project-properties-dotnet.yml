@@ -18,8 +18,8 @@ steps:
         else {
           # Get package name
           $packageName = $file.BaseName?.ToLower();
-          write-output "Package name: $packageName";
-          write-output "##vso[task.setvariable variable=MainProject.PackageName]$packageName";
+          Write-Host "Package name: $packageName";
+          Write-Host "##vso[task.setvariable variable=MainProject.PackageName]$packageName";
 
           $xml = [Xml] (Get-Content $file);
 
@@ -29,16 +29,16 @@ steps:
             $version = '0.1.0';
             mark-task-issue "Version could not be obtained from project file '$($file.FullName)'. Defaulting to '$version'.";
           }
-          write-output "Version: $version";
-          write-output "##vso[task.setvariable variable=MainProject.Version]$version";
+          Write-Host "Version: $version";
+          Write-Host "##vso[task.setvariable variable=MainProject.Version]$version";
             
           # Set description
           $description = "$($xml.Project.PropertyGroup.Description)"?.Trim();
-          write-output "Description: $description";
-          write-output "##vso[task.setvariable variable=MainProject.Description]$description";
+          Write-Host "Description: $description";
+          Write-Host "##vso[task.setvariable variable=MainProject.Description]$description";
         }
 
         if ($taskHasIssues) {
-          write-output "##vso[task.complete result=SucceededWithIssues;]Get main project properties completed with warnings.";
+          Write-Host "##vso[task.complete result=SucceededWithIssues;]Get main project properties completed with warnings.";
         }
     displayName: Get main project properties

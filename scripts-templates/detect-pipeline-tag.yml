@@ -1,0 +1,206 @@
+parameters:
+  - name: taskName
+    type: string
+    default: '' # DetectPipelineTag
+  - name: displayName
+    type: string
+    default: '' # Resolve tag {tagPrefix/}tag{-tagSuffix}
+  - name: tag
+    type: string
+    default: ''
+  - name: tagPrefix
+    type: string
+    default: ''
+  - name: tagSuffix
+    type: string
+    default: ''
+  - name: definitionKey
+    type: string
+    default: ''
+  - name: definitionBranch
+    type: string
+    default: '$(Build.SourceBranch)'
+  - name: lastRunId
+    type: string
+    default: ''
+  - name: outputVariables
+    type: object
+    default: {}
+
+steps:
+  - task: PowerShell@2
+    name: ${{ coalesce(parameters.taskName, format('{0}{1}{2}', 'DetectPipelineTag', replace(replace(replace(replace(replace(replace(replace(replace(coalesce(parameters.definitionKey, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '(', '_'), ')', '_'), '~', ''), replace(replace(replace(format('{0}_{1}_{2}', replace(replace(replace(replace(replace(replace(replace(coalesce(parameters.tagPrefix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '(', '_'), ')', '_'), replace(replace(replace(replace(replace(replace(replace(coalesce(parameters.tag, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '(', '_'), ')', '_'), replace(replace(replace(replace(replace(replace(replace(coalesce(parameters.tagSuffix, '~'), '/', '_'), '-', '_'), ' ', '_'), '.', '_'), ':', '_'), '(', '_'), ')', '_')), '~_~', ''), '~_', ''), '_~', ''))) }}
+    displayName: ${{ coalesce(parameters.displayName, replace(replace(replace(format('Resolve tag {0}{1}{2}', format('{0}/', coalesce(parameters.tagPrefix, '~')), coalesce(parameters.tag, '~'), format('-{0}', coalesce(parameters.tagSuffix, '~'))), '~/', ''), '-~', ''), '~', '')) }}
+    env:
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+    inputs:
+      pwsh: true
+      targetType: inline
+      script: |
+        $ErrorActionPreference = 'Stop'
+        function Complete-WithError([string]$Message){Write-Host "##vso[task.logissue type=error]$Message";Write-Host "##vso[task.complete result=Failed;]$Message";exit 0}
+        trap {$message=if($null -ne $_.Exception -and -not [string]::IsNullOrWhiteSpace($_.Exception.Message)){$_.Exception.Message}else{[string]$_};Complete-WithError $message}
+        if ([string]::IsNullOrWhiteSpace($env:SYSTEM_ACCESSTOKEN)) {
+          throw "System.AccessToken is not available. Enable OAuth token access for scripts."
+        }
+
+        $collectionUri = "$(System.TeamFoundationCollectionUri)"
+        $project = "$(System.TeamProject)"
+        $headers = @{ Authorization = "Bearer $($env:SYSTEM_ACCESSTOKEN)" }
+
+        function Resolve-OutputValue([string]$name) { $var = Get-Variable -Name $name -Scope Script -ErrorAction SilentlyContinue; if ($null -ne $var) { return [string]$var.Value }; return '' }
+        function Get-DefinitionIdByName([string]$name) { $uri = "$collectionUri$project/_apis/build/definitions?name=$([uri]::EscapeDataString($name))&api-version=7.1"; $defs = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers; if (-not $defs.value -or $defs.value.Count -eq 0) { throw "No build definition found for '$name'." }; return [string]$defs.value[0].id }
+        function Get-EffectiveDefinitionId([string]$explicitDefinitionKey) { if (-not [string]::IsNullOrWhiteSpace($explicitDefinitionKey)) { if ($explicitDefinitionKey -match '^\d+$') { return [string]$explicitDefinitionKey }; return Get-DefinitionIdByName -name $explicitDefinitionKey }; $currentDefinitionId = "$(Build.DefinitionId)"; if (-not [string]::IsNullOrWhiteSpace($currentDefinitionId)) { return [string]$currentDefinitionId }; $currentDefinitionName = "$(Build.DefinitionName)"; if ([string]::IsNullOrWhiteSpace($currentDefinitionName)) { throw "Neither definitionKey parameter nor Build.DefinitionId/Build.DefinitionName are available." }; return Get-DefinitionIdByName -name $currentDefinitionName }
+        function Get-RequiredTag([string]$baseTag, [string]$prefix, [string]$suffix) { $finalTag = $baseTag; if (-not [string]::IsNullOrWhiteSpace($suffix)) { $finalTag = "$finalTag-$suffix" }; if (-not [string]::IsNullOrWhiteSpace($prefix)) { $finalTag = "$prefix/$finalTag" }; return $finalTag }
+
+        $tagCache = @{}
+        function Get-BuildTags([int]$buildId) { if ($tagCache.ContainsKey($buildId)) { return $tagCache[$buildId] }; $tagsUri = "$collectionUri$project/_apis/build/builds/$buildId/tags?api-version=7.1"; $tagsResponse = Invoke-RestMethod -Method Get -Uri $tagsUri -Headers $headers; $tags = @(); if ($tagsResponse.value) { $tags = @($tagsResponse.value) }; $tagCache[$buildId] = $tags; return $tags }
+
+        $baseTag = "${{ parameters.tag }}".Trim()
+        if ([string]::IsNullOrWhiteSpace($baseTag)) {
+          throw "Parameter tag is required."
+        }
+        $tagSuffix = "${{ parameters.tagSuffix }}".Trim()
+        $tagPrefix = "${{ parameters.tagPrefix }}".Trim()
+        $definitionBranch = "${{ parameters.definitionBranch }}".Trim()
+        $lastRunId = "${{ parameters.lastRunId }}".Trim()
+        $definitionKey = "${{ parameters.definitionKey }}".Trim()
+
+        $requiredTag = Get-RequiredTag -baseTag $baseTag -prefix $tagPrefix -suffix $tagSuffix
+        $definitionId = Get-EffectiveDefinitionId -explicitDefinitionKey $definitionKey
+
+        $branchQuery = ''
+        if (-not [string]::IsNullOrWhiteSpace($definitionBranch)) {
+          $branchQuery = "&branchName=$([uri]::EscapeDataString($definitionBranch))"
+        }
+
+        $buildsUri = "$collectionUri$project/_apis/build/builds?definitions=$definitionId&statusFilter=completed&resultFilter=succeeded&queryOrder=finishTimeDescending$branchQuery&`$top=200&api-version=7.1"
+        $buildsResponse = Invoke-RestMethod -Method Get -Uri $buildsUri -Headers $headers
+        $builds = @($buildsResponse.value)
+
+        $candidateRunId = ''
+        $hasLastRunId = -not [string]::IsNullOrWhiteSpace($lastRunId)
+        $cutoffReached = -not $hasLastRunId
+        foreach ($b in $builds) {
+          if ($hasLastRunId -and -not $cutoffReached) {
+            if ([string]$b.id -eq $lastRunId) {
+              $cutoffReached = $true
+            } else {
+              continue
+            }
+          }
+          $tags = Get-BuildTags -buildId $b.id
+          Write-Host "##vso[task.debug]Build $($b.id) tags: $($tags -join ',')"
+          if ($tags -contains $requiredTag) {
+            Write-Host "Build $($b.id) tags: $($tags -join ',')"
+            $candidateRunId = [string]$b.id
+            break
+          }
+        }
+        if ($hasLastRunId -and -not $cutoffReached) {
+          Write-Host "##vso[task.logissue type=warning]lastRunId '$lastRunId' was not found in queried builds. No candidate will be resolved."
+        }
+
+        $pending = if ($candidateRunId -ne '') { 'true' } else { 'false' }
+        Write-Host "Resolved tag: required=$requiredTag candidate=$candidateRunId pending=$pending definitionId=$definitionId definitionBranch=$definitionBranch"
+
+        Write-Host "##vso[task.setvariable variable=DefinitionId]$definitionId"
+        Write-Host "##vso[task.setvariable variable=RequiredTag]$requiredTag"
+        Write-Host "##vso[task.setvariable variable=ExcludedTag]"
+        Write-Host "##vso[task.setvariable variable=CandidateRunId]$candidateRunId"
+        Write-Host "##vso[task.setvariable variable=Pending]$pending"
+
+        # Export variables for the next stage/job
+        Write-Host ""
+        Write-Host "--- Exporting variables for the next stage ---"
+        $outputsJson = @'
+        ${{ convertToJson(parameters.outputVariables) }}
+        '@
+        $outputs = $outputsJson | ConvertFrom-Json -AsHashtable
+        if ($null -ne $outputs) {
+          foreach ($externalVar in $outputs.Keys) {
+            $internalKey = [string]$outputs[$externalVar]
+            if ([string]::IsNullOrWhiteSpace($internalKey)) {
+              $internalKey = [string]$externalVar
+            }
+            $val = Resolve-OutputValue -name $internalKey
+            Write-Host "Exporting: $externalVar = $val (from $internalKey)"
+            Write-Host "##vso[task.setvariable variable=$externalVar;isOutput=true]$val"
+          }
+        }
+
+# Documentation
+# - Purpose:
+#   Resolve the latest successful build candidate that contains a specific tag
+#   for a given definition/branch scope.
+#   AI/maintainer note: read the parity note below before editing shared contract rules.
+#
+# - Outputs:
+#   Exported task variables:
+#   - `DefinitionId`
+#   - `RequiredTag`
+#   - `ExcludedTag` (empty by design in this template)
+#   - `CandidateRunId`
+#   - `Pending` (`true` when candidate was found)
+#
+# - Inputs:
+#   - parameter tag:
+#     base tag to search (required).
+#   - parameter tagPrefix:
+#     optional tag prefix. If present, final tag uses `<prefix>/<tag...>`.
+#   - parameter tagSuffix:
+#     optional tag suffix. If present, final tag uses `<tag>-<suffix>`.
+#   - parameter definitionKey:
+#     optional definition selector:
+#     - numeric => treated as `definitionId`
+#     - non-numeric => treated as `definitionName`
+#     - empty => uses current running definition fallback.
+#   - parameter definitionBranch:
+#     branch used in build lookup. Defaults to `$(Build.SourceBranch)`.
+#   - parameter lastRunId:
+#     optional upper-bound run id for lookup. When set, only that run and older
+#     runs are considered; newer runs are ignored.
+#   - parameter outputVariables:
+#     optional output remap dictionary using `externalVariable: internalVariable`.
+#     Example: `isDeployable: Pending`, `buildId: CandidateRunId`.
+#     If internal value is empty/null, external key name is used as fallback.
+#     Example: `isDeployable:` => `isDeployable: isDeployable`.
+#     Resolution uses current task local variables only (no env fallback), to avoid
+#     carrying values from previous task invocations in the same job.
+#
+# - Parity note (limited contract parity only):
+#   DO NOT DIVERGE: keep shared-contract rules aligned across the 3 detector templates.
+#   This template has NO business-logic parity with:
+#   - `detect-publishable-changes-dotnet.yml`
+#   - `detect-publishable-changes-git.yml`
+#   It is only a tag lookup utility.
+#
+#   Shared contract parity across the 3 templates is ONLY:
+#   1) auto task `name` generation criteria (base + token composition + sanitization)
+#   2) `definitionKey` resolution semantics
+#   3) `definitionBranch` semantics for build/baseline queries
+#
+#   Non-goal:
+#   - Do NOT copy or infer build/publish decision logic from dotnet/git detectors.
+#   - Do NOT enforce output-level parity beyond this shared contract.
+#
+#   If any shared-contract rule changes in one template, update all three.
+#
+# - Formatting note:
+#   Keep helper functions in compact single-line form (as in
+#   `detect-publishable-changes-git.yml` and `detect-publishable-changes-dotnet.yml`).
+#   Do not expand them to multi-line style unless there is a strong debugging reason.
+#
+# - Data sources:
+#   1. Azure DevOps REST API:
+#      resolves definition id (when needed), lists successful builds, reads build tags.
+#
+# - High-level flow:
+#   1. Compose required tag:
+#      - base: `tag`
+#      - optional: `-tagSuffix`
+#      - optional: `tagPrefix/`
+#   2. Resolve effective definition id from `definitionKey` fallback chain.
+#   3. Query successful builds ordered by finish time (optionally filtered by branch).
+#   4. Return first build that contains `requiredTag`.
+#   5. Export output variables for downstream jobs/stages.

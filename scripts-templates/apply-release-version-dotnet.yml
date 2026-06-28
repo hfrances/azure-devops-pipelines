@@ -67,24 +67,24 @@ steps:
                     $xmlAssemblyVersion = $propertyGroup.AssemblyVersion;
                     
                     if (($true -eq $versionForce) -or ($xmlVersion -eq $versionOriginal)) {
-                      write-output "Processing file: $($file.FullName)"
+                      Write-Host "Processing file: $($file.FullName)"
                       if ($xmlVersion) {
                         $propertyGroup.Version = $version;
-                        write-output "Update to version: $version";
+                        Write-Host "Update to version: $version";
                       }
                       if ($xmlAssemblyVersion) {
                         $propertyGroup.AssemblyVersion = $assemblyVersion;
-                        write-output "Update to assembly version: $assemblyVersion";
+                        Write-Host "Update to assembly version: $assemblyVersion";
                       }
                       $xml.Save($file.FullName); 
-                      write-output '';
+                      Write-Host '';
                     }
                   }
                 }
               } 
               else {
                 write-warning "Project file does not exist: $projectFile"
-                write-output '';
+                Write-Host '';
               }
             }
           }
@@ -94,7 +94,7 @@ steps:
         }
 
         if ($taskHasIssues) {
-          write-output "##vso[task.complete result=SucceededWithIssues;]Apply release version completed with warnings.";
+          Write-Host "##vso[task.complete result=SucceededWithIssues;]Apply release version completed with warnings.";
         }
       workingDirectory: '${{ parameters.workingDirectory }}'
     displayName: 'Apply release version to all projects'

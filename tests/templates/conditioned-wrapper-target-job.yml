@@ -1,0 +1,30 @@
+parameters:
+  - name: jobName
+    type: string
+    default: WrapperTargetJob
+  - name: displayName
+    type: string
+    default: ''
+  - name: variables
+    type: object
+    default: {}
+  - name: dependsOn
+    type: object
+    default: []
+  - name: condition
+    type: string
+    default: succeeded()
+  - name: steps
+    type: stepList
+    default: []
+
+jobs:
+  - job: ${{ parameters.jobName }}
+    displayName: ${{ coalesce(parameters.displayName, parameters.jobName) }}
+    variables:
+      - ${{ each pair in parameters.variables }}:
+        - name: ${{ pair.key }}
+          value: ${{ pair.value }}
+    dependsOn: ${{ parameters.dependsOn }}
+    condition: ${{ parameters.condition }}
+    steps: ${{ parameters.steps }}

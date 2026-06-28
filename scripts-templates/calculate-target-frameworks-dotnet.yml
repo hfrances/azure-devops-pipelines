@@ -32,14 +32,14 @@ steps:
         $testProjectsPattern = "${{ parameters.testProjects }}";
         $testEnabled = [System.Convert]::ToBoolean("${{ parameters.testEnabled }}");
         
-        write-output "Solution pattern:";
-        write-output "$solutionPattern";
-        write-output '';
-        write-output "Test projects pattern:";
-        write-output "$testProjectsPattern";
-        write-output '';
-        write-output "Test enabled: $testEnabled";
-        write-output '';
+        Write-Host "Solution pattern:";
+        Write-Host "$solutionPattern";
+        Write-Host '';
+        Write-Host "Test projects pattern:";
+        Write-Host "$testProjectsPattern";
+        Write-Host '';
+        Write-Host "Test enabled: $testEnabled";
+        Write-Host '';
         
         # Find all project files from the solution
         $projFiles = @();
@@ -83,25 +83,25 @@ steps:
         # Add test projects if test is enabled
         $files = @($projFiles);
         if ($testEnabled) {
-          write-output "Looking for test projects...";
+          Write-Host "Looking for test projects...";
           $testPatterns = $testProjectsPattern.Split([System.Environment]::NewLine) | ForEach-Object { $_.Trim() } | Where-Object { $_ };
-          write-output "Test patterns found: $($testPatterns.Count)";
+          Write-Host "Test patterns found: $($testPatterns.Count)";
           
           # Collect all test files first (without exclusions)
           $allTestFiles = @();
           $inclusionPatterns = @($testPatterns | Where-Object { -not $_.StartsWith('!') });
           $exclusionPatterns = @($testPatterns | Where-Object { $_.StartsWith('!') } | ForEach-Object { $_.Substring(1) });
           
-          write-output "Inclusion patterns: $($inclusionPatterns -join ', ')";
-          write-output "Exclusion patterns: $($exclusionPatterns -join ', ')";
+          Write-Host "Inclusion patterns: $($inclusionPatterns -join ', ')";
+          Write-Host "Exclusion patterns: $($exclusionPatterns -join ', ')";
           
           foreach ($pattern in $inclusionPatterns) {
-            write-output "Searching with pattern: $pattern";
+            Write-Host "Searching with pattern: $pattern";
             # Convert glob pattern to PowerShell path pattern
             $psPattern = $pattern -replace '\*\*/', '*/' -replace '\?', '?';
             $psPattern = "*" + $psPattern;
             $testFiles = @(Get-ChildItem -Recurse -Path $psPattern -ErrorAction SilentlyContinue | Where-Object { $_.PSIsContainer -eq $false });
-            write-output "Found $($testFiles.Count) files with pattern '$pattern'";
+            Write-Host "Found $($testFiles.Count) files with pattern '$pattern'";
             $allTestFiles += $testFiles;
           }
           
@@ -115,19 +115,19 @@ steps:
               $excludePs = $exclusionPattern -replace '\*\*/', '*/' -replace '\?', '?';
               if ($relativePath -like "*$excludePs" -or $testFile.Name -like $excludePs) {
                 $shouldExclude = $true;
-                write-output "Excluding: $($testFile.Name) (matched pattern: $exclusionPattern)";
+                Write-Host "Excluding: $($testFile.Name) (matched pattern: $exclusionPattern)";
                 break;
               }
             }
             
             if (-not $shouldExclude) {
-              write-output "Including test file: $($testFile.FullName)";
+              Write-Host "Including test file: $($testFile.FullName)";
               $filteredTestFiles += $testFile;
             }
           }
           
-          write-output "Total test files after filtering: $($filteredTestFiles.Count)";
-          write-output '';
+          Write-Host "Total test files after filtering: $($filteredTestFiles.Count)";
+          Write-Host '';
           $files += $filteredTestFiles;
         }
         
@@ -136,7 +136,7 @@ steps:
         
         # Get supported frameworks.
         $supportedFrameworks = "${{ parameters.supportedFrameworks }}".Split(';') | ForEach-Object { $_.Trim() };
-        write-output "Supported frameworks: $supportedFrameworks";
+        Write-Host "Supported frameworks: $supportedFrameworks";
         
         # Get installed frameworks.            
         $installedSdks = &dotnet --list-sdks;
@@ -146,8 +146,8 @@ steps:
             $installedFrameworks.Add($matches['version']) | Out-Null;
           }
         }
-        write-output "Installed frameworks: $installedFrameworks";
-        write-output '';
+        Write-Host "Installed frameworks: $installedFrameworks";
+        Write-Host '';
 
         # Calculate necessary frameworks.
         $allRequiredFrameworks = New-Object System.Collections.Generic.HashSet[string];
@@ -157,7 +157,7 @@ steps:
         } else {
           $files | ForEach-Object {
             $file = $_;
-            write-output "Processing file: $file";
+            Write-Host "Processing file: $file";
   
             # Load the XML content of the project file
             $xml = [xml](Get-Content -Path $file.FullName);
@@ -167,15 +167,15 @@ steps:
             if (-not $frameworks) {
               $frameworks = @("$($xml.Project.PropertyGroup.TargetFramework)"?.Trim());
             }
-            write-output "Target frameworks: $frameworks";
+            Write-Host "Target frameworks: $frameworks";
             $frameworks | ForEach-Object {
               $version = [regex]::match($_, '(\d+\.\d+)').Value;
               if ($version) {
-                write-output "##vso[task.setvariable variable=BuildParameters.TargetFramework_$version]$_";
+                Write-Host "##vso[task.setvariable variable=BuildParameters.TargetFramework_$version]$_";
                 $allRequiredFrameworks.Add($version) | Out-Null;
               }
             }
-            write-output '';
+            Write-Host '';
           }
         }
 
@@ -185,8 +185,8 @@ steps:
           $supportedRequired = @($allRequiredFrameworks | Where-Object { $supportedFrameworks -contains $_ } | Sort-Object { [double]$_ });
           
           if ($supportedRequired.Count -gt 0) {
-            write-output "Required frameworks (supported only): $($supportedRequired -join ', ')";
-            write-output '';
+            Write-Host "Required frameworks (supported only): $($supportedRequired -join ', ')";
+            Write-Host '';
             
             # Find the minimum required framework that is not installed
             $minMissingFramework = $null;
@@ -215,18 +215,18 @@ steps:
         # Display pending frameworks to install (only those in supportedFrameworks, sorted)
         $pendingSupported = @($frameworksToInstall | Sort-Object { [double]$_ });
         if ($pendingSupported.Count -gt 0) {
-          write-output "Pending to install frameworks: $($pendingSupported -join ', ')";
+          Write-Host "Pending to install frameworks: $($pendingSupported -join ', ')";
         } else {
-          write-output "Pending to install frameworks: None";
+          Write-Host "Pending to install frameworks: None";
         }
         
         # Set variables for framework installation (in ascending order to avoid conflicts)
         foreach ($framework in $pendingSupported) {
-          write-output "##vso[task.setvariable variable=BuildParameters.TargetFramework_Install_$framework]net$framework";
+          Write-Host "##vso[task.setvariable variable=BuildParameters.TargetFramework_Install_$framework]net$framework";
         }
 
         if ($taskHasIssues) {
-          write-output "##vso[task.complete result=SucceededWithIssues;]Calculate target frameworks completed with warnings.";
+          Write-Host "##vso[task.complete result=SucceededWithIssues;]Calculate target frameworks completed with warnings.";
         }
     displayName: Calculate target frameworks
     condition: ${{ parameters.condition }}

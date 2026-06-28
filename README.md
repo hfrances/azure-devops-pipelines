@@ -12,6 +12,7 @@ This repository contains a collection of reusable **Azure Pipelines YAML templat
   - [Change Detection](docs/features/change-detection.md)
   - [Release Version](docs/features/release-version.md)
   - [Cancellation Audit](docs/features/cancellation-audit.md)
+  - [ACA Deploy Job](docs/features/aca-deploy-job.md)
 - Releases:
   - [Patch Notes](docs/patchnotes.md)
 
@@ -22,19 +23,23 @@ Reference this repository from the consumer pipeline:
 ```yaml
 resources:
   repositories:
-    - repository: azure-devops-pipelines
+    - repository: hf-azure-pipelines-repo
       type: git
       name: https://github.com/hfrances/azure-devops-pipelines
       ref: refs/heads/master  # or a specific tag/branch
 
 extends:
-  template: standard/azure-pipelines-template-aspnet.yml@azure-devops-pipelines
+  template: standard/azure-pipelines-template-aspnet.yml@hf-azure-pipelines-repo
   parameters:
     param1: value1
     param2: value2
 ```
 
-For template behavior, branch rules, required variables, and optional files such as `.azuredevops/publish-extra-paths.txt`, use the docs linked above.
+Canonical alias policy:
+- Use `hf-azure-pipelines-repo` as the repository alias for this template repository.
+- Do not use alternative aliases if you want nested template calls to resolve consistently.
+
+For template behavior, branch rules, required variables, and optional files such as `<workingDirectory>/publish-extra-paths.conf` or `.azuredevops/publish-extra-paths.conf`, use the docs linked above.
 
 ## 📖 Official Documentation
 

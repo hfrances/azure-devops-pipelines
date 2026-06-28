@@ -1,0 +1,208 @@
+parameters:
+  - name: workingDirectory
+    type: string
+    default: '.'
+  - name: envFile
+    type: string
+    default: '.env'
+  - name: prefixes
+    type: object
+    default:
+      - REACT_APP_
+      - NEXT_PUBLIC_
+      - VITE_
+      - PUBLIC_
+      - NUXT_PUBLIC_
+      - EXPO_PUBLIC_
+  - name: ignoreKeyCase
+    type: boolean
+    default: true
+  - name: appendMissing
+    type: boolean
+    default: false
+  - name: condition
+    type: string
+    default: succeeded()
+
+steps:
+  - task: PowerShell@2
+    displayName: Apply public frontend env vars
+    inputs:
+      pwsh: true
+      targetType: inline
+      script: |
+        $workingDirectory = '${{ parameters.workingDirectory }}'
+        $envFile = '${{ parameters.envFile }}'
+        $ignoreKeyCase = '${{ parameters.ignoreKeyCase }}' -eq 'True'
+        $appendMissing = '${{ parameters.appendMissing }}' -eq 'True'
+        $prefixesJson = @'
+        ${{ convertToJson(parameters.prefixes) }}
+        '@
+
+        $resolvedWorkingDirectory = if ([string]::IsNullOrWhiteSpace($workingDirectory)) { '.' } else { $workingDirectory }
+        $resolvedEnvFile = if ([string]::IsNullOrWhiteSpace($envFile)) { '.env' } else { $envFile }
+        $envFilePath = Join-Path $resolvedWorkingDirectory $resolvedEnvFile
+
+        $prefixes = @($prefixesJson | ConvertFrom-Json -Depth 20 | ForEach-Object { [string]$_ })
+        if ($prefixes.Count -eq 0) {
+          Write-Host "##vso[task.logissue type=warning]No prefixes configured. Skipping env file update."
+          exit 0
+        }
+
+        function Get-LookupKey {
+          param(
+            [string]$Name,
+            [bool]$IgnoreKeyCase
+          )
+
+          if ($IgnoreKeyCase) {
+            return $Name.ToUpperInvariant()
+          }
+
+          return $Name
+        }
+
+        function Test-IncludedVariable {
+          param(
+            [string]$Name,
+            [string[]]$Prefixes
+          )
+
+          foreach ($prefix in $Prefixes) {
+            if ([string]::IsNullOrWhiteSpace($prefix)) {
+              continue
+            }
+
+            if ($Name.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+              return $true
+            }
+          }
+
+          return $false
+        }
+
+        $variables = @(Get-ChildItem -Path Env: |
+          Where-Object { Test-IncludedVariable -Name $_.Name -Prefixes $prefixes } |
+          Sort-Object Name)
+
+        if ($variables.Count -eq 0) {
+          Write-Host "No matching public frontend variables found for prefixes: $($prefixes -join ', ')"
+          exit 0
+        }
+
+        $lines = New-Object System.Collections.Generic.List[string]
+        if (Test-Path -LiteralPath $envFilePath) {
+          Get-Content -LiteralPath $envFilePath | ForEach-Object { $lines.Add($_) }
+        }
+        else {
+          $envDirectory = Split-Path -Path $envFilePath -Parent
+          if (-not [string]::IsNullOrWhiteSpace($envDirectory) -and -not (Test-Path -LiteralPath $envDirectory)) {
+            New-Item -ItemType Directory -Path $envDirectory -Force | Out-Null
+          }
+        }
+
+        $lineIndexByName = @{}
+        $lineNameByKey = @{}
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+          if ($lines[$i] -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=') {
+            $lineName = [string]$matches[1]
+            $lookupKey = Get-LookupKey -Name $lineName -IgnoreKeyCase $ignoreKeyCase
+
+            if ($lineIndexByName.ContainsKey($lookupKey)) {
+              Write-Host "##vso[task.logissue type=warning]Duplicate env entry detected for '$lineName' with lookup key '$lookupKey'. Keeping the last occurrence."
+            }
+
+            $lineIndexByName[$lookupKey] = $i
+            $lineNameByKey[$lookupKey] = $lineName
+          }
+        }
+
+        $appliedVariables = New-Object System.Collections.Generic.List[object]
+        foreach ($variable in $variables) {
+          $name = [string]$variable.Name
+          $value = if ($null -eq $variable.Value) { '' } else { [string]$variable.Value }
+          $lookupKey = Get-LookupKey -Name $name -IgnoreKeyCase $ignoreKeyCase
+
+          if ($lineIndexByName.ContainsKey($lookupKey)) {
+            $resolvedName = [string]$lineNameByKey[$lookupKey]
+            $payload = "$resolvedName=$value"
+            $lines[$lineIndexByName[$lookupKey]] = $payload
+            $appliedVariables.Add([pscustomobject]@{
+              SourceName = $name
+              AppliedName = $resolvedName
+              Value = $value
+            }) | Out-Null
+          }
+          elseif ($appendMissing) {
+            $payload = "$name=$value"
+            $lineIndexByName[$lookupKey] = $lines.Count
+            $lineNameByKey[$lookupKey] = $name
+            $lines.Add($payload)
+            $appliedVariables.Add([pscustomobject]@{
+              SourceName = $name
+              AppliedName = $name
+              Value = $value
+            }) | Out-Null
+          }
+        }
+
+        if ($appliedVariables.Count -eq 0) {
+          if ($appendMissing) {
+            Write-Host "No public frontend variables were applied to '$envFilePath'."
+          }
+          else {
+            Write-Host "No existing env entries matched the public frontend variables for '$envFilePath'."
+          }
+          exit 0
+        }
+
+        [System.IO.File]::WriteAllLines($envFilePath, $lines)
+        Write-Host "Applied $($appliedVariables.Count) public frontend variable(s) to '$envFilePath'."
+        Write-Host "Applied variable names:"
+        foreach ($variable in $appliedVariables) {
+          $suffix = if ($variable.SourceName -ne $variable.AppliedName) { " (from $($variable.SourceName))" } else { '' }
+          Write-Host " - $($variable.AppliedName)$suffix"
+        }
+        Write-Host "##vso[task.debug]Applied variable values:"
+        foreach ($variable in $appliedVariables) {
+          Write-Host "##vso[task.debug]$($variable.AppliedName)=$($variable.Value)"
+        }
+
+        Write-Host "##vso[task.debug]Effective '$resolvedEnvFile' content:"
+        Get-Content -LiteralPath $envFilePath | ForEach-Object {
+          Write-Host "##vso[task.debug]$_"
+        }
+      workingDirectory: .
+    condition: ${{ parameters.condition }}
+
+  # Documentation
+  # - Purpose:
+  #   Materialize selected public frontend environment variables into a `.env`-style
+  #   file before the Node build runs.
+  # - Inputs:
+  #   - parameter workingDirectory:
+  #     component root where the env file lives.
+  #   - parameter envFile:
+  #     target env file relative to `workingDirectory`. Default: `.env`.
+  #   - parameter prefixes:
+  #     list of environment variable prefixes to copy. Default:
+  #     `REACT_APP_`, `NEXT_PUBLIC_`, `VITE_`, `PUBLIC_`,
+  #     `NUXT_PUBLIC_`, `EXPO_PUBLIC_`.
+  #   - parameter ignoreKeyCase:
+  #     `true` to match existing env keys ignoring case. Default: `true`.
+  #   - parameter appendMissing:
+  #     `true` to append missing env keys; `false` to update only keys that
+  #     already exist in the target file. Default: `false`.
+  #   - parameter condition:
+  #     execution condition for the step.
+  # - Behavior:
+  #   - Reads matching variables from the current agent environment.
+  #   - Updates existing entries using case-insensitive matching by default.
+  #   - Appends missing entries only when `appendMissing=true`.
+  #   - Creates the env file when it does not exist yet.
+  # - High-level flow:
+  #   1. Resolve the target env file path.
+  #   2. Collect agent environment variables whose names match the configured
+  #      prefixes.
+  #   3. Update matching `NAME=value` entries and optionally append missing
+  #      ones when `appendMissing=true`.

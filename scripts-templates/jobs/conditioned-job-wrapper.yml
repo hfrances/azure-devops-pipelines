@@ -1,0 +1,68 @@
+parameters:
+  - name: template
+    type: string
+  - name: parameters
+    type: object
+    default: {}
+  - name: conditionalStage
+    type: string
+    default: ''
+  - name: conditionalJob
+    type: string
+  - name: conditionalTask
+    type: string
+  - name: conditionalVariable
+    type: string
+  - name: mappingVariables
+    type: object
+    default: {}
+  - name: additionalVariables
+    type: object
+    default: {}
+  - name: dependsOn
+    type: object
+    default: []
+  - name: condition
+    type: string
+    default: succeeded()
+
+jobs:
+  - template: ${{ parameters.template }}
+    parameters:
+
+      variables:
+        # 1. Inject direct additional variables
+        ${{ each pair in parameters.additionalVariables }}:
+          ${{ pair.key }}: ${{ pair.value }}
+        # 2. Dependency resolution (mappingVariables)
+        ${{ if ne(parameters.conditionalStage, '') }}:
+          ${{ each pair in parameters.mappingVariables }}:
+            ${{ pair.key }}: $[ stageDependencies.${{ parameters.conditionalStage }}.${{ parameters.conditionalJob }}.outputs['${{ parameters.conditionalTask }}.${{ coalesce(pair.value, pair.key) }}'] ]
+        ${{ if eq(parameters.conditionalStage, '') }}:
+          ${{ each pair in parameters.mappingVariables }}:
+            ${{ pair.key }}: $[ dependencies.${{ parameters.conditionalJob }}.outputs['${{ parameters.conditionalTask }}.${{ coalesce(pair.value, pair.key) }}'] ]
+        # 3. Parent Summary Variable
+        ${{ if and(ne(parameters.conditionalVariable, ''), ne(parameters.conditionalStage, '')) }}:
+          ${{ parameters.conditionalVariable }}: $[ stageDependencies.${{ parameters.conditionalStage }}.${{ parameters.conditionalJob }}.outputs['${{ parameters.conditionalTask }}.${{ parameters.conditionalVariable }}'] ]
+        ${{ if and(ne(parameters.conditionalVariable, ''), eq(parameters.conditionalStage, '')) }}:
+          ${{ parameters.conditionalVariable }}: $[ dependencies.${{ parameters.conditionalJob }}.outputs['${{ parameters.conditionalTask }}.${{ parameters.conditionalVariable }}'] ]
+
+      dependsOn:
+        - ${{ if eq(parameters.conditionalStage, '') }}:
+          - ${{ parameters.conditionalJob }}
+        - ${{ each dep in parameters.dependsOn }}:
+          - ${{ dep }}
+
+      # Dynamic condition using direct dependency
+      ${{ if and(ne(parameters.conditionalVariable, ''), ne(parameters.conditionalStage, '')) }}:
+        condition: and(${{ parameters.condition }}, eq(stageDependencies.${{ parameters.conditionalStage }}.${{ parameters.conditionalJob }}.outputs['${{ parameters.conditionalTask }}.${{ parameters.conditionalVariable }}'], 'true'))
+      ${{ if and(ne(parameters.conditionalVariable, ''), eq(parameters.conditionalStage, '')) }}:
+        condition: and(${{ parameters.condition }}, eq(dependencies.${{ parameters.conditionalJob }}.outputs['${{ parameters.conditionalTask }}.${{ parameters.conditionalVariable }}'], 'true'))
+      ${{ if eq(parameters.conditionalVariable, '') }}:
+        condition: ${{ parameters.condition }}
+
+      # =========================================================
+      # Inject the real parameters
+      # =========================================================
+      ${{ each pair in parameters.parameters }}:
+        ${{ pair.key }}: ${{ pair.value }}

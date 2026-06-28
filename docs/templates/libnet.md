@@ -19,7 +19,7 @@ Template: `standard/azure-pipelines-template-libnet.yml`
 | `SupportsNuget` | `true` | NuGet pack/push steps |
 | `PublishChangeDetection` | `true` | Skip work when nothing publishable changed |
 
-Internally, `prepare-dotnet.yml` also supports `jobName`, `displayName` and `tagSuffix`. The standard library template keeps the default single-artifact behavior unless a consumer overrides them explicitly.
+Internally, `prepare-dotnet-job.yml` also supports `jobName`, `displayName` and `tagSuffix`. The standard library template keeps the default single-artifact behavior unless a consumer overrides them explicitly.
 
 ## You Need
 

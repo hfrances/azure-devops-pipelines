@@ -22,7 +22,7 @@ Template: `standard/azure-pipelines-template-aspnet.yml`
 | `SupportsContainers` | `true` | Docker steps |
 | `PublishChangeDetection` | `true` | Skip work when nothing publishable changed |
 
-Internally, `prepare-dotnet.yml` also supports `jobName`, `displayName` and `tagSuffix`. The standard ASP.NET template keeps the default single-artifact behavior unless a consumer overrides them explicitly.
+Internally, `prepare-dotnet-job.yml` also supports `jobName`, `displayName` and `tagSuffix`. The standard ASP.NET template keeps the default single-artifact behavior unless a consumer overrides them explicitly.
 
 ## You Need
 
@@ -113,7 +113,8 @@ ASP.NET change detection can republish because of files like:
 You can override the matching rules with:
 
 ```text
-.azuredevops/publish-extra-paths.txt
+<workingDirectory>/publish-extra-paths.conf
+.azuredevops/publish-extra-paths.conf
 ```
 
 Full format: [Change detection](../features/change-detection.md)
