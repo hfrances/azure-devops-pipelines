@@ -40,16 +40,16 @@ jobs:
         fetchDepth: 0
         persistCredentials: true
 
-      - template: ../scripts-templates/create-drop-folder.yml@hf-azure-pipelines-repo
+      - template: ../scripts-templates/create-drop-folder.yml
 
-      - template: ../scripts-templates/get-main-project-dotnet.yml@hf-azure-pipelines-repo
+      - template: ../scripts-templates/get-main-project-dotnet.yml
         parameters:
           solutionPattern: '${{ parameters.solutionPattern }}'
           workingDirectory: '$(Build.SourcesDirectory)/${{ parameters.workingDirectory }}'
 
-      - template: ../scripts-templates/get-project-properties-dotnet.yml@hf-azure-pipelines-repo
+      - template: ../scripts-templates/get-project-properties-dotnet.yml
 
-      - template: ../scripts-templates/detect-publishable-changes-dotnet.yml@hf-azure-pipelines-repo
+      - template: ../scripts-templates/detect-publishable-changes-dotnet.yml
         parameters:
           taskName: DetectPublishableChanges
           enabled: ${{ parameters.publishChangeDetection }}
@@ -94,7 +94,7 @@ jobs:
             Write-Output "BuildParameters.HasAffectedPublishProjects: $(BuildParameters.HasAffectedPublishProjects)"
             export-output 'BuildParameters.HasAffectedPublishProjects' '$(BuildParameters.HasAffectedPublishProjects)'
             
-      - template: ../scripts-templates/export-variable-list.yml@hf-azure-pipelines-repo
+      - template: ../scripts-templates/export-variable-list.yml
 
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifact: drop-prepare'

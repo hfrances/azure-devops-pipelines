@@ -535,7 +535,7 @@ jobs:
           echo "##vso[task.complete result=SucceededWithIssues;]External ingress is enabled but the ACA FQDN is empty."
         fi
 
-  - template: ../scripts-templates/mark-build-published.yml@hf-azure-pipelines-repo
+  - template: ../scripts-templates/mark-build-published.yml
     parameters:
       tag: deployed
       tagPrefix: ${{ parameters.prefix }}

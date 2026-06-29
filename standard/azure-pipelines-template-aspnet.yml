@@ -125,7 +125,7 @@ variables:
     value: $[iif(ne(variables['ExternalFeed'], ''), variables['ExternalFeed'], '')]
 
 jobs:
-  - template: ../jobs-templates/prepare-dotnet-job.yml@hf-azure-pipelines-repo
+  - template: ../jobs-templates/prepare-dotnet-job.yml
     parameters:
       solutionPattern: '$(BuildParameters.Solution)'
       publishChangeDetection: ${{ parameters.PublishChangeDetection }}
@@ -161,9 +161,9 @@ jobs:
         fetchDepth: 0
         persistCredentials: true
 
-      - template: ../scripts-templates/create-drop-folder.yml@hf-azure-pipelines-repo
+      - template: ../scripts-templates/create-drop-folder.yml
 
-      - template: ../scripts-templates/calculate-target-frameworks-dotnet.yml@hf-azure-pipelines-repo
+      - template: ../scripts-templates/calculate-target-frameworks-dotnet.yml
         parameters:
           supportedFrameworks: '$(SupportedFrameworks)'
           solutionPattern: '$(BuildParameters.Solution)'
@@ -171,25 +171,25 @@ jobs:
           testEnabled: $(TestEnabled)
           condition: and(succeeded(), eq(variables['NeedsBuild'], 'True'))
 
-      - template: ../scripts-templates/calculate-release-version.yml@hf-azure-pipelines-repo
+      - template: ../scripts-templates/calculate-release-version.yml
         parameters:
           projectVersion: '$(MainProject.Version)'
           calculateAssemblyVersion: true
           condition: and(succeeded(), eq(variables['NeedsBuild'], 'True'))
 
-      - template: ../scripts-templates/apply-release-version-dotnet.yml@hf-azure-pipelines-repo
+      - template: ../scripts-templates/apply-release-version-dotnet.yml
         parameters:
           workingDirectory: '$(Build.SourcesDirectory)'
           solutionPattern: '$(BuildParameters.Solution)'
           forceVersion: '$(ForceVersion)'
           condition: and(succeeded(), eq(variables['NeedsBuild'], 'True'))
 
-      - template: ../scripts-templates/set-output-filename.yml@hf-azure-pipelines-repo
+      - template: ../scripts-templates/set-output-filename.yml
         parameters:
           workingDirectory: '$(Build.SourcesDirectory)'
           condition: and(succeeded(), eq(variables['NeedsBuild'], 'True'))
 
-      - template: ../scripts-templates/export-variable-list.yml@hf-azure-pipelines-repo
+      - template: ../scripts-templates/export-variable-list.yml
 
       - task: FileTransform@2
         inputs:
@@ -219,7 +219,7 @@ jobs:
           externalFeedCredentials: '$(ExternalFeedValue)'
         condition: and(succeeded(), eq(variables['NeedsBuild'], 'True'))
 
-      - template: ../scripts-templates/audit-cancellation-dotnet.yml@hf-azure-pipelines-repo
+      - template: ../scripts-templates/audit-cancellation-dotnet.yml
         parameters:
           sourcesDirectory: '$(Build.SourcesDirectory)'
           condition: and(succeeded(), eq(variables['NeedsBuild'], 'True'))
@@ -261,7 +261,7 @@ jobs:
           condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
 
       - ${{ if ne(parameters.Test, 'disabled') }} :
-        - template: ../scripts-templates/check-test-projects-dotnet.yml@hf-azure-pipelines-repo
+        - template: ../scripts-templates/check-test-projects-dotnet.yml
           parameters:
             testResultsDirectory: '$(Build.SourcesDirectory)/TestResults'
             condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
@@ -276,7 +276,7 @@ jobs:
           displayName: 'Coverage: Parse format'
 
       - ${{ if ne(parameters.Test, 'disabled') }} :
-        - template: ../scripts-templates/collect-coverage-files.yml@hf-azure-pipelines-repo
+        - template: ../scripts-templates/collect-coverage-files.yml
           parameters:
             condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedBuildProjects'], 'true'))
 
@@ -297,7 +297,7 @@ jobs:
             pollingTimeoutSec: '300'
           condition: and(eq(variables['NeedsBuild'], 'True'), eq(variables.SonarQubeEnabled, 'true'))
 
-      - template: ../scripts-templates/mark-build-published.yml@hf-azure-pipelines-repo
+      - template: ../scripts-templates/mark-build-published.yml
         parameters:
           tag: compiled
           condition: and(succeeded(), eq(variables['NeedsBuild'], 'True'))
@@ -360,7 +360,7 @@ jobs:
           continueOnError: false
           condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true'), eq(variables['PublishEnabled'], 'true'))
 
-        - template: ../scripts-templates/mark-build-published.yml@hf-azure-pipelines-repo
+        - template: ../scripts-templates/mark-build-published.yml
           parameters:
             tag: published
             condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true'), eq(variables['PublishEnabled'], 'true'))
@@ -379,7 +379,7 @@ jobs:
               $(BuildParameters.DockerAlias)
           condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true'), ne(variables.ContainerRegistry, ''), ne(variables.ContainerName, ''), eq(variables['PublishDocker'], 'true'))
 
-        - template: ../scripts-templates/mark-build-published.yml@hf-azure-pipelines-repo
+        - template: ../scripts-templates/mark-build-published.yml
           parameters:
             tag: published
             condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true'), ne(variables.ContainerRegistry, ''), ne(variables.ContainerName, ''), eq(variables['PublishDocker'], 'true'))
