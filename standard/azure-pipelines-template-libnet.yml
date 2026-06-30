@@ -310,7 +310,7 @@ jobs:
         inputs:
           targetPath: '$(Build.ArtifactStagingDirectory)/build'
           artifact: 'build'
-        condition: and(eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true'))
+        condition: eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true')
 
       - ${{ if parameters.SupportsNuget }}:
         - task: NuGetCommand@2
