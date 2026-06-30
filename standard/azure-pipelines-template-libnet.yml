@@ -61,6 +61,22 @@ parameters:
     displayName: "Supports NuGet packages"
     type: boolean
     default: true
+  - name: NugetPublishMode
+    displayName: "NuGet publish mode"
+    type: string
+    values:
+      - external
+      - internal
+      - disabled
+    default: external
+  - name: NugetPublishServiceConnection
+    displayName: "NuGet external service connection"
+    type: string
+    default: 'nuget.org'
+  - name: NugetPublishInternalFeed
+    displayName: "NuGet internal feed"
+    type: string
+    default: ''
 
 variables:
   - name: BuildParameters.RestoreBuildProjects
@@ -312,13 +328,29 @@ jobs:
           artifact: 'build'
         condition: eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true')
 
-      - ${{ if parameters.SupportsNuget }}:
+      - ${{ if and(parameters.SupportsNuget, eq(parameters.NugetPublishMode, 'external')) }}:
         - task: NuGetCommand@2
           inputs:
             command: 'push'
             packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
             nuGetFeedType: 'external'
-            publishFeedCredentials: 'nuget.org'
+            publishFeedCredentials: '${{ parameters.NugetPublishServiceConnection }}'
+          displayName: 'NuGet: Push'
+          continueOnError: false
+          condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true'), eq(variables['PublishEnabled'], 'true'))
+
+        - template: ../scripts-templates/mark-build-published.yml
+          parameters:
+            tag: published
+            condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true'), eq(variables['PublishEnabled'], 'true'))
+
+      - ${{ if and(parameters.SupportsNuget, eq(parameters.NugetPublishMode, 'internal')) }}:
+        - task: NuGetCommand@2
+          inputs:
+            command: 'push'
+            packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+            nuGetFeedType: 'internal'
+            publishVstsFeed: '${{ parameters.NugetPublishInternalFeed }}'
           displayName: 'NuGet: Push'
           continueOnError: false
           condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true'), eq(variables['PublishEnabled'], 'true'))
