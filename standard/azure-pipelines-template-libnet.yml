@@ -297,7 +297,7 @@ jobs:
           versioningScheme: 'off'
           versionEnvVar: '$(BuildParameters.ReleaseVersion)'
         displayName: 'NuGet: Pack'
-        condition: and(succeeded(), eq('${{ parameters.SupportsNuget }}', 'true'), eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true'))
+        condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true'))
 
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifact: drop'
@@ -310,19 +310,20 @@ jobs:
         inputs:
           targetPath: '$(Build.ArtifactStagingDirectory)/build'
           artifact: 'build'
-        condition: and(eq('${{ parameters.SupportsNuget }}', 'true'), eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true'))
+        condition: and(eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true'))
 
-      - task: NuGetCommand@2
-        inputs:
-          command: 'push'
-          packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
-          nuGetFeedType: 'external'
-          publishFeedCredentials: 'nuget.org'
-        displayName: 'NuGet: Push'
-        continueOnError: false
-        condition: and(succeeded(), eq('${{ parameters.SupportsNuget }}', 'true'), eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true'), eq(variables['PublishEnabled'], 'true'))
+      - ${{ if parameters.SupportsNuget }}:
+        - task: NuGetCommand@2
+          inputs:
+            command: 'push'
+            packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+            nuGetFeedType: 'external'
+            publishFeedCredentials: 'nuget.org'
+          displayName: 'NuGet: Push'
+          continueOnError: false
+          condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true'), eq(variables['PublishEnabled'], 'true'))
 
-      - template: ../scripts-templates/mark-build-published.yml
-        parameters:
-          tag: published
-          condition: and(succeeded(), eq('${{ parameters.SupportsNuget }}', 'true'), eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true'), eq(variables['PublishEnabled'], 'true'))
+        - template: ../scripts-templates/mark-build-published.yml
+          parameters:
+            tag: published
+            condition: and(succeeded(), eq(variables['BuildParameters.HasAffectedPublishProjects'], 'true'), eq(variables['PublishEnabled'], 'true'))
