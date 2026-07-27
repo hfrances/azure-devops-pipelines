@@ -1,0 +1,247 @@
+parameters:
+  - name: condition
+    type: string
+    default: succeededOrFailed()
+  - name: displayName
+    type: string
+    default: Cleanup
+  - name: mode
+    type: string
+    default: both
+  - name: paths
+    type: string
+    default: ''
+  - name: mustExist
+    type: boolean
+    default: false
+  - name: dryRun
+    type: boolean
+    default: false
+  - name: rootPath
+    type: string
+    default: '$(Agent.TempDirectory)'
+  - name: includePatterns
+    type: string
+    default: ''
+  - name: recursive
+    type: boolean
+    default: true
+  - name: failOnError
+    type: boolean
+    default: false
+
+steps:
+  - task: PowerShell@2
+    displayName: ${{ parameters.displayName }}
+    condition: ${{ parameters.condition }}
+    inputs:
+      pwsh: true
+      targetType: inline
+      script: |
+        $ErrorActionPreference = 'Stop'
+
+        function Resolve-AdoPath([string]$Value) {
+          if ([string]::IsNullOrWhiteSpace($Value)) { return $Value }
+          $resolved = $Value
+          $matches = [regex]::Matches($resolved, '\$\(([^)]+)\)')
+          foreach ($m in $matches) {
+            $token = $m.Groups[1].Value
+            $envName = ($token -replace '\.', '_').ToUpperInvariant()
+            $envValue = [System.Environment]::GetEnvironmentVariable($envName)
+            if (-not [string]::IsNullOrWhiteSpace($envValue)) {
+              $resolved = $resolved.Replace($m.Value, $envValue)
+            }
+          }
+          return $resolved
+        }
+
+        function Get-PathSizeBytes([string]$Path) {
+          if (-not (Test-Path -LiteralPath $Path)) { return 0 }
+          $item = Get-Item -LiteralPath $Path -Force
+          if ($item.PSIsContainer) {
+            $sum = (Get-ChildItem -LiteralPath $Path -Recurse -Force -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum
+            if ($null -eq $sum) { return 0 }
+            return [int64]$sum
+          }
+          return [int64]$item.Length
+        }
+
+        function Complete-WithError([string]$Message) {
+          Write-Host "##vso[task.logissue type=error]$Message"
+          Write-Host "##vso[task.complete result=Failed;]$Message"
+          exit 0
+        }
+
+        function Parse-Multiline([string]$RawText) {
+          return @(
+            $RawText -split "`r?`n" |
+              ForEach-Object { $_.Trim() } |
+              Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+          )
+        }
+
+        $mode = '${{ parameters.mode }}'.ToLowerInvariant().Trim()
+        $mustExist = '${{ parameters.mustExist }}' -eq 'true'
+        $failOnError = '${{ parameters.failOnError }}' -eq 'true'
+        $dryRun = '${{ parameters.dryRun }}' -eq 'true'
+        $recursive = '${{ parameters.recursive }}' -eq 'true'
+        $rootPath = Resolve-AdoPath '${{ parameters.rootPath }}'
+
+        if ($mode -notin @('paths', 'patterns', 'both')) {
+          Complete-WithError "Unsupported cleanup mode '$mode'. Valid values: paths, patterns, both."
+        }
+
+        $deletedBytes = 0
+        $deletedCount = 0
+
+        if ($mode -in @('paths', 'both')) {
+          $rawPaths = @'
+        ${{ parameters.paths }}
+        '@
+          $paths = Parse-Multiline $rawPaths
+
+          if ($paths.Count -eq 0) {
+            $msg = 'No cleanup paths configured.'
+            if ($mode -eq 'paths' -and $failOnError) {
+              Complete-WithError $msg
+            }
+            Write-Host $msg
+          }
+
+          foreach ($pathEntry in $paths) {
+            $resolvedPath = Resolve-AdoPath $pathEntry
+            Write-Host "[cleanup-paths] target=$pathEntry"
+            Write-Host "[cleanup-paths] resolved=$resolvedPath"
+
+            if (-not (Test-Path -LiteralPath $resolvedPath)) {
+              $msg = "Cleanup path does not exist: $resolvedPath"
+              if ($mustExist -and $failOnError) {
+                Complete-WithError $msg
+              }
+              if ($mustExist) {
+                Write-Host "##vso[task.logissue type=warning]$msg"
+              }
+              continue
+            }
+
+            $sizeBefore = Get-PathSizeBytes $resolvedPath
+            Write-Host "[cleanup-paths] sizeBeforeBytes=$sizeBefore"
+
+            if ($dryRun) {
+              Write-Host '[cleanup-paths] dryRun=true, skipping delete.'
+              continue
+            }
+
+            try {
+              Remove-Item -LiteralPath $resolvedPath -Recurse -Force -ErrorAction Stop
+              $deletedBytes += $sizeBefore
+              Write-Host '[cleanup-paths] deleted=true'
+            }
+            catch {
+              $msg = "Failed to cleanup '$resolvedPath': $($_.Exception.Message)"
+              if ($failOnError) {
+                Complete-WithError $msg
+              }
+              Write-Host "##vso[task.logissue type=warning]$msg"
+            }
+          }
+        }
+
+        if ($mode -in @('patterns', 'both')) {
+          if (-not (Test-Path -LiteralPath $rootPath)) {
+            $msg = "Temp root path not found: $rootPath"
+            if ($mode -eq 'patterns' -and $failOnError) {
+              Complete-WithError $msg
+            }
+            Write-Host $msg
+          }
+          else {
+            $rawPatterns = @'
+        ${{ parameters.includePatterns }}
+        '@
+            $patterns = Parse-Multiline $rawPatterns
+
+            if ($patterns.Count -eq 0) {
+              $msg = 'No temp cleanup patterns configured.'
+              if ($mode -eq 'patterns' -and $failOnError) {
+                Complete-WithError $msg
+              }
+              Write-Host $msg
+            }
+
+            foreach ($pattern in $patterns) {
+              try {
+                $items = if ($recursive) {
+                  Get-ChildItem -LiteralPath $rootPath -Filter $pattern -Recurse -Force -ErrorAction SilentlyContinue
+                }
+                else {
+                  Get-ChildItem -LiteralPath $rootPath -Filter $pattern -Force -ErrorAction SilentlyContinue
+                }
+
+                foreach ($item in $items) {
+                  Write-Host "[cleanup-patterns] deleting $($item.FullName)"
+                  Remove-Item -LiteralPath $item.FullName -Recurse -Force -ErrorAction Stop
+                  $deletedCount++
+                }
+              }
+              catch {
+                $msg = "Failed cleaning temp pattern '$pattern': $($_.Exception.Message)"
+                if ($failOnError) {
+                  Complete-WithError $msg
+                }
+                Write-Host "##vso[task.logissue type=warning]$msg"
+              }
+            }
+          }
+        }
+
+        Write-Host "[cleanup] mode=$mode"
+        Write-Host "[cleanup] deletedBytesTotal=$deletedBytes"
+        Write-Host "[cleanup] deletedCountTotal=$deletedCount"
+        Write-Host "##vso[task.setvariable variable=Cleanup.PathsDeletedBytes]$deletedBytes"
+        Write-Host "##vso[task.setvariable variable=Cleanup.TempDeletedCount]$deletedCount"
+
+# Documentation
+# - Purpose:
+#   Cleanup utility that supports explicit path deletion and wildcard pattern
+#   deletion from a single descriptive template.
+#
+# - Inputs:
+#   - parameter `condition`:
+#     step execution condition.
+#   - parameter `displayName`:
+#     display name shown in the pipeline step.
+#   - parameter `mode`:
+#     cleanup strategy: `paths`, `patterns`, or `both`.
+#   - parameter `paths`:
+#     multi-line list of explicit files/folders to delete.
+#   - parameter `mustExist`:
+#     when true, missing explicit paths are logged as warnings (or errors with
+#     `failOnError=true`).
+#   - parameter `dryRun`:
+#     when true, path targets are evaluated but not deleted.
+#   - parameter `rootPath`:
+#     search root for pattern cleanup.
+#   - parameter `includePatterns`:
+#     multi-line wildcard patterns used for pattern cleanup.
+#   - parameter `recursive`:
+#     when true, pattern cleanup scans subfolders.
+#   - parameter `failOnError`:
+#     when true, cleanup errors fail the step.
+#
+# - Outputs:
+#   - `Cleanup.PathsDeletedBytes`:
+#     total bytes deleted by explicit path cleanup.
+#   - `Cleanup.TempDeletedCount`:
+#     total items deleted by pattern cleanup.
+#
+# - Behavior:
+#   - Resolves `$(...)` Azure DevOps variable tokens for paths.
+#   - Runs only the selected cleanup modes.
+#   - Uses best-effort deletion unless `failOnError=true`.
+#
+# - High-level flow:
+#   1. Validate mode and parse inputs.
+#   2. Execute explicit path cleanup when enabled.
+#   3. Execute pattern cleanup when enabled.
+#   4. Export cleanup metrics.

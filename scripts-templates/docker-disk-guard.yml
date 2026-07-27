@@ -1,0 +1,177 @@
+parameters:
+  - name: condition
+    type: string
+    default: succeededOrFailed()
+  - name: enabled
+    type: boolean
+    default: true
+  - name: thresholdPercent
+    type: number
+    default: 85
+  - name: mode
+    type: string
+    default: threshold
+  - name: pruneBuilder
+    type: boolean
+    default: true
+  - name: pruneImages
+    type: boolean
+    default: false
+  - name: pruneSystemWithVolumes
+    type: boolean
+    default: false
+  - name: failOnError
+    type: boolean
+    default: false
+
+steps:
+  - task: PowerShell@2
+    displayName: Docker disk guard
+    condition: ${{ parameters.condition }}
+    inputs:
+      pwsh: true
+      targetType: inline
+      script: |
+        $ErrorActionPreference = 'Stop'
+
+        function Complete-WithError([string]$Message) {
+          Write-Host "##vso[task.logissue type=error]$Message"
+          Write-Host "##vso[task.complete result=Failed;]$Message"
+          exit 0
+        }
+
+        function Run-Command([string]$Command, [bool]$stopOnError) {
+          try {
+            Write-Host "> $Command"
+            Invoke-Expression $Command
+            return $true
+          }
+          catch {
+            $msg = "Command failed '$Command': $($_.Exception.Message)"
+            if ($stopOnError) {
+              Complete-WithError $msg
+            }
+            Write-Host "##vso[task.logissue type=warning]$msg"
+            return $false
+          }
+        }
+
+        function Get-RootDiskPercent() {
+          try {
+            $line = (df -P / | Select-Object -Last 1)
+            if ([string]::IsNullOrWhiteSpace($line)) { return -1 }
+            $parts = $line -split '\s+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+            if ($parts.Count -lt 5) { return -1 }
+            $p = $parts[4].TrimEnd('%')
+            $value = 0
+            if ([int]::TryParse($p, [ref]$value)) { return $value }
+            return -1
+          }
+          catch {
+            return -1
+          }
+        }
+
+        $enabled = '${{ parameters.enabled }}' -eq 'true'
+        $mode = '${{ parameters.mode }}'.ToLowerInvariant()
+        $threshold = [int]${{ parameters.thresholdPercent }}
+        $failOnError = '${{ parameters.failOnError }}' -eq 'true'
+        $pruneBuilder = '${{ parameters.pruneBuilder }}' -eq 'true'
+        $pruneImages = '${{ parameters.pruneImages }}' -eq 'true'
+        $pruneSystemWithVolumes = '${{ parameters.pruneSystemWithVolumes }}' -eq 'true'
+
+        if (-not $enabled) {
+          Write-Host 'Docker disk guard disabled.'
+          Write-Host '##vso[task.setvariable variable=Cleanup.DockerPruneExecuted]false'
+          exit 0
+        }
+
+        Run-Command -Command 'df -h' -stopOnError:$false | Out-Null
+        Run-Command -Command 'docker system df' -stopOnError:$false | Out-Null
+
+        $diskPercent = Get-RootDiskPercent
+        Write-Host "[docker-guard] diskPercent=$diskPercent"
+        Write-Host "##vso[task.setvariable variable=Cleanup.DiskPercent]$diskPercent"
+
+        $shouldPrune = $false
+        switch ($mode) {
+          'always' { $shouldPrune = $true }
+          'off' { $shouldPrune = $false }
+          default {
+            if ($diskPercent -ge 0 -and $diskPercent -ge $threshold) {
+              $shouldPrune = $true
+            }
+          }
+        }
+
+        if (-not $shouldPrune) {
+          Write-Host "[docker-guard] prune skipped (mode=$mode threshold=$threshold)"
+          Write-Host '##vso[task.setvariable variable=Cleanup.DockerPruneExecuted]false'
+          Write-Host "##vso[task.setvariable variable=Cleanup.DockerPruneMode]$mode"
+          exit 0
+        }
+
+        $executed = $true
+        if ($pruneBuilder) {
+          $ok = Run-Command -Command 'docker builder prune -af' -stopOnError:$failOnError
+          if (-not $ok) { $executed = $false }
+        }
+        if ($pruneImages) {
+          $ok = Run-Command -Command 'docker image prune -af' -stopOnError:$failOnError
+          if (-not $ok) { $executed = $false }
+        }
+        if ($pruneSystemWithVolumes) {
+          $ok = Run-Command -Command 'docker system prune -af --volumes' -stopOnError:$failOnError
+          if (-not $ok) { $executed = $false }
+        }
+
+        Run-Command -Command 'docker system df' -stopOnError:$false | Out-Null
+
+        Write-Host "##vso[task.setvariable variable=Cleanup.DockerPruneExecuted]$($executed.ToString().ToLowerInvariant())"
+        Write-Host "##vso[task.setvariable variable=Cleanup.DockerPruneMode]$mode"
+
+      # Documentation
+      # - Purpose:
+      #   Inspect disk pressure and execute Docker prune operations according to a
+      #   configurable strategy (`off`, `threshold`, `always`).
+      #
+      # - Inputs:
+      #   - parameter `condition`:
+      #     step execution condition.
+      #   - parameter `enabled`:
+      #     global switch for this guard.
+      #   - parameter `thresholdPercent`:
+      #     disk usage threshold (root filesystem) used when mode is `threshold`.
+      #   - parameter `mode`:
+      #     prune decision mode: `off`, `threshold`, or `always`.
+      #   - parameter `pruneBuilder`:
+      #     executes `docker builder prune -af` when prune is triggered.
+      #   - parameter `pruneImages`:
+      #     executes `docker image prune -af` when prune is triggered.
+      #   - parameter `pruneSystemWithVolumes`:
+      #     executes `docker system prune -af --volumes` when prune is triggered.
+      #   - parameter `failOnError`:
+      #     when true, command failures fail the step.
+      #
+      # - Outputs:
+      #   - `Cleanup.DiskPercent`:
+      #     detected root disk usage percentage.
+      #   - `Cleanup.DockerPruneExecuted`:
+      #     `true` when prune commands ran successfully, otherwise `false`.
+      #   - `Cleanup.DockerPruneMode`:
+      #     effective mode used in this run.
+      #
+      # - Behavior:
+      #   - Emits diagnostics with `df -h` and `docker system df` before decision.
+      #   - Determines root disk usage from `df -P /`.
+      #   - Executes only the enabled prune actions when pruning is required.
+      #   - Emits post-prune docker usage diagnostics.
+      #
+      # - Requirements:
+      #   - Linux agent with `docker` and `df` available.
+      #
+      # - High-level flow:
+      #   1. Read configuration and capture disk/docker diagnostics.
+      #   2. Compute whether prune should run based on `mode` and threshold.
+      #   3. Run selected prune commands.
+      #   4. Export execution telemetry variables.
