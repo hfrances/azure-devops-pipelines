@@ -48,9 +48,8 @@ steps:
         $ErrorActionPreference='Stop';$global:LASTEXITCODE=0
         function Complete-WithError([string]$Message){Write-Output "##vso[task.logissue type=error]$Message";Write-Output "##vso[task.complete result=Failed;]$Message";exit 0}
         trap {$message=if($null -ne $_.Exception -and -not [string]::IsNullOrWhiteSpace($_.Exception.Message)){$_.Exception.Message}else{[string]$_};Complete-WithError $message}
-        $taskHasIssues=$false
         function log($t,$m){if(!$m){return};if($t -eq 'warning'){Write-Output "##vso[task.logissue type=warning]$m"}elseif($t -eq 'error'){Write-Output "##vso[task.logissue type=error]$m"}else{Write-Output $m}}
-        function markissue($m){if(!$m){return};$script:taskHasIssues=$true;log warning $m}
+        function markissue($m){if(!$m){return};log warning $m}
         function blank(){Write-Output ''}
         function section($m){blank;Write-Output "=== $m ==="}
         function bool($v,$d=$false){if([string]::IsNullOrWhiteSpace($v) -or $v -like '$(*'){return $d};[System.Convert]::ToBoolean($v)}
@@ -59,7 +58,7 @@ steps:
         function relwd($p,$wd){$n=norm $p;if([string]::IsNullOrWhiteSpace($wd)){return $n};$w=(norm $wd).TrimEnd('/');if($n.Equals($w,[System.StringComparison]::OrdinalIgnoreCase)){return ''};if($n.StartsWith("$w/",[System.StringComparison]::OrdinalIgnoreCase)){return $n.Substring($w.Length+1)};return $n}
         function any($p,$ps){foreach($x in $ps){if(([System.Management.Automation.WildcardPattern]::new((norm $x),[System.Management.Automation.WildcardOptions]::IgnoreCase)).IsMatch($p)){return $true}};return $false}
         function defid($h,$k){if([string]::IsNullOrWhiteSpace($k)){return "$env:SYSTEM_DEFINITIONID"};$x=$k.Trim();if($x -match '^\d+$'){return $x};$o=$env:SYSTEM_COLLECTIONURI.TrimEnd('/');$p=[System.Uri]::EscapeDataString($env:SYSTEM_TEAMPROJECT);$n=[System.Uri]::EscapeDataString($x);$u="$o/$p/_apis/build/definitions?name=$n&api-version=7.1";$r=Invoke-RestMethod -Uri $u -Headers $h -Method Get;if(-not $r.value -or $r.value.Count -eq 0){throw "No build definition found for '$x'."};"$($r.value[0].id)"}
-        function baseline($h,$tag,$d,$b){$o=$env:SYSTEM_COLLECTIONURI.TrimEnd('/');$p=[System.Uri]::EscapeDataString($env:SYSTEM_TEAMPROJECT);$bb=[System.Uri]::EscapeDataString($b);$c=$env:BUILD_BUILDID;$u="$o/$p/_apis/build/builds?definitions=$d&branchName=$bb&resultFilter=succeeded&queryOrder=finishTimeDescending&statusFilter=completed&tagFilters=$tag&`$top=25&api-version=7.1";(Invoke-RestMethod -Uri $u -Headers $h -Method Get).value|?{"$($_.id)" -ne "$c"}|select -First 1}
+        function baseline($h,$tag,$d,$b){$o=$env:SYSTEM_COLLECTIONURI.TrimEnd('/');$p=[System.Uri]::EscapeDataString($env:SYSTEM_TEAMPROJECT);$bb=[System.Uri]::EscapeDataString($b);$c=$env:BUILD_BUILDID;$u="$o/$p/_apis/build/builds?definitions=$d&branchName=$bb&resultFilter=succeeded,partiallySucceeded&queryOrder=finishTimeDescending&statusFilter=completed&tagFilters=$tag&`$top=25&api-version=7.1";(Invoke-RestMethod -Uri $u -Headers $h -Method Get).value|?{"$($_.id)" -ne "$c"}|select -First 1}
         function gitok($cmd,$err){$r=@(iex $cmd|%{norm $_}|?{$_});$e=$LASTEXITCODE;$global:LASTEXITCODE=0;if($e -ne 0){throw $err};$r}
         function gitlines($cmd,$err){$r=@(iex $cmd|?{$_});$e=$LASTEXITCODE;$global:LASTEXITCODE=0;if($e -ne 0){throw $err};$r}
         function hasbuildchanges($files,$wd,$cfg){return @($files|?{ $x=relwd $_ $wd; (any $x $cfg.Include) -and -not (any $x $cfg.Exclude) }).Count -gt 0}
@@ -85,7 +84,7 @@ steps:
         $internalOutputs=[ordered]@{BuildParameters_HasAffectedBuildProjects=$buildText;BuildParameters_HasAffectedPublishProjects=$publishText;HasAffectedBuildProjects=$buildText;HasAffectedPublishProjects=$publishText};exportoutputs $env:OUTPUT_VARIABLES_JSON $internalOutputs
         section 'Final decision'
         Write-Output "BuildParameters.HasAffectedBuildProjects: $build";Write-Output "BuildParameters.HasAffectedPublishProjects: $publish"
-        if((-not $build) -and $bskip){log $bskipType "Build skip reason: $bskip"};if((-not $publish) -and $pskip){log $pskipType "Publish skip reason: $pskip"};if($taskHasIssues){Write-Output "##vso[task.complete result=SucceededWithIssues;]Detect built and published changes completed with warnings."};$global:LASTEXITCODE=0
+        if((-not $build) -and $bskip){log $bskipType "Build skip reason: $bskip"};if((-not $publish) -and $pskip){log $pskipType "Publish skip reason: $pskip"};$global:LASTEXITCODE=0
     displayName: ${{ parameters.displayName }}
 
 # Documentation

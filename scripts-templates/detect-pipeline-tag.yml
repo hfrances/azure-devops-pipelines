@@ -74,7 +74,7 @@ steps:
           $branchQuery = "&branchName=$([uri]::EscapeDataString($definitionBranch))"
         }
 
-        $buildsUri = "$collectionUri$project/_apis/build/builds?definitions=$definitionId&statusFilter=completed&resultFilter=succeeded&queryOrder=finishTimeDescending$branchQuery&`$top=200&api-version=7.1"
+        $buildsUri = "$collectionUri$project/_apis/build/builds?definitions=$definitionId&statusFilter=completed&resultFilter=succeeded,partiallySucceeded&queryOrder=finishTimeDescending$branchQuery&`$top=200&api-version=7.1"
         $buildsResponse = Invoke-RestMethod -Method Get -Uri $buildsUri -Headers $headers
         $builds = @($buildsResponse.value)
 
