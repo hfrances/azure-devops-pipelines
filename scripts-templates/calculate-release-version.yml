@@ -49,6 +49,7 @@ steps:
 
         $ProjectVersion = "${{ parameters.ProjectVersion }}";
         $calculateAssemblyVersion = [System.Convert]::ToBoolean('${{ parameters.calculateAssemblyVersion }}')
+        $isPackage = [System.Convert]::ToBoolean('${{ parameters.isPackage }}')
         if ("$ProjectVersion" -match $regex) {
           $version = $matches['version'];
           $major = $matches['major'];
