@@ -5,6 +5,9 @@ parameters:
   - name: calculateAssemblyVersion
     type: boolean
     default: true
+  - name: isPackage
+    type: boolean
+    default: false
   - name: tagPrefix
     type: string
     default: ''
@@ -58,6 +61,10 @@ steps:
             # The version already has its own suffix.
             $prereleaseClean = -join ("$prerelease" -split '[^a-zA-Z0-9-]');
             $releaseVersion = "$ProjectVersion+$(Build.BuildId)";
+            # NuGet package identity must not rely on build metadata for
+            # uniqueness. Keep the prerelease label and append the build id as
+            # part of the prerelease version instead.
+            $packageVersion = "$version-$prerelease.$(Build.BuildId)";
             $dockerVersion = "$version-$($prereleaseClean)";
             if ("$prerelease" -match '^(?<alias>\w+)') {
               $dockerAlias = $matches['alias'];
@@ -70,6 +77,7 @@ steps:
           elseif ("$(Build.SourceBranch)" -in @('refs/heads/master', 'refs/heads/main')) {
             # Master or main has tag "latest".
             $releaseVersion = "$ProjectVersion";
+            $packageVersion = $releaseVersion;
             $dockerVersion = $releaseVersion;
             $dockerAlias = "latest";
           }
@@ -77,6 +85,7 @@ steps:
             # Staging has tag "alpha".
             $prereleaseClean = 'alpha';
             $releaseVersion = "$version-$($prereleaseClean).$(Build.BuildId)";
+            $packageVersion = $releaseVersion;
             $dockerVersion = "$version-$($prereleaseClean).$(Build.BuildId)";
             $dockerAlias = "$prereleaseClean";
           }
@@ -84,6 +93,7 @@ steps:
             # Other branches have the branch name as tag.
             $branchNameClean = -join ("$(Build.SourceBranchName)" -split '[^a-zA-Z0-9]');
             $releaseVersion = "$version-$($branchNameClean).$(Build.BuildId)";
+            $packageVersion = $releaseVersion;
             $dockerVersion = "$version-$($branchNameClean).$(Build.BuildId)";
             $dockerAlias = "$branchNameClean";
           }
@@ -99,6 +109,10 @@ steps:
             Write-Host "##vso[task.setvariable variable=BuildParameters.ReleaseAssemblyVersion]$releaseAssemblyVersion";
             Write-Host "##vso[build.addbuildtag]${tagPrefix}$releaseAssemblyVersion";
           }
+          if ($isPackage) {
+            Write-Host "##vso[task.setvariable variable=BuildParameters.PackageVersion]$packageVersion";
+            Write-Host "##vso[build.addbuildtag]${tagPrefix}$packageVersion";
+          }
           # Set variables
           Write-Host "##vso[task.setvariable variable=BuildParameters.ReleaseVersion]$releaseVersion";
           Write-Host "##vso[task.setvariable variable=BuildParameters.DockerVersion]$dockerVersion";
@@ -107,6 +121,9 @@ steps:
           Write-Host "##vso[build.addbuildtag]${tagPrefix}$dockerAlias";
           # Display variables
           Write-Host "Release version: $releaseVersion"
+          if ($isPackage) {
+            Write-Host "Package version: $packageVersion"
+          }
           if ($calculateAssemblyVersion) {
             Write-Host "Release assembly version: $releaseAssemblyVersion"
           }
