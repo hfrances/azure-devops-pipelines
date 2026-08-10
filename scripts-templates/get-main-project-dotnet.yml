@@ -31,6 +31,7 @@ steps:
       
         # Get first project in the solution. That is the main project.
         $projectPath = $null;
+        $projectFile = $null;
         if ($solution.Extension -ieq '.sln') {
           $content = (Get-Content $solution);
           $pattern = '(?m)Project\(.*\)\s?=\s?"(?<ProjectName>.*)",\s?"(?<ProjectPath>.*)",\s?.*"';
@@ -46,17 +47,24 @@ steps:
             $projectPath = $projectNode.Attributes['Path'].Value;
           }
         }
+        elseif ($solution.Extension -imatch '^\.[^.]*proj$') {
+          # A project file can be used directly instead of a solution.
+          $projectFile = $solution.FullName;
+        }
         else {
           write-error "Unsupported solution extension: $($solution.Extension).";
           exit 1;
         }
 
-        if ([string]::IsNullOrWhiteSpace($projectPath)) {
-          write-error "No project found in solution '$($solution.FullName)'.";
-          exit 1;
+        if ([string]::IsNullOrWhiteSpace($projectFile)) {
+          if ([string]::IsNullOrWhiteSpace($projectPath)) {
+            write-error "No project found in solution '$($solution.FullName)'.";
+            exit 1;
+          }
+
+          $projectFile = Join-Path $solution.Directory $projectPath;
         }
 
-        $projectFile = Join-Path $solution.Directory $projectPath;
         $file = (Get-Item $projectFile -ErrorAction SilentlyContinue);
 
         if ($null -eq $file) {
