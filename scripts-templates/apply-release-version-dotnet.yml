@@ -44,6 +44,10 @@ steps:
             [xml]$solutionXml = Get-Content $solution -Raw;
             $projectPaths = @($solutionXml.SelectNodes('//Project[@Path]') | ForEach-Object { $_.Attributes['Path'].Value });
           }
+          elseif ($solution.Extension -imatch '^\.[^.]*proj$') {
+            # A project file can be versioned directly instead of through a solution.
+            $projectPaths = @($solution.Name);
+          }
           else {
             write-error "Unsupported solution extension: $($solution.Extension).";
             exit 1;

@@ -44,8 +44,13 @@ steps:
         # Find all project files from the solution
         $projFiles = @();
         
-        # Get projects from solution file if it exists
-        $solutionFiles = Get-ChildItem -Recurse -Filter $solutionPattern -ErrorAction SilentlyContinue;
+        # Resolve an explicit path first; otherwise preserve recursive pattern lookup.
+        if ([System.IO.Path]::IsPathRooted($solutionPattern) -or $solutionPattern.Contains('/') -or $solutionPattern.Contains('\')) {
+          $solutionFiles = @(Get-Item -Path $solutionPattern -ErrorAction SilentlyContinue | Where-Object { -not $_.PSIsContainer });
+        }
+        else {
+          $solutionFiles = @(Get-ChildItem -Recurse -File -Filter $solutionPattern -ErrorAction SilentlyContinue);
+        }
         if ($solutionFiles.Count -gt 0) {
           foreach ($slnFile in $solutionFiles) {
             if ($slnFile.Extension -ieq '.sln') {
@@ -70,6 +75,9 @@ steps:
                   $projFiles += Get-Item -Path $projPath;
                 }
               }
+            }
+            elseif ($slnFile.Extension -imatch '^\.[^.]*proj$') {
+              $projFiles += $slnFile;
             }
           }
         }

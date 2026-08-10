@@ -80,7 +80,15 @@ parameters:
 
 variables:
   - name: BuildParameters.RestoreBuildProjects
-    value: "**/${{ parameters.Solution }}"
+    ${{ if endsWith(parameters.Solution, 'proj') }}:
+      value: ${{ parameters.Solution }}
+    ${{ else }}:
+      value: "**/${{ parameters.Solution }}"
+  - name: BuildParameters.PackProjects
+    ${{ if endsWith(parameters.Solution, 'proj') }}:
+      value: ${{ parameters.Solution }}
+    ${{ else }}:
+      value: '**/*.??proj;!examples/**/*.??proj;!**/*.Test.??proj;!**/*.Test.*.??proj'
   - name: BuildParameters.Solution
     value: ${{ parameters.Solution }}
   - name: Solution.FullName
@@ -307,7 +315,7 @@ jobs:
       - task: DotNetCoreCLI@2
         inputs:
           command: 'pack'
-          packagesToPack: '**/*.??proj;!examples/**/*.??proj;!**/*.Test.??proj;!**/*.Test.*.??proj'
+          packagesToPack: '$(BuildParameters.PackProjects)'
           packDirectory: '$(Build.ArtifactStagingDirectory)/build'
           nobuild: true
           versioningScheme: 'off'

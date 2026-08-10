@@ -73,7 +73,10 @@ parameters:
 
 variables:
   - name: BuildParameters.RestoreBuildProjects
-    value: "**/${{ parameters.Solution }}"
+    ${{ if endsWith(parameters.Solution, 'proj') }}:
+      value: ${{ parameters.Solution }}
+    ${{ else }}:
+      value: "**/${{ parameters.Solution }}"
   - name: BuildParameters.Solution
     value: ${{ parameters.Solution }}
   - name: Solution.FullName
