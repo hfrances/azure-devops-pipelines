@@ -1,0 +1,162 @@
+# Resolve the projects that should be packed by a .NET library component.
+#
+# Resolution rules:
+# - explicitProjectsJson, when non-empty, is authoritative and may contain a
+#   scalar project path or an array of project paths;
+# - otherwise, enumerate projects in solutionPath;
+# - exclude projects with IsTestProject=true or IsPackable=false;
+# - an omitted IsPackable property is treated as packable, matching the normal
+#   SDK-style project default.
+
+parameters:
+  - name: solutionPath
+    type: string
+    default: '$(Solution.FullName)'
+  - name: explicitProjectsJson
+    type: string
+    default: '[]'
+  - name: sourcesDirectory
+    type: string
+    default: '$(Build.SourcesDirectory)'
+
+steps:
+  - task: PowerShell@2
+    displayName: Resolve packable .NET projects
+    inputs:
+      pwsh: true
+      targetType: inline
+      script: |
+        $solutionPath = '${{ parameters.solutionPath }}'
+        $sourcesDirectory = '${{ parameters.sourcesDirectory }}'
+        $explicitProjectsJson = @'
+        ${{ parameters.explicitProjectsJson }}
+        '@.Trim()
+
+        function Resolve-ProjectPath {
+          param([Parameter(Mandatory = $true)][string]$Path)
+
+          $candidates = @()
+          if ([System.IO.Path]::IsPathRooted($Path)) {
+            $candidates += $Path
+          }
+          else {
+            $candidates += (Join-Path $sourcesDirectory $Path)
+            if ($solutionPath -and (Test-Path -LiteralPath $solutionPath)) {
+              $solutionDirectory = Split-Path -Parent (Get-Item -LiteralPath $solutionPath).FullName
+              $candidates += (Join-Path $solutionDirectory $Path)
+            }
+          }
+
+          foreach ($candidate in $candidates) {
+            $resolved = Get-Item -LiteralPath $candidate -ErrorAction SilentlyContinue
+            if ($null -ne $resolved -and -not $resolved.PSIsContainer) {
+              return $resolved.FullName
+            }
+          }
+
+          throw "Project file not found: '$Path'. Checked: $($candidates -join ', ')"
+        }
+
+        function Get-ProjectPathsFromSolution {
+          param([Parameter(Mandatory = $true)][string]$Path)
+
+          $solution = Get-Item -LiteralPath $Path -ErrorAction Stop
+          if ($solution.Extension -imatch '^\.[^.]*proj$') {
+            return @($solution.FullName)
+          }
+
+          $paths = @()
+          if ($solution.Extension -ieq '.sln') {
+            $content = Get-Content -LiteralPath $solution.FullName -Raw
+            $matches = [regex]::Matches($content, 'Project\([^)]*\)\s*=\s*[^,]*,\s*"([^"]*\.(?:csproj|vbproj|fsproj))"')
+            foreach ($match in $matches) {
+              $candidate = Join-Path $solution.Directory.FullName $match.Groups[1].Value
+              if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+                $paths += (Get-Item -LiteralPath $candidate).FullName
+              }
+            }
+          }
+          elseif ($solution.Extension -ieq '.slnx') {
+            [xml]$xml = Get-Content -LiteralPath $solution.FullName -Raw
+            foreach ($node in @($xml.SelectNodes('//Project[@Path]'))) {
+              $candidate = Join-Path $solution.Directory.FullName $node.Attributes['Path'].Value
+              if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+                $paths += (Get-Item -LiteralPath $candidate).FullName
+              }
+            }
+          }
+          else {
+            throw "Unsupported solution extension '$($solution.Extension)' for '$($solution.FullName)'."
+          }
+
+          return @($paths | Sort-Object -Unique)
+        }
+
+        function Get-BooleanProperty {
+          param(
+            [Parameter(Mandatory = $true)][System.Xml.XmlDocument]$Xml,
+            [Parameter(Mandatory = $true)][string]$Name
+          )
+
+          $node = $Xml.SelectSingleNode("//*[local-name()='$Name']")
+          if ($null -eq $node) { return $null }
+          return ([string]$node.InnerText).Trim().ToLowerInvariant() -eq 'true'
+        }
+
+        $explicitProjects = @()
+        if (-not [string]::IsNullOrWhiteSpace($explicitProjectsJson) -and $explicitProjectsJson -ne '[]' -and $explicitProjectsJson -ne 'null') {
+          try {
+            $parsed = $explicitProjectsJson | ConvertFrom-Json
+            if ($parsed -is [System.Array]) {
+              $explicitProjects = @($parsed | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+            }
+            else {
+              $explicitProjects = @([string]$parsed)
+            }
+          }
+          catch {
+            throw "Invalid packProjects value. Expected a project path or a YAML list of project paths. Details: $($_.Exception.Message)"
+          }
+        }
+
+        if ($explicitProjects.Count -gt 0) {
+          $resolvedProjects = @($explicitProjects | ForEach-Object { Resolve-ProjectPath -Path $_ })
+          Write-Host "Using explicitly configured pack projects: $($resolvedProjects -join ', ')"
+        }
+        else {
+          if ([string]::IsNullOrWhiteSpace($solutionPath) -or -not (Test-Path -LiteralPath $solutionPath -PathType Leaf)) {
+            throw "Cannot infer pack projects because solutionPath '$solutionPath' does not exist."
+          }
+
+          $candidateProjects = @(Get-ProjectPathsFromSolution -Path $solutionPath)
+          $resolvedProjects = @()
+          foreach ($projectPath in $candidateProjects) {
+            [xml]$projectXml = Get-Content -LiteralPath $projectPath -Raw
+            $isTestProject = Get-BooleanProperty -Xml $projectXml -Name 'IsTestProject'
+            $isPackable = Get-BooleanProperty -Xml $projectXml -Name 'IsPackable'
+
+            if ($isTestProject -eq $true) {
+              Write-Host "Excluding test project: $projectPath"
+              continue
+            }
+            if ($isPackable -eq $false) {
+              Write-Host "Excluding non-packable project: $projectPath"
+              continue
+            }
+
+            $resolvedProjects += $projectPath
+          }
+
+          if ($resolvedProjects.Count -eq 0) {
+            throw "No packable projects were found in solution '$solutionPath'. Specify packProjects explicitly if project metadata is evaluated through imported properties."
+          }
+          Write-Host "Inferred pack projects: $($resolvedProjects -join ', ')"
+        }
+
+        $packProjects = [string]::Join([Environment]::NewLine, @($resolvedProjects | Sort-Object -Unique))
+        # Logging commands are line-oriented. Encode the newline so the
+        # resulting pipeline variable can still be consumed as a multiline
+        # DotNetCoreCLI projects input.
+        $encodedPackProjects = $packProjects.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+        Write-Host "##vso[task.setvariable variable=BuildParameters.PackProjects]$encodedPackProjects"
+        Write-Host "##vso[task.setvariable variable=PackProjectsCount]$(@($resolvedProjects).Count)"
