@@ -11,6 +11,9 @@ parameters:
   - name: testEnabled
     type: string
     default: 'true'
+  - name: publishProject
+    type: string
+    default: ''
   - name: condition
     type: string
     default: succeeded()
@@ -21,220 +24,424 @@ steps:
       pwsh: true
       targetType: 'inline'
       script: |
-        $taskHasIssues = $false;
-        function mark-task-issue([string]$message) {
-          write-warning $message;
-          $script:taskHasIssues = $true;
+        $taskHasIssues = $false
+
+        function Mark-TaskIssue([string]$message) {
+          Write-Warning $message
+          $script:taskHasIssues = $true
         }
 
-        # Get the solution pattern to identify project files
-        $solutionPattern = "${{ parameters.solutionPattern }}";
-        $testProjectsPattern = "${{ parameters.testProjects }}";
-        $testEnabled = [System.Convert]::ToBoolean("${{ parameters.testEnabled }}");
-        
-        Write-Host "Solution pattern:";
-        Write-Host "$solutionPattern";
-        Write-Host '';
-        Write-Host "Test projects pattern:";
-        Write-Host "$testProjectsPattern";
-        Write-Host '';
-        Write-Host "Test enabled: $testEnabled";
-        Write-Host '';
-        
-        # Find all project files from the solution
-        $projFiles = @();
-        
-        # Resolve an explicit path first; otherwise preserve recursive pattern lookup.
-        if ([System.IO.Path]::IsPathRooted($solutionPattern) -or $solutionPattern.Contains('/') -or $solutionPattern.Contains('\')) {
-          $solutionFiles = @(Get-Item -Path $solutionPattern -ErrorAction SilentlyContinue | Where-Object { -not $_.PSIsContainer });
+        function Get-InputPatterns([string]$text) {
+          # A multiline value represents several explicit paths or patterns.
+          # This keeps the parameter a string for compatibility with existing
+          # callers while allowing the task to process several project files.
+          @($text -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+        }
+
+        function Test-BuildDirectory([System.IO.FileInfo]$file) {
+          $segments = $file.FullName -split '[\\/]'
+          $segments -contains 'bin' -or $segments -contains 'obj'
+        }
+
+        function Test-InputPattern([System.IO.FileInfo]$file, [string]$pattern) {
+          $normalizedPattern = $pattern.Replace('/', '\')
+          $candidatePath = [System.IO.Path]::GetFullPath($file.FullName)
+
+          if (-not [System.IO.Path]::IsPathRooted($pattern)) {
+            $currentPath = [System.IO.Path]::GetFullPath((Get-Location).Path)
+            $candidatePath = [System.IO.Path]::GetRelativePath($currentPath, $candidatePath)
+          }
+
+          # Keep both interpretations of `**`: one or more directories and
+          # zero directories. For example, `tests/**/*.csproj` must match both
+          # `tests/Api/Test.csproj` and `tests/Test.csproj`.
+          $candidatePatterns = @(
+            ($normalizedPattern -replace '\*\*\\', '')
+            ($normalizedPattern -replace '\*\*', '*')
+          ) | Where-Object { $_ } | Sort-Object -Unique
+
+          @($candidatePatterns | Where-Object {
+            $candidatePath -like $_ -or $file.Name -like $_
+          }).Count -gt 0
+        }
+
+        function Resolve-PathPattern([string]$pattern) {
+          $wildcard = [System.Management.Automation.WildcardPattern]::ContainsWildcardCharacters($pattern)
+          if (-not $wildcard) {
+            if ([System.IO.Path]::IsPathRooted($pattern) -or $pattern.Contains('/') -or $pattern.Contains('\')) {
+              return @(Get-Item -LiteralPath $pattern -ErrorAction SilentlyContinue)
+            }
+
+            # A filename-only input was historically searched recursively.
+            return @(Get-ChildItem -Recurse -File -Filter $pattern -ErrorAction SilentlyContinue)
+          }
+
+          # Search from the part before the first wildcard and filter by the
+          # complete pattern afterwards. This supports patterns such as
+          # `**/*Tests.csproj` and `src/*/Api.csproj`.
+          $wildcardIndex = $pattern.Length
+          $asteriskIndex = $pattern.IndexOf('*')
+          $questionIndex = $pattern.IndexOf('?')
+          if ($asteriskIndex -ge 0 -and $asteriskIndex -lt $wildcardIndex) {
+            $wildcardIndex = $asteriskIndex
+          }
+          if ($questionIndex -ge 0 -and $questionIndex -lt $wildcardIndex) {
+            $wildcardIndex = $questionIndex
+          }
+          $prefix = $pattern.Substring(0, $wildcardIndex)
+          $separatorIndex = $prefix.LastIndexOfAny([char[]]@('/', '\'))
+          $searchRoot = if ($separatorIndex -ge 0) { $prefix.Substring(0, $separatorIndex) } else { '.' }
+          if ([string]::IsNullOrWhiteSpace($searchRoot)) {
+            $searchRoot = if ([System.IO.Path]::IsPathRooted($pattern)) { [System.IO.Path]::GetPathRoot($pattern) } else { '.' }
+          }
+
+          $leafPattern = [System.IO.Path]::GetFileName($pattern)
+          if ([string]::IsNullOrWhiteSpace($leafPattern)) {
+            $leafPattern = '*'
+          }
+
+          @(Get-ChildItem -Path $searchRoot -Recurse -File -Filter $leafPattern -ErrorAction SilentlyContinue |
+            Where-Object { Test-InputPattern $_ $pattern })
+        }
+
+        function Resolve-InputFiles([string]$patternText) {
+          $files = @()
+
+          foreach ($pattern in Get-InputPatterns $patternText) {
+            # Resolve exact paths and wildcard patterns uniformly so one input
+            # can select several solution or project files.
+            $matches = Resolve-PathPattern $pattern
+
+            $files += @($matches | Where-Object {
+              -not $_.PSIsContainer -and -not (Test-BuildDirectory $_)
+            })
+          }
+
+          @($files | Sort-Object -Unique -Property FullName)
+        }
+
+        function Resolve-ProjectsFromInputs([string]$patternText) {
+          $projects = @()
+
+          foreach ($inputFile in Resolve-InputFiles $patternText) {
+            if ($inputFile.Extension -ieq '.sln') {
+              # .sln stores project paths relative to the solution directory.
+              $content = Get-Content -LiteralPath $inputFile.FullName -Raw
+              $matches = [regex]::Matches($content, 'Project\([^)]*\)\s*=\s*[^,]*,\s*"([^"]*\.(?:csproj|vbproj|fsproj))"')
+              foreach ($match in $matches) {
+                $projectPath = [System.IO.Path]::GetFullPath((Join-Path $inputFile.Directory.FullName $match.Groups[1].Value))
+                if (Test-Path -LiteralPath $projectPath -PathType Leaf) {
+                  $project = Get-Item -LiteralPath $projectPath
+                  if (-not (Test-BuildDirectory $project)) {
+                    $projects += $project
+                  }
+                }
+              }
+            }
+            elseif ($inputFile.Extension -ieq '.slnx') {
+              # .slnx stores project paths in Project/@Path attributes.
+              [xml]$xml = Get-Content -LiteralPath $inputFile.FullName -Raw
+              foreach ($node in @($xml.SelectNodes('//Project[@Path]'))) {
+                $projectPath = [System.IO.Path]::GetFullPath((Join-Path $inputFile.Directory.FullName $node.Attributes['Path'].Value))
+                if (Test-Path -LiteralPath $projectPath -PathType Leaf) {
+                  $project = Get-Item -LiteralPath $projectPath
+                  if (-not (Test-BuildDirectory $project)) {
+                    $projects += $project
+                  }
+                }
+              }
+            }
+            elseif ($inputFile.Extension -imatch '^\.[^.]*proj$') {
+              # A direct project pattern may resolve one or several projects.
+              $projects += $inputFile
+            }
+          }
+
+          @($projects | Sort-Object -Unique -Property FullName)
+        }
+
+        function Add-ProjectReferences([array]$rootProjects) {
+          # Walk references transitively so a direct project pattern has the
+          # same framework coverage as the equivalent solution.
+          $knownPaths = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::OrdinalIgnoreCase)
+          $projects = @()
+
+          foreach ($project in $rootProjects) {
+            if ($knownPaths.Add($project.FullName)) {
+              $projects += $project
+            }
+          }
+
+          for ($index = 0; $index -lt $projects.Count; $index++) {
+            $project = $projects[$index]
+            [xml]$xml = Get-Content -LiteralPath $project.FullName -Raw
+
+            foreach ($referenceNode in @($xml.SelectNodes("//*[local-name()='ProjectReference']"))) {
+              $reference = [string]$referenceNode.Include
+              if ([string]::IsNullOrWhiteSpace($reference) -or $reference.Contains('$(')) {
+                continue
+              }
+
+              $referencePath = [System.IO.Path]::GetFullPath((Join-Path $project.Directory.FullName $reference))
+              if (-not (Test-Path -LiteralPath $referencePath -PathType Leaf)) {
+                continue
+              }
+
+              $referenceProject = Get-Item -LiteralPath $referencePath
+              if (-not (Test-BuildDirectory $referenceProject) -and $knownPaths.Add($referenceProject.FullName)) {
+                $projects += $referenceProject
+              }
+            }
+          }
+
+          @($projects | Sort-Object -Unique -Property FullName)
+        }
+
+        function Get-TargetFrameworks([System.IO.FileInfo]$project) {
+          # Read every property group. This preserves the previous static XML
+          # behavior for projects with more than one TargetFramework property.
+          [xml]$xml = Get-Content -LiteralPath $project.FullName -Raw
+          $frameworks = @()
+
+          foreach ($propertyGroup in @($xml.SelectNodes("//*[local-name()='PropertyGroup']"))) {
+            foreach ($frameworkNode in @($propertyGroup.SelectNodes("./*[local-name()='TargetFrameworks' or local-name()='TargetFramework']"))) {
+              if (-not [string]::IsNullOrWhiteSpace([string]$frameworkNode.InnerText)) {
+                $frameworks += ([string]$frameworkNode.InnerText).Split(';')
+              }
+            }
+          }
+
+          @($frameworks | ForEach-Object { $_.Trim() } | Where-Object { $_ } | Sort-Object -Unique)
+        }
+
+        function Resolve-TestProjects([string]$patternText) {
+          $patterns = @(Get-InputPatterns $patternText)
+          $includes = @($patterns | Where-Object { -not $_.StartsWith('!') })
+          $excludes = @($patterns | Where-Object { $_.StartsWith('!') } | ForEach-Object { $_.Substring(1).Trim() })
+          $testProjects = @()
+
+          foreach ($pattern in $includes) {
+            # Gen1 supplies glob patterns; Gen2 supplies paths exported by the
+            # shared test resolver. Both forms are intentionally supported.
+            $matches = Resolve-PathPattern $pattern
+
+            $testProjects += @($matches | Where-Object {
+              $_.Extension -imatch '^\.[^.]*proj$' -and -not (Test-BuildDirectory $_)
+            })
+          }
+
+          $resolved = @()
+          foreach ($project in $testProjects) {
+            $excluded = $false
+            foreach ($pattern in $excludes) {
+              $normalizedPattern = $pattern -replace '\*\*/', '*/'
+              if ($project.FullName -like "*$normalizedPattern" -or $project.Name -like $normalizedPattern) {
+                $excluded = $true
+                break
+              }
+            }
+            if (-not $excluded) {
+              $resolved += $project
+            }
+          }
+
+          @($resolved | Sort-Object -Unique -Property FullName)
+        }
+
+        function Resolve-SingleProject([string]$pathText) {
+          if ([string]::IsNullOrWhiteSpace($pathText)) {
+            return $null
+          }
+
+          $matches = @(Get-Item -Path $pathText -ErrorAction SilentlyContinue | Where-Object {
+            -not $_.PSIsContainer -and $_.Extension -imatch '^\.[^.]*proj$' -and -not (Test-BuildDirectory $_)
+          })
+          if ($matches.Count -ne 1) {
+            throw "Publish project must resolve to exactly one project file: '$pathText'."
+          }
+
+          $matches[0]
+        }
+
+        function Set-FrameworkVariable([string]$prefix, [string]$version, [string]$framework) {
+          Write-Host "##vso[task.setvariable variable=BuildParameters.${prefix}_$version]$framework"
+        }
+
+        $solutionPattern = '${{ parameters.solutionPattern }}'
+        $testProjectsPattern = '${{ parameters.testProjects }}'
+        $testEnabled = [System.Convert]::ToBoolean('${{ parameters.testEnabled }}')
+        $publishProjectInput = '${{ parameters.publishProject }}'.Trim()
+
+        Write-Host "Solution/project patterns: $solutionPattern"
+        Write-Host "Test project patterns: $testProjectsPattern"
+        Write-Host "Test enabled: $testEnabled"
+        Write-Host "Publish project configured: $(-not [string]::IsNullOrWhiteSpace($publishProjectInput))"
+
+        # Resolve all solution/project inputs, test projects, and the optional
+        # publish project before walking references. The final graph is scanned
+        # once and feeds all framework variable groups.
+        $rootProjects = @(Resolve-ProjectsFromInputs $solutionPattern)
+        if ($rootProjects.Count -eq 0) {
+          # Preserve the legacy fallback before adding explicit test or publish
+          # projects. A malformed/empty solution input must behave as it did
+          # when the original task searched the repository for all projects.
+          Mark-TaskIssue 'No projects found in solution files. Searching for all project files...'
+          $rootProjects = @(Get-ChildItem -Recurse -File -Filter *.??proj | Where-Object { -not (Test-BuildDirectory $_) })
+        }
+
+        $testProjects = if ($testEnabled) { @(Resolve-TestProjects $testProjectsPattern) } else { @() }
+        $publishProject = Resolve-SingleProject $publishProjectInput
+
+        $rootProjects += $testProjects
+        if ($null -ne $publishProject) {
+          $rootProjects += $publishProject
+        }
+        $projects = @(Add-ProjectReferences $rootProjects)
+
+        $testPaths = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::OrdinalIgnoreCase)
+        foreach ($testProject in $testProjects) {
+          $testPaths.Add($testProject.FullName) | Out-Null
+        }
+
+        $requiredFrameworks = New-Object System.Collections.Generic.HashSet[string]
+        $testFrameworks = New-Object System.Collections.Generic.HashSet[string]
+        $publishFrameworks = New-Object System.Collections.Generic.HashSet[string]
+        $publishPath = if ($null -ne $publishProject) { $publishProject.FullName } else { '' }
+
+        foreach ($project in $projects) {
+          Write-Host "Processing project: $($project.FullName)"
+          $isTestProject = $testPaths.Contains($project.FullName)
+          $isPublishProject = -not [string]::IsNullOrWhiteSpace($publishPath) -and
+            [string]::Equals($publishPath, $project.FullName, [System.StringComparison]::OrdinalIgnoreCase)
+
+          $projectFrameworks = @(Get-TargetFrameworks $project)
+          Write-Host "Target frameworks: $($projectFrameworks -join ', ')"
+          foreach ($framework in $projectFrameworks) {
+            $version = [regex]::Match($framework, '(\d+\.\d+)').Value
+            if (-not $version) {
+              continue
+            }
+
+            Set-FrameworkVariable -prefix 'TargetFramework' -version $version -framework $framework
+            $requiredFrameworks.Add($version) | Out-Null
+
+            if ($isTestProject) {
+              Set-FrameworkVariable -prefix 'TargetFramework_Test' -version $version -framework $framework
+              $testFrameworks.Add($version) | Out-Null
+            }
+            if ($isPublishProject) {
+              Set-FrameworkVariable -prefix 'TargetFramework_Publish' -version $version -framework $framework
+              $publishFrameworks.Add($version) | Out-Null
+            }
+          }
+        }
+
+        # Preserve the existing installation contract. This task only emits
+        # pending-install variables; UseDotNet performs the actual installation.
+        $supportedFrameworks = @('${{ parameters.supportedFrameworks }}'.Split(';') | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+        $installedFrameworks = New-Object System.Collections.Generic.HashSet[string]
+        foreach ($sdk in @(& dotnet --list-sdks)) {
+          if ($sdk -match '^(?<version>\d+\.\d+)') {
+            $installedFrameworks.Add($matches['version']) | Out-Null
+          }
+        }
+
+        $supportedRequired = @($requiredFrameworks | Where-Object { $supportedFrameworks -contains $_ } | Sort-Object { [double]$_ })
+        if ($requiredFrameworks.Count -gt 0 -and $supportedRequired.Count -eq 0) {
+          Write-Warning 'No supported frameworks found in project requirements'
+        }
+
+        $missingFramework = $supportedRequired | Where-Object { $installedFrameworks -notcontains $_ } | Select-Object -First 1
+        $pendingFrameworks = if ($null -eq $missingFramework) {
+          @()
         }
         else {
-          $solutionFiles = @(Get-ChildItem -Recurse -File -Filter $solutionPattern -ErrorAction SilentlyContinue);
-        }
-        if ($solutionFiles.Count -gt 0) {
-          foreach ($slnFile in $solutionFiles) {
-            if ($slnFile.Extension -ieq '.sln') {
-              $slnContent = Get-Content -Path $slnFile.FullName -Raw;
-              # Extract project references from .sln file (pattern: Project(...) = ..., ...)
-              $projectMatches = [regex]::Matches($slnContent, 'Project\([^)]*\)\s*=\s*[^,]*,\s*"([^"]*\.(?:csproj|vbproj|fsproj))"');
-              foreach ($match in $projectMatches) {
-                $projPath = Join-Path -Path $slnFile.Directory.FullName -ChildPath $match.Groups[1].Value;
-                $projPath = [System.IO.Path]::GetFullPath($projPath);
-                if (Test-Path -Path $projPath) {
-                  $projFiles += Get-Item -Path $projPath;
-                }
-              }
-            }
-            elseif ($slnFile.Extension -ieq '.slnx') {
-              [xml]$slnXml = Get-Content -Path $slnFile.FullName -Raw;
-              $projectNodes = @($slnXml.SelectNodes('//Project[@Path]'));
-              foreach ($projectNode in $projectNodes) {
-                $projPath = Join-Path -Path $slnFile.Directory.FullName -ChildPath $projectNode.Attributes['Path'].Value;
-                $projPath = [System.IO.Path]::GetFullPath($projPath);
-                if (Test-Path -Path $projPath) {
-                  $projFiles += Get-Item -Path $projPath;
-                }
-              }
-            }
-            elseif ($slnFile.Extension -imatch '^\.[^.]*proj$') {
-              $projFiles += $slnFile;
-            }
-          }
-        }
-        
-        # If no solution file found or no projects in solution, fall back to searching for all projects
-        if ($projFiles.Count -eq 0) {
-          mark-task-issue "No projects found in solution files. Searching for all project files...";
-          $projFiles = @(Get-ChildItem -Recurse -Filter *.??proj);
-        }
-        
-        # Add test projects if test is enabled
-        $files = @($projFiles);
-        if ($testEnabled) {
-          Write-Host "Looking for test projects...";
-          $testPatterns = $testProjectsPattern.Split([System.Environment]::NewLine) | ForEach-Object { $_.Trim() } | Where-Object { $_ };
-          Write-Host "Test patterns found: $($testPatterns.Count)";
-          
-          # Collect all test files first (without exclusions)
-          $allTestFiles = @();
-          $inclusionPatterns = @($testPatterns | Where-Object { -not $_.StartsWith('!') });
-          $exclusionPatterns = @($testPatterns | Where-Object { $_.StartsWith('!') } | ForEach-Object { $_.Substring(1) });
-          
-          Write-Host "Inclusion patterns: $($inclusionPatterns -join ', ')";
-          Write-Host "Exclusion patterns: $($exclusionPatterns -join ', ')";
-          
-          foreach ($pattern in $inclusionPatterns) {
-            Write-Host "Searching with pattern: $pattern";
-            # Convert glob pattern to PowerShell path pattern
-            $psPattern = $pattern -replace '\*\*/', '*/' -replace '\?', '?';
-            $psPattern = "*" + $psPattern;
-            $testFiles = @(Get-ChildItem -Recurse -Path $psPattern -ErrorAction SilentlyContinue | Where-Object { $_.PSIsContainer -eq $false });
-            Write-Host "Found $($testFiles.Count) files with pattern '$pattern'";
-            $allTestFiles += $testFiles;
-          }
-          
-          # Apply exclusion patterns
-          $filteredTestFiles = @();
-          foreach ($testFile in $allTestFiles) {
-            $shouldExclude = $false;
-            $relativePath = $testFile.FullName;
-            
-            foreach ($exclusionPattern in $exclusionPatterns) {
-              $excludePs = $exclusionPattern -replace '\*\*/', '*/' -replace '\?', '?';
-              if ($relativePath -like "*$excludePs" -or $testFile.Name -like $excludePs) {
-                $shouldExclude = $true;
-                Write-Host "Excluding: $($testFile.Name) (matched pattern: $exclusionPattern)";
-                break;
-              }
-            }
-            
-            if (-not $shouldExclude) {
-              Write-Host "Including test file: $($testFile.FullName)";
-              $filteredTestFiles += $testFile;
-            }
-          }
-          
-          Write-Host "Total test files after filtering: $($filteredTestFiles.Count)";
-          Write-Host '';
-          $files += $filteredTestFiles;
-        }
-        
-        # Remove duplicates
-        $files = @($files | Sort-Object -Unique -Property FullName);
-        
-        # Get supported frameworks.
-        $supportedFrameworks = "${{ parameters.supportedFrameworks }}".Split(';') | ForEach-Object { $_.Trim() };
-        Write-Host "Supported frameworks: $supportedFrameworks";
-        
-        # Get installed frameworks.            
-        $installedSdks = &dotnet --list-sdks;
-        $installedFrameworks = New-Object System.Collections.Generic.HashSet[string];
-        foreach ($sdk in $installedSdks) {
-          if ($sdk -match '^(?<version>\d+\.\d+)') {
-            $installedFrameworks.Add($matches['version']) | Out-Null;
-          }
-        }
-        Write-Host "Installed frameworks: $installedFrameworks";
-        Write-Host '';
-
-        # Calculate necessary frameworks.
-        $allRequiredFrameworks = New-Object System.Collections.Generic.HashSet[string];
-        $frameworksToInstall = New-Object System.Collections.Generic.HashSet[string];
-        if ($files.Count -eq 0) {
-          mark-task-issue 'No project files found in the specified directory.';
-        } else {
-          $files | ForEach-Object {
-            $file = $_;
-            Write-Host "Processing file: $file";
-  
-            # Load the XML content of the project file
-            $xml = [xml](Get-Content -Path $file.FullName);
-  
-            # Calculate target frameworks
-            $frameworks = "$($xml.Project.PropertyGroup.TargetFrameworks)"?.Trim().Split(";");
-            if (-not $frameworks) {
-              $frameworks = @("$($xml.Project.PropertyGroup.TargetFramework)"?.Trim());
-            }
-            Write-Host "Target frameworks: $frameworks";
-            $frameworks | ForEach-Object {
-              $version = [regex]::match($_, '(\d+\.\d+)').Value;
-              if ($version) {
-                Write-Host "##vso[task.setvariable variable=BuildParameters.TargetFramework_$version]$_";
-                $allRequiredFrameworks.Add($version) | Out-Null;
-              }
-            }
-            Write-Host '';
-          }
+          # Keep the established behavior: once a lower SDK is missing, install
+          # all required supported SDKs from that version upwards.
+          @($supportedRequired | Where-Object { [double]$_ -ge [double]$missingFramework })
         }
 
-        # Install frameworks: if any required framework is missing, reinstall all required frameworks >= the minimum missing one
-        if ($allRequiredFrameworks.Count -gt 0) {
-          # Filter required frameworks to only those in supportedFrameworks and sort them
-          $supportedRequired = @($allRequiredFrameworks | Where-Object { $supportedFrameworks -contains $_ } | Sort-Object { [double]$_ });
-          
-          if ($supportedRequired.Count -gt 0) {
-            Write-Host "Required frameworks (supported only): $($supportedRequired -join ', ')";
-            Write-Host '';
-            
-            # Find the minimum required framework that is not installed
-            $minMissingFramework = $null;
-            foreach ($framework in $supportedRequired) {
-              if ($installedFrameworks -notcontains $framework) {
-                $minMissingFramework = $framework;
-                break;
-              }
-            }
-            
-            # If there's a missing framework, install all required frameworks >= that minimum
-            if ($minMissingFramework -ne $null) {
-              foreach ($framework in $supportedRequired) {
-                $frameworkNumeric = [double]$framework;
-                $minNumeric = [double]$minMissingFramework;
-                if ($frameworkNumeric -ge $minNumeric) {
-                  $frameworksToInstall.Add($framework) | Out-Null;
-                }
-              }
-            }
-          } else {
-            write-warning "No supported frameworks found in project requirements";
-          }
+        $pendingFrameworkLabel = if ($pendingFrameworks.Count -gt 0) { $pendingFrameworks -join ', ' } else { 'None' }
+        Write-Host "Pending to install frameworks: $pendingFrameworkLabel"
+        foreach ($framework in $pendingFrameworks) {
+          Write-Host "##vso[task.setvariable variable=BuildParameters.TargetFramework_Install_$framework]net$framework"
         }
 
-        # Display pending frameworks to install (only those in supportedFrameworks, sorted)
-        $pendingSupported = @($frameworksToInstall | Sort-Object { [double]$_ });
-        if ($pendingSupported.Count -gt 0) {
-          Write-Host "Pending to install frameworks: $($pendingSupported -join ', ')";
-        } else {
-          Write-Host "Pending to install frameworks: None";
-        }
-        
-        # Set variables for framework installation (in ascending order to avoid conflicts)
-        foreach ($framework in $pendingSupported) {
-          Write-Host "##vso[task.setvariable variable=BuildParameters.TargetFramework_Install_$framework]net$framework";
-        }
-
+        Write-Host "Frameworks: all=$($requiredFrameworks -join ', '); tests=$($testFrameworks -join ', '); publish=$($publishFrameworks -join ', ')"
         if ($taskHasIssues) {
-          Write-Host "##vso[task.complete result=SucceededWithIssues;]Calculate target frameworks completed with warnings.";
+          Write-Host '##vso[task.complete result=SucceededWithIssues;]Calculate target frameworks completed with warnings.'
         }
     displayName: Calculate target frameworks
     condition: ${{ parameters.condition }}
+
+# Documentation
+# - Purpose:
+#   Inspect one or more .NET solution/project inputs and export the framework
+#   variables consumed by restore, build, test, publish, and UseDotNet tasks.
+#   The task performs one project-graph traversal and produces separate
+#   framework groups for the complete graph, test projects, and the optional
+#   publish project.
+#
+# - Inputs:
+#   - parameter supportedFrameworks:
+#     semicolon-separated framework versions supported by the pipeline, for
+#     example `10.0;8.0;6.0`. It is used only to calculate pending SDK variables.
+#   - parameter solutionPattern:
+#     one or more newline-separated paths or patterns resolving `.sln`, `.slnx`,
+#     `.csproj`, `.fsproj`, or `.vbproj` files. A solution contributes every
+#     project listed in it; a project pattern may select several projects.
+#   - parameter testProjects:
+#     newline-separated test project paths/patterns. Existing Gen1 callers may
+#     provide include patterns and `!` exclusion patterns. Gen2 normally passes
+#     the paths returned by `resolve-test-projects-dotnet.yml`.
+#   - parameter testEnabled:
+#     controls whether `testProjects` is resolved. Kept as a string for
+#     compatibility with existing Gen1 template expressions.
+#   - parameter publishProject:
+#     optional single project path. When supplied, only this project contributes
+#     `TargetFramework_Publish_*` variables. It does not restrict the complete
+#     graph used for `TargetFramework_*`.
+#   - parameter condition:
+#     Azure Pipelines condition controlling task execution.
+#
+# - Outputs:
+#   - `BuildParameters.TargetFramework_<version>`:
+#     framework found in any selected project or transitive project reference.
+#   - `BuildParameters.TargetFramework_Test_<version>`:
+#     framework found in a resolved test project.
+#   - `BuildParameters.TargetFramework_Publish_<version>`:
+#     framework found in the selected `publishProject`.
+#   - `BuildParameters.TargetFramework_Install_<version>`:
+#     pending SDK metadata consumed by `UseDotNet`. The task does not install
+#     SDKs itself.
+#
+# - Resolution rules:
+#   1. Resolve every input path/pattern and ignore `bin` and `obj`.
+#   2. Read `.sln` project entries and `.slnx` Project/@Path entries.
+#   3. Add all transitive `ProjectReference` files.
+#   4. Add resolved test projects and the optional publish project to the graph.
+#   5. Deduplicate projects and frameworks.
+#   6. Export all framework groups from the same traversal.
+#
+# - Data sources:
+#   1. Project XML files for target frameworks and project references.
+#   2. Solution files for the initial project set.
+#   3. `dotnet --list-sdks` only for the existing pending-install metadata.
+#
+# - High-level flow:
+#   1. Resolve all input projects and optional test/publish project paths.
+#   2. Expand the project-reference graph.
+#   3. Read frameworks once and export the three semantic variable groups.
+#   4. Export pending SDK metadata for downstream `UseDotNet` tasks.
+#
+# - Compatibility:
+#   The legacy `testProjects`/`testEnabled` contract remains available for Gen1.
+#   The removed generic project/prefix/install switches are intentionally not
+#   part of the contract: the output names have fixed meanings and SDK setup is
+#   performed by downstream `UseDotNet` tasks.
+#
+# - Important behavior:
+#   This template calculates and exports variables only. It does not execute
+#   restore, build, test, publish, or SDK installation. A missing project emits
+#   the established warning and fallback search, preserving the previous task
+#   behavior.

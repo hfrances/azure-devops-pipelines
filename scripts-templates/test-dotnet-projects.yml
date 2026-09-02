@@ -1,0 +1,20 @@
+parameters:
+  - name: projects
+    type: string
+    default: '$(ResolvedTestProjects)'
+  - name: testArguments
+    type: string
+    default: '--configuration Release --no-build'
+  - name: condition
+    type: string
+    default: and(succeeded(), eq(variables['TestProjectsFound'], 'true'))
+
+steps:
+  - task: DotNetCoreCLI@2
+    displayName: Test .NET projects
+    inputs:
+      command: test
+      projects: '${{ parameters.projects }}'
+      arguments: '${{ parameters.testArguments }}'
+      publishTestResults: true
+    condition: ${{ parameters.condition }}

@@ -1346,3 +1346,105 @@ stages:
             name: VerifyVariableContractResults
             displayName: Verify Variable Contract Results
 
+  - stage: TestDotnetTestHelpers
+    displayName: Test .NET test helpers
+    dependsOn: []
+    condition: not(canceled())
+    jobs:
+      - job: ResolveDotnetTests
+        displayName: Resolve tests inside solution
+        steps:
+          - checkout: self
+
+          - pwsh: |
+              $fixtureRoot = Join-Path '$(Build.SourcesDirectory)' 'tests/fixtures/dotnet-test-discovery'
+              New-Item -ItemType Directory -Force -Path (Join-Path $fixtureRoot 'src/Demo.App') | Out-Null
+              New-Item -ItemType Directory -Force -Path (Join-Path $fixtureRoot 'tests/Demo.Tests') | Out-Null
+              New-Item -ItemType Directory -Force -Path (Join-Path $fixtureRoot 'outside') | Out-Null
+
+              @'
+              Microsoft Visual Studio Solution File, Format Version 12.00
+              # Visual Studio Version 17
+              Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo.App", "src\Demo.App\Demo.App.csproj", "{11111111-1111-1111-1111-111111111111}"
+              EndProject
+              Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo.Tests", "tests\Demo.Tests\Demo.Tests.csproj", "{22222222-2222-2222-2222-222222222222}"
+              EndProject
+              Global
+              EndGlobal
+              '@ | Set-Content -LiteralPath (Join-Path $fixtureRoot 'Demo.sln')
+
+              '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net6.0</TargetFramework></PropertyGroup></Project>' |
+                Set-Content -LiteralPath (Join-Path $fixtureRoot 'src/Demo.App/Demo.App.csproj')
+              '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup><ItemGroup><ProjectReference Include="..\..\src\Demo.App\Demo.App.csproj" /></ItemGroup></Project>' |
+                Set-Content -LiteralPath (Join-Path $fixtureRoot 'tests/Demo.Tests/Demo.Tests.csproj')
+              '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup></Project>' |
+                Set-Content -LiteralPath (Join-Path $fixtureRoot 'outside/Outside.Tests.csproj')
+            displayName: Create resolver fixture
+
+          - template: /scripts-templates/resolve-test-projects-dotnet.yml
+            parameters:
+              solutionPath: '$(Build.SourcesDirectory)/tests/fixtures/dotnet-test-discovery/Demo.sln'
+              sourcesDirectory: '$(Build.SourcesDirectory)/tests/fixtures/dotnet-test-discovery'
+              testMode: auto
+
+          - pwsh: |
+              if ('$(TestProjectsFound)' -ne 'true') {
+                throw "Expected TestProjectsFound=true, got '$(TestProjectsFound)'."
+              }
+              $resolved = '$(ResolvedTestProjects)'
+              if ($resolved -notmatch 'Demo[\\/]Tests\.csproj') {
+                throw "The solution test project was not resolved: '$resolved'."
+              }
+              if ($resolved -match 'Outside\.Tests\.csproj') {
+                throw "A test project outside the solution was resolved: '$resolved'."
+              }
+            displayName: Assert solution-scoped discovery
+
+          - template: /scripts-templates/calculate-target-frameworks-dotnet.yml
+            parameters:
+              supportedFrameworks: '6.0;8.0'
+              solutionPattern: |
+                $(Build.SourcesDirectory)/tests/fixtures/dotnet-test-discovery/tests/Demo.Tests/Demo.Tests.csproj
+                $(Build.SourcesDirectory)/tests/fixtures/dotnet-test-discovery/src/Demo.App/Demo.App.csproj
+              testProjects: '$(Build.SourcesDirectory)/tests/fixtures/dotnet-test-discovery/**/*Tests.csproj'
+              publishProject: '$(Build.SourcesDirectory)/tests/fixtures/dotnet-test-discovery/src/Demo.App/Demo.App.csproj'
+              testEnabled: 'true'
+
+          - pwsh: |
+              if ('$(BuildParameters.TargetFramework_6.0)' -ne 'net6.0') {
+                throw "Expected the referenced application framework net6.0, got '$(BuildParameters.TargetFramework_6.0)'."
+              }
+              if ('$(BuildParameters.TargetFramework_8.0)' -ne 'net8.0') {
+                throw "Expected the test framework net8.0, got '$(BuildParameters.TargetFramework_8.0)'."
+              }
+              if ('$(BuildParameters.TargetFramework_Test_8.0)' -ne 'net8.0') {
+                throw "Expected TargetFramework_Test_8.0=net8.0, got '$(BuildParameters.TargetFramework_Test_8.0)'."
+              }
+              if ('$(BuildParameters.TargetFramework_Publish_6.0)' -ne 'net6.0') {
+                throw "Expected TargetFramework_Publish_6.0=net6.0, got '$(BuildParameters.TargetFramework_Publish_6.0)'."
+              }
+              if (-not [string]::IsNullOrWhiteSpace('$(BuildParameters.TargetFramework_Publish_8.0)')) {
+                throw "The test framework must not be published: '$(BuildParameters.TargetFramework_Publish_8.0)'."
+              }
+            displayName: Assert framework resolution through references
+
+      - job: SkipDotnetTests
+        displayName: Skip test discovery when disabled
+        steps:
+          - checkout: self
+
+          - template: /scripts-templates/resolve-test-projects-dotnet.yml
+            parameters:
+              solutionPath: '$(Build.SourcesDirectory)/tests/fixtures/dotnet-test-discovery/missing.sln'
+              sourcesDirectory: '$(Build.SourcesDirectory)'
+              testMode: disabled
+
+          - pwsh: |
+              if ('$(TestProjectsFound)' -ne 'false') {
+                throw "Expected TestProjectsFound=false, got '$(TestProjectsFound)'."
+              }
+              if (-not [string]::IsNullOrWhiteSpace('$(ResolvedTestProjects)')) {
+                throw 'ResolvedTestProjects should be empty when testMode is disabled.'
+              }
+            displayName: Assert disabled discovery
+

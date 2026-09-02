@@ -1,0 +1,140 @@
+parameters:
+  - name: solutionPath
+    type: string
+    default: '$(Solution.FullName)'
+  - name: sourcesDirectory
+    type: string
+    default: '$(Build.SourcesDirectory)'
+  - name: testProjects
+    type: string
+    default: ''
+  - name: testMode
+    type: string
+    default: 'auto'
+  - name: condition
+    type: string
+    default: succeeded()
+
+steps:
+  - task: PowerShell@2
+    displayName: Resolve .NET test projects
+    inputs:
+      pwsh: true
+      targetType: inline
+      script: |
+        $testMode = '${{ lower(parameters.testMode) }}'
+        if ($testMode -notin @('auto', 'disabled')) {
+          throw "Unsupported testMode '$testMode'. Allowed values: auto, disabled."
+        }
+        if ($testMode -eq 'disabled') {
+          Write-Host 'Test mode is disabled. .NET test discovery will be skipped.'
+          Write-Host '##vso[task.setvariable variable=TestProjectsFound]false'
+          Write-Host '##vso[task.setvariable variable=ResolvedTestProjects]'
+          exit 0
+        }
+
+        $sourcesDirectory = '${{ parameters.sourcesDirectory }}'
+        $solutionPath = '${{ parameters.solutionPath }}'
+        $configuredPatterns = @'
+        ${{ parameters.testProjects }}
+        '@.Trim()
+
+        function Get-ProjectPathsFromSolution {
+          param([Parameter(Mandatory = $true)][string]$Path)
+
+          $solution = Get-Item -LiteralPath $Path -ErrorAction Stop
+          if ($solution.Extension -imatch '^\.[^.]*proj$') {
+            return @($solution.FullName)
+          }
+
+          $paths = @()
+          if ($solution.Extension -ieq '.sln') {
+            $content = Get-Content -LiteralPath $solution.FullName -Raw
+            $matches = [regex]::Matches($content, 'Project\([^)]*\)\s*=\s*[^,]*,\s*"([^"]*\.(?:csproj|vbproj|fsproj))"')
+            foreach ($match in $matches) {
+              $candidate = Join-Path $solution.Directory.FullName $match.Groups[1].Value
+              if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+                $paths += (Get-Item -LiteralPath $candidate).FullName
+              }
+            }
+          }
+          elseif ($solution.Extension -ieq '.slnx') {
+            [xml]$xml = Get-Content -LiteralPath $solution.FullName -Raw
+            foreach ($node in @($xml.SelectNodes('//Project[@Path]'))) {
+              $candidate = Join-Path $solution.Directory.FullName $node.Attributes['Path'].Value
+              if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+                $paths += (Get-Item -LiteralPath $candidate).FullName
+              }
+            }
+          }
+          else {
+            throw "Unsupported solution extension '$($solution.Extension)'."
+          }
+
+          return @($paths | Sort-Object -Unique)
+        }
+
+        function Matches-ProjectPattern {
+          param(
+            [Parameter(Mandatory = $true)][System.IO.FileInfo]$Project,
+            [Parameter(Mandatory = $true)][string]$Pattern,
+            [Parameter(Mandatory = $true)][string]$Root
+          )
+
+          $normalizedPattern = $Pattern.Trim().Replace('\', '/')
+          $normalizedPattern = $normalizedPattern -replace '^\./', ''
+          $rootSafePattern = $normalizedPattern -replace '^\*\*/', ''
+          $relativePath = [System.IO.Path]::GetRelativePath($Root, $Project.FullName).Replace('\', '/')
+          return ($Project.Name -like $normalizedPattern) -or
+            ($Project.Name -like $rootSafePattern) -or
+            ($relativePath -like $normalizedPattern) -or
+            ($relativePath -like $rootSafePattern)
+        }
+
+        if (-not (Test-Path -LiteralPath $solutionPath -PathType Leaf)) {
+          throw "Solution or project not found: '$solutionPath'."
+        }
+        if (-not (Test-Path -LiteralPath $sourcesDirectory -PathType Container)) {
+          throw "Sources directory not found: '$sourcesDirectory'."
+        }
+
+        $solutionProjects = @(Get-ProjectPathsFromSolution -Path $solutionPath)
+        $allProjects = @(Get-ChildItem -LiteralPath $sourcesDirectory -Recurse -File -Filter '*.csproj' |
+          Where-Object { $_.FullName -notmatch '[\\/]((bin|obj))[\\/]' })
+        $patterns = @($configuredPatterns -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+        $hasExplicitPatterns = $patterns.Count -gt 0
+        if (-not $hasExplicitPatterns) {
+          $patterns = @('**/*Test.csproj', '**/*Tests.csproj')
+        }
+
+        $candidates = if ($hasExplicitPatterns) { $allProjects } else {
+          @($solutionProjects | ForEach-Object { Get-Item -LiteralPath $_ -ErrorAction SilentlyContinue } |
+            Where-Object { $null -ne $_ })
+        }
+
+        $includes = @($patterns | Where-Object { -not $_.StartsWith('!') })
+        $excludes = @($patterns | Where-Object { $_.StartsWith('!') } | ForEach-Object { $_.Substring(1) })
+        $resolved = @()
+        foreach ($project in $candidates) {
+          $included = @($includes | Where-Object { Matches-ProjectPattern -Project $project -Pattern $_ -Root $sourcesDirectory }).Count -gt 0
+          if (-not $included) { continue }
+          $excluded = @($excludes | Where-Object { Matches-ProjectPattern -Project $project -Pattern $_ -Root $sourcesDirectory }).Count -gt 0
+          if (-not $excluded) { $resolved += $project.FullName }
+        }
+
+        $resolved = @($resolved | Sort-Object -Unique)
+        if ($resolved.Count -eq 0) {
+          if ($hasExplicitPatterns) {
+            throw "No .NET test projects matched the configured patterns: $($includes -join ', ')"
+          }
+          Write-Host 'No .NET test projects found. Tests will be skipped.'
+          Write-Host '##vso[task.setvariable variable=TestProjectsFound]false'
+          Write-Host '##vso[task.setvariable variable=ResolvedTestProjects]'
+          exit 0
+        }
+
+        $encoded = ([string]::Join([Environment]::NewLine, $resolved)).Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+        Write-Host "Resolved .NET test projects: $($resolved -join ', ')"
+        Write-Host '##vso[task.setvariable variable=TestProjectsFound]true'
+        Write-Host "##vso[task.setvariable variable=ResolvedTestProjects]$encoded"
+    condition: ${{ parameters.condition }}

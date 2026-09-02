@@ -1,14 +1,22 @@
 # Azure Pipelines Tests
 
-Este directorio contiene tests de comportamiento para plantillas de condicionamiento de jobs:
+Este directorio contiene tests de comportamiento para plantillas de
+condicionamiento de jobs y helpers comunes de .NET:
 
 - `conditioned-job.yml`
 - `conditioned-job-wrapper.yml`
 - `conditioned-stage.yml`
+- `resolve-test-projects-dotnet.yml`
 
 Pipeline de pruebas principal:
 
-- [`azure-pipelines-test.yml`](C:\source\repos\github\qckdev-suite\azure-devops-pipelines\tests\azure-pipelines-test.yml)
+- [`azure-pipelines-test.yml`](azure-pipelines-test.yml)
+
+La stage `TestDotnetTestHelpers` comprueba que la autodetección queda limitada
+a la solución y que `testMode: disabled` no necesita ni valida una solución.
+También valida que `calculate-target-frameworks-dotnet.yml` puede recibir varios
+proyectos, seguir sus referencias y exportar por separado los frameworks
+globales, de test y de publicación.
 
 Plantilla auxiliar usada por el wrapper:
 

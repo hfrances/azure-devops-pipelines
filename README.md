@@ -41,6 +41,28 @@ Canonical alias policy:
 
 For template behavior, branch rules, required variables, and optional files such as `<workingDirectory>/publish-extra-paths.conf` or `.azuredevops/publish-extra-paths.conf`, use the docs linked above.
 
+## .NET test helpers
+
+The `scripts-templates/resolve-test-projects-dotnet.yml` helper discovers test
+projects without requiring a .NET SDK, limits automatic discovery to the
+configured solution, and exports `TestProjectsFound` and
+`ResolvedTestProjects`. The `scripts-templates/test-dotnet-projects.yml` helper
+executes those projects with `dotnet test` and publishes the results.
+
+`calculate-target-frameworks-dotnet.yml` resolves one or more solution/project
+patterns, supports `.sln`, `.slnx`, and `??proj` inputs, follows transitive
+`ProjectReference` files, and processes the resulting graph once. It exports
+separate framework variables for the complete graph, test projects, and the
+optional publish project:
+
+- `BuildParameters.TargetFramework_*`
+- `BuildParameters.TargetFramework_Test_*`
+- `BuildParameters.TargetFramework_Publish_*`
+
+The helper only calculates variables. `UseDotNet` installs any pending SDKs;
+restore, build, test, and publish remain responsibilities of the consuming
+pipeline templates.
+
 ## 📖 Official Documentation
 
 For more details on how to structure and use templates in Azure Pipelines, refer to the official Microsoft documentation:  
