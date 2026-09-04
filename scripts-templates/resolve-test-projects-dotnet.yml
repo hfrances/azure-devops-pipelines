@@ -11,13 +11,16 @@ parameters:
   - name: testMode
     type: string
     default: 'auto'
+  - name: displayName
+    type: string
+    default: 'Get test projects'
   - name: condition
     type: string
     default: succeeded()
 
 steps:
   - task: PowerShell@2
-    displayName: Resolve .NET test projects
+    displayName: ${{ parameters.displayName }}
     inputs:
       pwsh: true
       targetType: inline
@@ -138,3 +141,58 @@ steps:
         Write-Host '##vso[task.setvariable variable=TestProjectsFound]true'
         Write-Host "##vso[task.setvariable variable=ResolvedTestProjects]$encoded"
     condition: ${{ parameters.condition }}
+
+# Documentation
+# - Purpose:
+#   Discover .NET test projects without requiring a .NET SDK and export the
+#   variables consumed by the downstream target-framework and test helpers.
+#
+# - Inputs:
+#   - parameter solutionPath:
+#     `.sln`, `.slnx`, or direct `.*proj` input used to scope automatic
+#     discovery. Defaults to `$(Solution.FullName)`.
+#   - parameter sourcesDirectory:
+#     repository root used for recursive project discovery and pattern matching.
+#   - parameter testProjects:
+#     optional newline-separated include/exclude patterns. A non-empty value
+#     enables repository-wide matching against the supported project candidates.
+#   - parameter testMode:
+#     `auto` performs discovery; `disabled` skips discovery and clears the
+#     exported test variables.
+#   - parameter displayName:
+#     task display name. Defaults to `Get test projects`.
+#   - parameter condition:
+#     Azure Pipelines condition controlling task execution.
+#
+# - Outputs:
+#   - `TestProjectsFound`:
+#     `true` when at least one test project is resolved; otherwise `false`.
+#   - `ResolvedTestProjects`:
+#     newline-separated absolute paths of the resolved test projects.
+#
+# - Resolution rules:
+#   1. Accept a `.sln`, `.slnx`, or direct `.*proj` input.
+#   2. Read `.sln` project entries and `.slnx` `Project/@Path` entries.
+#   3. Exclude `bin` and `obj` paths.
+#   4. When `testProjects` is empty, restrict candidates to projects listed by
+#      the solution and use `**/*Test.csproj` and `**/*Tests.csproj` defaults.
+#   5. The current test-candidate scan enumerates only `*.csproj`; `.vbproj` and
+#      `.fsproj` paths may be read from an input but are not resolved as test
+#      candidates by this helper.
+#   6. When `testProjects` is supplied, apply the configured include and `!`
+#      exclude patterns to the discovered project candidates.
+#   7. Deduplicate resolved paths and sort them before exporting the variables.
+#
+# - Data sources:
+#   1. The supplied solution or project file.
+#   2. Project files under `sourcesDirectory` when explicit patterns are used.
+#
+# - High-level flow:
+#   1. Validate `testMode`, input paths, and the sources directory.
+#   2. Resolve projects from the solution/project input.
+#   3. Apply default or configured test-project patterns.
+#   4. Export the resolved paths and discovery flag for downstream tasks.
+#
+# - Important behavior:
+#   This template only inspects files and exports variables. It does not
+#   restore, build, test, install SDKs, or evaluate project properties.
