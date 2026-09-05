@@ -1,4 +1,7 @@
 parameters:
+  - name: displayName
+    type: string
+    default: 'Set output filename'
   - name: workingDirectory
     type: string
     default: '$(Build.SourcesDirectory)'
@@ -37,5 +40,24 @@ steps:
         }
         Write-Host "##vso[task.setvariable variable=BuildParameters.OutputDirectory]$outputDirectory";
       workingDirectory: '${{ parameters.workingDirectory }}'
-    displayName: 'Set output filename'
+    displayName: ${{ parameters.displayName }}
     condition: ${{ parameters.condition }}
+
+# Documentation
+# - Purpose:
+#   Calculate the package archive name and output directory used by downstream
+#   packaging and artifact-publishing steps.
+# - Inputs:
+#   - parameter displayName:
+#     task display name. Defaults to `Set output filename`.
+#   - parameter workingDirectory:
+#     working directory for the PowerShell task.
+#   - parameter condition:
+#     Azure Pipelines condition controlling task execution.
+# - Outputs:
+#   - `BuildParameters.OutputFile`: package archive file name.
+#   - `BuildParameters.OutputDirectory`: artifact output directory under
+#     `$(Build.ArtifactStagingDirectory)`.
+# - Data sources:
+#   `MainProject.PackageName`, `BuildParameters.DockerVersion`,
+#   `BuildParameters.OutputDirectory`, and `BuildParameters.Directory`.

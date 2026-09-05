@@ -1,4 +1,7 @@
 parameters:
+  - name: displayName
+    type: string
+    default: 'Get test projects'
   - name: solutionPath
     type: string
     default: '$(Solution.FullName)'
@@ -11,9 +14,6 @@ parameters:
   - name: testMode
     type: string
     default: 'auto'
-  - name: displayName
-    type: string
-    default: 'Get test projects'
   - name: condition
     type: string
     default: succeeded()
@@ -148,6 +148,8 @@ steps:
 #   variables consumed by the downstream target-framework and test helpers.
 #
 # - Inputs:
+#   - parameter displayName:
+#     task display name. Defaults to `Get test projects`.
 #   - parameter solutionPath:
 #     `.sln`, `.slnx`, or direct `.*proj` input used to scope automatic
 #     discovery. Defaults to `$(Solution.FullName)`.
@@ -159,8 +161,6 @@ steps:
 #   - parameter testMode:
 #     `auto` performs discovery; `disabled` skips discovery and clears the
 #     exported test variables.
-#   - parameter displayName:
-#     task display name. Defaults to `Get test projects`.
 #   - parameter condition:
 #     Azure Pipelines condition controlling task execution.
 #

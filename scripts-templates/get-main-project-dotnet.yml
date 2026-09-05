@@ -1,4 +1,7 @@
 parameters:
+  - name: displayName
+    type: string
+    default: 'Get main project from Solution'
   - name: solutionPattern
     type: string
     default: '$(BuildParameters.Solution)'
@@ -96,4 +99,24 @@ steps:
           Write-Host "##vso[task.setvariable variable=Solution.NugetConfig]";
         }
       workingDirectory: '${{ parameters.workingDirectory }}'
-    displayName: Get main project from Solution
+    displayName: ${{ parameters.displayName }}
+
+# Documentation
+# - Purpose:
+#   Resolve the solution/project input, select its main project, and export the
+#   solution and NuGet configuration variables used by preparation jobs.
+# - Inputs:
+#   - parameter displayName:
+#     task display name. Defaults to `Get main project from Solution`.
+#   - parameter solutionPattern:
+#     path or pattern resolving exactly one `.sln`, `.slnx`, or direct `.*proj`.
+#   - parameter workingDirectory:
+#     working directory for the PowerShell task.
+# - Outputs:
+#   - `Solution.FullName`
+#   - `MainProject.FullName`
+#   - `Solution.NugetFeedToUse`
+#   - `Solution.NugetConfig`
+# - Resolution rules:
+#   For a solution, the first project entry is selected as the main project.
+#   Multiple matching solution files and unsupported extensions fail the task.

@@ -1,13 +1,16 @@
 parameters:
-  - name: condition
+  - name: displayName
     type: string
-    default: succeededOrFailed()
+    default: 'Export variable list'
   - name: path
     type: string
     default: '$(Build.ArtifactStagingDirectory)/drop'
   - name: fileName
     type: string
     default: ''
+  - name: condition
+    type: string
+    default: succeededOrFailed()
 
 steps:
   - task: PowerShell@2
@@ -44,23 +47,25 @@ steps:
         set-content $fileName $out
 
         Write-Host "##vso[task.addattachment type=Distributedtask.Core.Summary;name=Environment Variables ($env:SYSTEM_JOBDISPLAYNAME);]$fileName"
-    displayName: 'Export variable list'
+    displayName: ${{ parameters.displayName }}
     condition: ${{ parameters.condition }}
 
   # Documentation
   # - Purpose:
   #   Export all agent environment variables to a markdown file and attach it to the
   #   pipeline summary. Keeps file naming and placement configurable via parameters.
-  # - Outputs:
-  #   - A markdown file written to the configured `path`.
-  #   - A pipeline summary attachment referencing the written file.
   # - Inputs:
-  #   - parameter condition:
-  #     execution condition for the step (default: succeededOrFailed()).
+  #   - parameter displayName:
+  #     task display name. Defaults to `Export variable list`.
   #   - parameter path:
   #     output folder path where the file is written (defaults to `$(Build.ArtifactStagingDirectory)/drop`).
   #   - parameter fileName:
   #     file name to write. If empty, defaults to `variable-list-$SYSTEM_PHASENAME.md`.
+  #   - parameter condition:
+  #     execution condition for the step (default: succeededOrFailed()).
+  # - Outputs:
+  #   - A markdown file written to the configured `path`.
+  #   - A pipeline summary attachment referencing the written file.
   # - Behavior:
   #   - Expands `$(Build.ArtifactStagingDirectory)` when present in `path`.
   #   - Ensures the target directory exists (creates it if missing).

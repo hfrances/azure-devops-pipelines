@@ -1,4 +1,7 @@
 parameters:
+  - name: displayName
+    type: string
+    default: 'Audit: CancellationToken'
   - name: sourcesDirectory
     type: string
     default: '$(Build.SourcesDirectory)'
@@ -94,5 +97,24 @@ steps:
         }
 
         Write-Host "##vso[task.logissue type=warning]Cancellation audit completed with violations (failOnViolations=false)."
-    displayName: 'Audit: CancellationToken'
+    displayName: ${{ parameters.displayName }}
     condition: ${{ parameters.condition }}
+
+# Documentation
+# - Purpose:
+#   Audit C# asynchronous public, internal, and protected methods for a
+#   `CancellationToken` parameter.
+# - Inputs:
+#   - parameter displayName:
+#     task display name. Defaults to `Audit: CancellationToken`.
+#   - parameter sourcesDirectory:
+#     repository root to scan recursively for C# files.
+#   - parameter failOnViolations:
+#     when true, violations fail the task; otherwise they are warnings.
+#   - parameter condition:
+#     Azure Pipelines condition controlling task execution.
+# - Outputs:
+#   Audit messages and Azure DevOps warnings/errors for detected violations.
+# - Important behavior:
+#   `bin`, `obj`, examples, test files, overrides, middleware invocation methods,
+#   and supported authentication-handler exceptions are excluded.

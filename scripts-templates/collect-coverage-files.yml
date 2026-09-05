@@ -1,4 +1,7 @@
 parameters:
+  - name: displayName
+    type: string
+    default: 'Coverage: Collect files'
   - name: condition
     type: string
     default: eq(variables.HasTests, 'true')
@@ -29,5 +32,18 @@ steps:
           Copy-Item $_ $(Agent.TempDirectory); 
         }
         Write-Host "##vso[task.setvariable variable=CoverageResults]$coverageResults"
-    displayName: 'Coverage: Collect files'
+    displayName: ${{ parameters.displayName }}
     condition: ${{ parameters.condition }}
+
+# Documentation
+# - Purpose:
+#   Find generated Cobertura coverage files, copy them to the agent temporary
+#   directory, and expose the files for downstream coverage tasks.
+# - Inputs:
+#   - parameter displayName:
+#     task display name. Defaults to `Coverage: Collect files`.
+#   - parameter condition:
+#     Azure Pipelines condition controlling task execution.
+# - Outputs:
+#   - `CoverageResults`: semicolon-separated list of collected coverage paths.
+#   - Matching files copied to `$(Agent.TempDirectory)`.

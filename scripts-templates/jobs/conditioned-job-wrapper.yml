@@ -66,3 +66,39 @@ jobs:
       # =========================================================
       ${{ each pair in parameters.parameters }}:
         ${{ pair.key }}: ${{ pair.value }}
+
+# Documentation
+# - Purpose:
+#   Adapt an existing job template so it can be executed conditionally from
+#   dependency outputs without duplicating dependency and variable wiring.
+# - Inputs:
+#   - parameter template:
+#     job template path to invoke.
+#   - parameter parameters:
+#     object passed unchanged to the selected job template.
+#   - parameter conditionalStage:
+#     optional stage containing the dependency job. Empty means same stage.
+#   - parameter conditionalJob:
+#     dependency job that publishes the condition and mapped outputs.
+#   - parameter conditionalTask:
+#     named step that publishes the output variables.
+#   - parameter conditionalVariable:
+#     optional output variable used to decide whether the job runs.
+#   - parameter mappingVariables:
+#     mapping of local variable names to dependency output names.
+#   - parameter additionalVariables:
+#     variables injected directly into the target job.
+#   - parameter dependsOn:
+#     additional jobs the target job must depend on.
+#   - parameter condition:
+#     base Azure Pipelines condition applied to the target job.
+# - Behavior:
+#   - Adds dependency output mappings to the target job variables.
+#   - Combines `condition` with `conditionalVariable` when configured.
+#   - Forwards the supplied template parameters after injecting the wrapper
+#     variables and condition.
+# - High-level flow:
+#   1. Resolve same-stage or cross-stage dependency paths.
+#   2. Inject direct and mapped variables into the target job.
+#   3. Add the required and additional dependencies.
+#   4. Apply the generated condition and expand the target template.

@@ -31,6 +31,7 @@ Allowed exceptions:
 
 | Param | Default |
 | --- | --- |
+| `displayName` | `Audit: CancellationToken` |
 | `sourcesDirectory` | `$(Build.SourcesDirectory)` |
 | `failOnViolations` | `true` |
 | `condition` | `succeeded()` |

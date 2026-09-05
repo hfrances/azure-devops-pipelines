@@ -1,4 +1,7 @@
 parameters:
+  - name: displayName
+    type: string
+    default: ''
   - name: tag
     type: string
   - name: tagPrefix
@@ -113,7 +116,7 @@ steps:
           Write-Host "Adding build tag: $tagName"
           Add-BuildTag -TagName $tagName
         }
-    displayName: Mark as ${{ parameters.tag }}
+    displayName: ${{ coalesce(parameters.displayName, format('Mark as {0}', parameters.tag)) }}
     condition: ${{ parameters.condition }}
 
   # Documentation
@@ -121,6 +124,8 @@ steps:
   #   Add a lifecycle tag to the current build or to the build identified by
   #   `buildId`, and expose the generated tag state as a pipeline variable.
   # - Inputs:
+  #   - parameter displayName:
+  #     optional task display name. When empty, defaults to `Mark as <tag>`.
   #   - parameter tag:
   #     required lifecycle tag name, for example `built` or `published`.
   #   - parameter tagPrefix:

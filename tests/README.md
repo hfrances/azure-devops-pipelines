@@ -7,6 +7,7 @@ condicionamiento de jobs y helpers comunes de .NET:
 - `conditioned-job-wrapper.yml`
 - `conditioned-stage.yml`
 - `resolve-test-projects-dotnet.yml`
+- `get-project-properties-node.yml`
 
 Pipeline de pruebas principal:
 
@@ -28,6 +29,7 @@ Plantilla auxiliar usada por el wrapper:
 - [Matriz de tests (`TestSingle`)](#matriz-de-tests-testsingle)
 - [Matriz de tests (`TestCombi`)](#matriz-de-tests-testcombi)
 - [Stages template (`StageSingle` y `StageCombi`)](#stages-template-stagesingle-y-stagecombi)
+- [Helpers de proyectos Node](#helpers-de-proyectos-node)
 - [Verificación final de stages](#verificación-final-de-stages)
 - [Parámetros de inversión](#parámetros-de-inversión)
 - [Validaciones clave](#validaciones-clave)
@@ -104,6 +106,13 @@ Además de los tests de jobs, el pipeline ejecuta dos stages creados con la temp
   - Condición por output: `PreparationCombi.PrepareCombi.SetSummary.isTestedSummary`.
   - Incluye `StageCombiMarker` y publica output `stageCombiExecuted=true`.
 
+## Helpers de proyectos Node
+
+La stage `TestNodeProjectHelpers` crea un `package.json` y un `Dockerfile` de
+prueba, consume `get-project-properties-node.yml` y comprueba las variables
+exportadas para nombre, versión, descripción, script de test, gestor de
+paquetes, Dockerfile y directorio de trabajo.
+
 ## Verificación final de stages
 
 Stage `VerifyTemplatedStages` valida explícitamente que:
@@ -136,6 +145,7 @@ El pipeline expone estos parámetros para forzar escenarios:
   - `conditioned-job.yml`
   - `conditioned-job-wrapper.yml`
 - La ejecución condicional a nivel stage también se valida con `conditioned-stage.yml`.
+- `get-project-properties-node.yml` exporta correctamente las propiedades del proyecto Node y sus rutas auxiliares.
 - El stage de test se ejecuta con `not(canceled())` para capturar regresiones aunque existan fallos previos.
 
 ## Criterio de fallo

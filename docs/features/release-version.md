@@ -16,9 +16,12 @@ It also adds build tags with those values.
 
 | Param | Default | Meaning |
 | --- | --- | --- |
+| `displayName` | `Calculate release version` | task display name |
 | `ProjectVersion` | `$(MainProject.Version)` | Source version read from the main project |
-| `condition` | `succeeded()` | Azure Pipelines condition |
 | `calculateAssemblyVersion` | `true` | Whether to calculate and set `ReleaseAssemblyVersion` (useful for .NET projects) |
+| `isPackage` | `false` | Whether to calculate and export `PackageVersion` |
+| `tagPrefix` | `''` | Optional prefix applied to generated build tags |
+| `condition` | `succeeded()` | Azure Pipelines condition |
 
 ## Output Variables
 

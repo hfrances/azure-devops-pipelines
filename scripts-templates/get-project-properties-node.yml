@@ -1,11 +1,14 @@
 parameters:
+  - name: displayName
+    type: string
+    default: 'Get main Node project properties'
   - name: workingDirectory
     type: string
     default: '.'
 
 steps:
   - task: PowerShell@2
-    displayName: Get main Node project properties
+    displayName: ${{ parameters.displayName }}
     inputs:
       pwsh: true
       targetType: inline
@@ -60,6 +63,14 @@ steps:
           exit 1
         }
 
+        Write-Host "Package name: $packageName"
+        Write-Host "Version: $version"
+        Write-Host "Description: $description"
+        Write-Host "Has test script: $hasTests"
+        Write-Host "Package manager: $packageManager"
+        Write-Host "Dockerfile: $dockerfilePath"
+        Write-Host "Working directory: $($packageJsonFile.Directory.FullName)"
+
         Write-Host "##vso[task.setvariable variable=MainProject.FullName]$($packageJsonFile.FullName)"
         Write-Host "##vso[task.setvariable variable=MainProject.Version]$version"
         Write-Host "##vso[task.setvariable variable=MainProject.PackageName]$packageName"
@@ -68,3 +79,27 @@ steps:
         Write-Host "##vso[task.setvariable variable=NodeProject.PackageManager]$packageManager"
         Write-Host "##vso[task.setvariable variable=NodeProject.DockerfilePath]$dockerfilePath"
         Write-Host "##vso[task.setvariable variable=NodeProject.WorkingDirectory]$($packageJsonFile.Directory.FullName)"
+
+# Documentation
+# - Purpose:
+#   Read the main Node package manifest, validate its Dockerfile, display the
+#   detected properties, and export them for downstream build tasks.
+# - Inputs:
+#   - parameter displayName:
+#     task display name. Defaults to `Get main Node project properties`.
+#   - parameter workingDirectory:
+#     component directory containing `package.json` and `Dockerfile`.
+# - Outputs:
+#   - `MainProject.FullName`
+#   - `MainProject.PackageName`
+#   - `MainProject.Version`
+#   - `MainProject.Description`
+#   - `NodeProject.HasTestScript`
+#   - `NodeProject.PackageManager`
+#   - `NodeProject.DockerfilePath`
+#   - `NodeProject.WorkingDirectory`
+# - Resolution rules:
+#   The package manager is read from `packageManager` or inferred from the lock
+#   file, defaulting to `pnpm`; a missing version defaults to `0.1.0`.
+# - Important behavior:
+#   The task fails when `package.json` or `Dockerfile` is missing.

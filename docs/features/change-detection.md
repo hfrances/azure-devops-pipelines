@@ -25,13 +25,19 @@ If `tagSuffix` is set, it compares against:
 
 | Param | Default | Meaning |
 | --- | --- | --- |
+| `taskName` | `''` | optional explicit task name |
+| `displayName` | `Detect changes` | task display name |
 | `enabled` | `true` | enables/disables detector logic; when `false`, both affected flags are set to `true` |
 | `workingDirectory` | `''` | optional base folder used to scope git changes and resolve relative paths |
 | `solutionPath` | `$(Solution.FullName)` | solution for `dotnet-affected` |
 | `tagSuffix` | `''` | optional suffix for tags like `compiled-api` / `published-api` |
-| `publishExtraMode` | `none` | `aspnet` enables extra non-project publish files |
+| `tagPrefix` | `''` | optional prefix applied to the tags |
+| `definitionKey` | `''` | optional pipeline definition selector for baseline lookup |
+| `definitionBranch` | `$(Build.SourceBranch)` | branch used for baseline lookup |
 | `includedPatterns` | `[]` | optional wildcard patterns that replace the default ASP.NET extra include list |
 | `excludedPatterns` | `[]` | optional wildcard patterns that replace the default ASP.NET extra exclude list |
+| `outputVariables` | `{}` | optional mapping of external output names to internal variables |
+| `publishExtraMode` | `none` | `aspnet` enables extra non-project publish files |
 
 ## .NET Outputs
 
@@ -149,11 +155,17 @@ If detection breaks, it fails open:
 
 | Param | Default | Meaning |
 | --- | --- | --- |
+| `taskName` | `''` | optional explicit task name |
+| `displayName` | `Detect changes` | task display name |
 | `enabled` | `true` | enables/disables detector logic; when `false`, both affected flags are set to `true` |
 | `workingDirectory` | `''` | optional subtree used to scope git changes |
 | `tagSuffix` | `''` | optional suffix for tags like `compiled-ui` / `published-ui` |
+| `tagPrefix` | `''` | optional prefix applied to the tags |
+| `definitionKey` | `''` | optional pipeline definition selector for baseline lookup |
+| `definitionBranch` | `$(Build.SourceBranch)` | branch used for baseline lookup |
 | `includedPatterns` | `[]` | optional wildcard patterns that replace the implicit include default |
 | `excludedPatterns` | `[]` | optional wildcard patterns that replace the default exclude list |
+| `outputVariables` | `{}` | optional mapping of external output names to internal variables |
 
 `prepare-path-change-git.yml` also supports:
 - `jobName`

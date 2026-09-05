@@ -103,16 +103,13 @@ steps:
 #   - changed-files report files
 #
 # - Inputs:
+#   - parameter taskName:
+#     optional explicit task name.
+#   - parameter displayName:
+#     task display name supplied by the caller.
 #   - parameter enabled:
 #     turns change detection on/off. When false, the template falls back to the legacy
 #     behavior: always build and always publish.
-#   - parameter definitionKey:
-#     optional pipeline definition selector for baseline lookup.
-#     - if numeric, it is treated as `definitionId`
-#     - otherwise, it is treated as `definitionName`
-#     - if empty, uses the current running definition id/name
-#   - parameter definitionBranch:
-#     branch used for baseline lookup. Defaults to `$(Build.SourceBranch)`.
 #   - parameter workingDirectory:
 #     optional subtree used to scope `git diff` before any build/publish decision is made.
 #     This is especially useful in monorepos so unrelated components do not contaminate
@@ -123,6 +120,15 @@ steps:
 #     - `published`
 #     - `built-ui`
 #     - `published-ui`
+#   - parameter tagPrefix:
+#     optional prefix applied to the built/published tags.
+#   - parameter definitionKey:
+#     optional pipeline definition selector for baseline lookup.
+#     - if numeric, it is treated as `definitionId`
+#     - otherwise, it is treated as `definitionName`
+#     - if empty, uses the current running definition id/name
+#   - parameter definitionBranch:
+#     branch used for baseline lookup. Defaults to `$(Build.SourceBranch)`.
 #   - parameter includedPatterns:
 #     optional wildcard patterns for include matching.
 #   - parameter excludedPatterns:

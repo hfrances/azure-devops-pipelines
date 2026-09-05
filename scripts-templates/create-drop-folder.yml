@@ -1,4 +1,7 @@
 parameters:
+  - name: displayName
+    type: string
+    default: "Create 'drop' folder"
   - name: condition
     type: string
     default: succeededOrFailed()
@@ -13,5 +16,20 @@ steps:
         if (!(Test-Path $path)) {
           New-Item -itemType Directory -Path '$(Build.ArtifactStagingDirectory)' -Name 'drop';
         }
-    displayName: Create 'drop' folder
+    displayName: ${{ parameters.displayName }}
     condition: ${{ parameters.condition }}
+
+# Documentation
+# - Purpose:
+#   Ensure that `$(Build.ArtifactStagingDirectory)/drop` exists for generated
+#   artifacts and preparation outputs.
+# - Inputs:
+#   - parameter displayName:
+#     task display name. Defaults to `Create 'drop' folder`.
+#   - parameter condition:
+#     Azure Pipelines condition controlling task execution.
+# - Outputs:
+#   The `drop` directory under `$(Build.ArtifactStagingDirectory)`.
+# - High-level flow:
+#   1. Check whether the target directory exists.
+#   2. Create it when it is missing.

@@ -1,4 +1,7 @@
 parameters:
+  - name: displayName
+    type: string
+    default: 'Apply release version to package.json'
   - name: workingDirectory
     type: string
     default: '$(Build.SourcesDirectory)'
@@ -30,5 +33,22 @@ steps:
         $json | ConvertTo-Json -Depth 100 | Set-Content $packageJsonPath
         Write-Host "Updated package.json version to: $version"
       workingDirectory: ${{ parameters.workingDirectory }}
-    displayName: Apply release version to package.json
+    displayName: ${{ parameters.displayName }}
     condition: ${{ parameters.condition }}
+
+# Documentation
+# - Purpose:
+#   Update the `version` field in the Node package manifest with the calculated
+#   release version.
+# - Inputs:
+#   - parameter displayName:
+#     task display name. Defaults to `Apply release version to package.json`.
+#   - parameter workingDirectory:
+#     component directory containing `package.json`.
+#   - parameter condition:
+#     Azure Pipelines condition controlling task execution.
+# - Data sources:
+#   `BuildParameters.ReleaseVersion` and `package.json` in `workingDirectory`.
+# - Important behavior:
+#   If no release version is available, the task logs a warning and leaves the
+#   manifest unchanged.

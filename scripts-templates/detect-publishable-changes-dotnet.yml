@@ -127,16 +127,13 @@ steps:
 #   - affected project graph files (dotnet detector)
 #
 # - Inputs:
+#   - parameter taskName:
+#     optional explicit task name.
+#   - parameter displayName:
+#     task display name supplied by the caller.
 #   - parameter enabled:
 #     turns change detection on/off. When false, the template falls back to the legacy
 #     behavior: always build, and publish only if branch/config says so.
-#   - parameter definitionKey:
-#     optional pipeline definition selector for baseline lookup.
-#     - if numeric, it is treated as `definitionId`
-#     - otherwise, it is treated as `definitionName`
-#     - if empty, uses the current running definition id/name
-#   - parameter definitionBranch:
-#     branch used for baseline lookup. Defaults to `$(Build.SourceBranch)`.
 #   - parameter workingDirectory:
 #     optional subtree used to scope `git diff` before any build/publish decision is made.
 #     This is especially useful in monorepos so unrelated components do not contaminate
@@ -151,14 +148,21 @@ steps:
 #     - `published`
 #     - `built-api`
 #     - `published-api`
+#   - parameter tagPrefix:
+#     optional prefix applied to the built/published tags.
+#   - parameter definitionKey:
+#     optional pipeline definition selector for baseline lookup.
+#     - if numeric, it is treated as `definitionId`
+#     - otherwise, it is treated as `definitionName`
+#     - if empty, uses the current running definition id/name
+#   - parameter definitionBranch:
+#     branch used for baseline lookup. Defaults to `$(Build.SourceBranch)`.
 #   - parameter includedPatterns:
 #     optional wildcard patterns that replace the default ASP.NET extra include list
 #     before any override file is applied.
 #   - parameter excludedPatterns:
 #     optional wildcard patterns that replace the default ASP.NET extra exclude list
 #     before any override file is applied.
-#   - parameter publishExtraMode:
-#     "aspnet" enables extra publish-only file checks outside the .NET project graph.
 #   - parameter outputVariables:
 #     optional output remap dictionary using `externalVariable: internalVariable`.
 #     Internal names supported by this template:
@@ -168,6 +172,8 @@ steps:
 #     - `HasAffectedPublishProjects`
 #     If internal value is empty/null, external key name is used as fallback.
 #     Resolution uses current task local variables + internal output map.
+#   - parameter publishExtraMode:
+#     "aspnet" enables extra publish-only file checks outside the .NET project graph.
 #
 # - Parity note (two levels):
 #   DO NOT DIVERGE: keep shared-contract rules aligned across the 3 detector templates.

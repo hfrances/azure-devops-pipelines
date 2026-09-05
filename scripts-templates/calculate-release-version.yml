@@ -1,4 +1,7 @@
 parameters:
+  - name: displayName
+    type: string
+    default: 'Calculate release version'
   - name: ProjectVersion
     type: string
     default: '$(MainProject.Version)'
@@ -134,5 +137,29 @@ steps:
         else {
           write-error "Invalid version format for: $ProjectVersion";
         }
-    displayName: 'Calculate release version'
+    displayName: ${{ parameters.displayName }}
     condition: ${{ parameters.condition }}
+
+# Documentation
+# - Purpose:
+#   Calculate the release, package, Docker, and optional assembly versions from
+#   the project version and the current branch/build context.
+# - Inputs:
+#   - parameter displayName:
+#     task display name. Defaults to `Calculate release version`.
+#   - parameter ProjectVersion:
+#     source version. Defaults to `$(MainProject.Version)`.
+#   - parameter calculateAssemblyVersion:
+#     whether to export an assembly version including the build id.
+#   - parameter isPackage:
+#     whether to export the package version.
+#   - parameter tagPrefix:
+#     optional prefix applied to generated build tags.
+#   - parameter condition:
+#     Azure Pipelines condition controlling task execution.
+# - Outputs:
+#   - `BuildParameters.ReleaseVersion`
+#   - `BuildParameters.DockerVersion`
+#   - `BuildParameters.DockerAlias`
+#   - `BuildParameters.PackageVersion` when `isPackage=true`.
+#   - `BuildParameters.ReleaseAssemblyVersion` when enabled.

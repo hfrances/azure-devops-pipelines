@@ -1,14 +1,7 @@
-# Resolve the projects that should be packed by a .NET library component.
-#
-# Resolution rules:
-# - explicitProjectsJson, when non-empty, is authoritative and may contain a
-#   scalar project path or an array of project paths;
-# - otherwise, enumerate projects in solutionPath;
-# - exclude projects with IsTestProject=true or IsPackable=false;
-# - an omitted IsPackable property is treated as packable, matching the normal
-#   SDK-style project default.
-
 parameters:
+  - name: displayName
+    type: string
+    default: 'Resolve packable .NET projects'
   - name: solutionPath
     type: string
     default: '$(Solution.FullName)'
@@ -21,7 +14,7 @@ parameters:
 
 steps:
   - task: PowerShell@2
-    displayName: Resolve packable .NET projects
+    displayName: ${{ parameters.displayName }}
     inputs:
       pwsh: true
       targetType: inline
@@ -160,3 +153,29 @@ steps:
         $encodedPackProjects = $packProjects.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
         Write-Host "##vso[task.setvariable variable=BuildParameters.PackProjects]$encodedPackProjects"
         Write-Host "##vso[task.setvariable variable=PackProjectsCount]$(@($resolvedProjects).Count)"
+
+# Documentation
+# - Purpose:
+#   Resolve the projects that should be packed by a .NET library component.
+# - Inputs:
+#   - parameter displayName:
+#     task display name. Defaults to `Resolve packable .NET projects`.
+#   - parameter solutionPath:
+#     solution or project input used for automatic discovery.
+#   - parameter explicitProjectsJson:
+#     optional JSON scalar or array of project paths. When non-empty it is
+#     authoritative.
+#   - parameter sourcesDirectory:
+#     repository root used to resolve relative paths.
+# - Outputs:
+#   - `BuildParameters.PackProjects`: newline-separated packable project paths.
+#   - `PackProjectsCount`: number of resolved projects.
+# - Resolution rules:
+#   - `explicitProjectsJson`, when non-empty, is authoritative.
+#   - Otherwise, projects are enumerated from `solutionPath`.
+#   - Projects with `IsTestProject=true` or `IsPackable=false` are excluded.
+#   - An omitted `IsPackable` property is treated as packable.
+# - High-level flow:
+#   1. Parse explicit project JSON when supplied.
+#   2. Otherwise read projects from the solution/project input.
+#   3. Exclude test and non-packable projects and export the result.

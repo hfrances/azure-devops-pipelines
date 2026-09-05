@@ -1,4 +1,7 @@
 parameters:
+  - name: displayName
+    type: string
+    default: 'Apply public frontend env vars'
   - name: workingDirectory
     type: string
     default: '.'
@@ -26,7 +29,7 @@ parameters:
 
 steps:
   - task: PowerShell@2
-    displayName: Apply public frontend env vars
+    displayName: ${{ parameters.displayName }}
     inputs:
       pwsh: true
       targetType: inline
@@ -180,6 +183,8 @@ steps:
   #   Materialize selected public frontend environment variables into a `.env`-style
   #   file before the Node build runs.
   # - Inputs:
+  #   - parameter displayName:
+  #     task display name. Defaults to `Apply public frontend env vars`.
   #   - parameter workingDirectory:
   #     component root where the env file lives.
   #   - parameter envFile:

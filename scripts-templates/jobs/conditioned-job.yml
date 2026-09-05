@@ -75,3 +75,39 @@ jobs:
     # Inject the real steps
     # =========================================================
     steps: ${{ parameters.steps }}
+
+# Documentation
+# - Purpose:
+#   Generate a job that imports variables from direct dependencies and applies
+#   a condition based on an optional dependency output variable.
+# - Inputs:
+#   - parameter jobName:
+#     generated job name. Defaults to `Job`.
+#   - parameter displayName:
+#     optional job display name. When empty, `jobName` is used.
+#   - parameter conditionalStage:
+#     optional source stage. When empty, job-level `dependencies` are used.
+#   - parameter conditionalJob:
+#     source job whose outputs are consumed.
+#   - parameter conditionalTask:
+#     source task name for output lookup. Defaults to `SetOutputs`.
+#   - parameter conditionalVariable:
+#     optional boolean output used to enable the generated job.
+#   - parameter mappingVariables:
+#     map of local variable names to source output names.
+#   - parameter additionalVariables:
+#     direct variables injected into the generated job.
+#   - parameter dependsOn:
+#     additional job dependencies appended to the conditional dependency.
+#   - parameter condition:
+#     base Azure Pipelines condition. Defaults to `succeeded()`.
+#   - parameter steps:
+#     `stepList` injected as the body of the generated job.
+# - Outputs:
+#   - A job named `jobName` with the resolved variables, dependencies, condition,
+#     and supplied steps.
+# - High-level flow:
+#   1. Inject direct and dependency-derived variables.
+#   2. Build dependencies for the source job and additional dependencies.
+#   3. Combine `condition` with `conditionalVariable` when configured.
+#   4. Inject the supplied `steps` into the generated job.

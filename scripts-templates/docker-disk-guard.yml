@@ -1,7 +1,7 @@
 parameters:
-  - name: condition
+  - name: displayName
     type: string
-    default: succeededOrFailed()
+    default: 'Docker disk guard'
   - name: enabled
     type: boolean
     default: true
@@ -23,10 +23,13 @@ parameters:
   - name: failOnError
     type: boolean
     default: false
+  - name: condition
+    type: string
+    default: succeededOrFailed()
 
 steps:
   - task: PowerShell@2
-    displayName: Docker disk guard
+    displayName: ${{ parameters.displayName }}
     condition: ${{ parameters.condition }}
     inputs:
       pwsh: true
@@ -136,8 +139,8 @@ steps:
       #   configurable strategy (`off`, `threshold`, `always`).
       #
       # - Inputs:
-      #   - parameter `condition`:
-      #     step execution condition.
+      #   - parameter displayName:
+      #     task display name. Defaults to `Docker disk guard`.
       #   - parameter `enabled`:
       #     global switch for this guard.
       #   - parameter `thresholdPercent`:
@@ -152,6 +155,8 @@ steps:
       #     executes `docker system prune -af --volumes` when prune is triggered.
       #   - parameter `failOnError`:
       #     when true, command failures fail the step.
+      #   - parameter `condition`:
+      #     step execution condition.
       #
       # - Outputs:
       #   - `Cleanup.DiskPercent`:

@@ -1,4 +1,7 @@
 parameters:
+  - name: displayName
+    type: string
+    default: 'Calculate target frameworks'
   - name: supportedFrameworks
     type: string
     default: '$(SupportedFrameworks)'
@@ -371,7 +374,7 @@ steps:
         if ($taskHasIssues) {
           Write-Host '##vso[task.complete result=SucceededWithIssues;]Calculate target frameworks completed with warnings.'
         }
-    displayName: Calculate target frameworks
+    displayName: ${{ parameters.displayName }}
     condition: ${{ parameters.condition }}
 
 # Documentation
@@ -383,6 +386,8 @@ steps:
 #   publish project.
 #
 # - Inputs:
+#   - parameter displayName:
+#     task display name. Defaults to `Calculate target frameworks`.
 #   - parameter supportedFrameworks:
 #     semicolon-separated framework versions supported by the pipeline, for
 #     example `10.0;8.0;6.0`. It is used only to calculate pending SDK variables.

@@ -144,6 +144,11 @@ steps:
 #   - `Pending` (`true` when candidate was found)
 #
 # - Inputs:
+#   - parameter taskName:
+#     optional explicit task name.
+#   - parameter displayName:
+#     optional task display name. When empty, it is generated from the tag
+#     prefix, tag, and suffix.
 #   - parameter tag:
 #     base tag to search (required).
 #   - parameter tagPrefix:

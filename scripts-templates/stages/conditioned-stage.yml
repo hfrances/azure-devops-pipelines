@@ -66,5 +66,41 @@ stages:
 
     # =========================================================
     # Inject the real jobs
-    # =========================================================    
+    # =========================================================
     jobs: ${{ parameters.jobs }}
+
+# Documentation
+# - Purpose:
+#   Generate a stage that imports variables from a previous stage and applies
+#   a condition based on an optional dependency output variable.
+# - Inputs:
+#   - parameter stageName:
+#     generated stage name. Defaults to `Stage`.
+#   - parameter displayName:
+#     optional stage display name. When empty, `stageName` is used.
+#   - parameter conditionalStage:
+#     optional source stage whose outputs are consumed.
+#   - parameter conditionalJob:
+#     source job name inside `conditionalStage`.
+#   - parameter conditionalTask:
+#     source task name for output lookup. Defaults to `SetOutputs`.
+#   - parameter conditionalVariable:
+#     optional boolean output used to enable the generated stage.
+#   - parameter mappingVariables:
+#     map of local variable names to source output names.
+#   - parameter additionalVariables:
+#     variable entries injected into the generated stage.
+#   - parameter dependsOn:
+#     additional stage dependencies appended to the conditional dependency.
+#   - parameter condition:
+#     base Azure Pipelines condition. Defaults to `succeeded()`.
+#   - parameter jobs:
+#     `jobList` injected as the body of the generated stage.
+# - Outputs:
+#   - A stage named `stageName` with the resolved variables, dependencies,
+#     condition, and supplied jobs.
+# - High-level flow:
+#   1. Inject direct and dependency-derived variables.
+#   2. Build dependencies for the source stage and additional dependencies.
+#   3. Combine `condition` with `conditionalVariable` when configured.
+#   4. Inject the supplied `jobs` into the generated stage.

@@ -1,4 +1,7 @@
 parameters:
+  - name: displayName
+    type: string
+    default: 'Coverage: Check if there are test projects'
   - name: testResultsDirectory
     type: string
     default: '$(Build.SourcesDirectory)/TestResults'
@@ -22,5 +25,19 @@ steps:
         }
         Write-Host "HasTests: $hasTests";
         Write-Host "##vso[task.setvariable variable=HasTests]$hasTests";
-    displayName: 'Coverage: Check if there are test projects'
+    displayName: ${{ parameters.displayName }}
     condition: ${{ parameters.condition }}
+
+# Documentation
+# - Purpose:
+#   Determine whether the configured test-results directory contains files.
+# - Inputs:
+#   - parameter displayName:
+#     task display name. Defaults to `Coverage: Check if there are test projects`.
+#   - parameter testResultsDirectory:
+#     directory inspected for test result files.
+#   - parameter condition:
+#     Azure Pipelines condition controlling task execution.
+# - Outputs:
+#   - `HasTests`: `true` when the directory contains one or more files;
+#     otherwise `false`.

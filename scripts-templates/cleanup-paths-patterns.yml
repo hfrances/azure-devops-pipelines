@@ -1,7 +1,4 @@
 parameters:
-  - name: condition
-    type: string
-    default: succeededOrFailed()
   - name: displayName
     type: string
     default: Cleanup
@@ -29,6 +26,9 @@ parameters:
   - name: failOnError
     type: boolean
     default: false
+  - name: condition
+    type: string
+    default: succeededOrFailed()
 
 steps:
   - task: PowerShell@2
@@ -207,8 +207,6 @@ steps:
 #   deletion from a single descriptive template.
 #
 # - Inputs:
-#   - parameter `condition`:
-#     step execution condition.
 #   - parameter `displayName`:
 #     display name shown in the pipeline step.
 #   - parameter `mode`:
@@ -228,6 +226,8 @@ steps:
 #     when true, pattern cleanup scans subfolders.
 #   - parameter `failOnError`:
 #     when true, cleanup errors fail the step.
+#   - parameter `condition`:
+#     step execution condition.
 #
 # - Outputs:
 #   - `Cleanup.PathsDeletedBytes`:

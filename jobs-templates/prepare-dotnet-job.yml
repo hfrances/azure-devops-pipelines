@@ -102,3 +102,36 @@ jobs:
           pathtoPublish: '$(Build.ArtifactStagingDirectory)/drop'
           artifactName: 'drop-prepare'
         condition: succeededOrFailed()
+
+# Documentation
+# - Purpose:
+#   Prepare a .NET component by resolving its solution and main project,
+#   calculating project metadata and change detection, and publishing the
+#   preparation outputs as a job artifact.
+# - Inputs:
+#   - parameter jobName:
+#     optional generated job name.
+#   - parameter displayName:
+#     generated job display name. Defaults to `Prepare`.
+#   - parameter prefix / suffix:
+#     optional tokens used for generated job names and build tags.
+#   - parameter solutionPattern:
+#     solution or project input used to resolve the main project.
+#   - parameter workingDirectory:
+#     component directory relative to the sources directory.
+#   - parameter includedPatterns / excludedPatterns:
+#     optional change-detection path patterns.
+#   - parameter publishChangeDetection:
+#     enables or disables change detection.
+#   - parameter publishExtraMode:
+#     optional extra publish detection mode; supported value: `aspnet`.
+# - Outputs:
+#   - Job output variables exported by `ExportPreparation` for solution,
+#     project, and build-parameter metadata.
+#   - `drop-prepare` artifact containing the exported variable list and other
+#     preparation files.
+# - High-level flow:
+#   1. Checkout the repository with full history and create the drop folder.
+#   2. Resolve the solution/main project and its .NET properties.
+#   3. Run optional publishable-change detection.
+#   4. Export preparation variables and publish the preparation artifact.

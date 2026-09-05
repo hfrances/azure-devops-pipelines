@@ -1,3 +1,8 @@
+parameters:
+  - name: displayName
+    type: string
+    default: 'Get main project properties'
+
 steps:
   - task: PowerShell@2
     inputs:
@@ -41,4 +46,18 @@ steps:
         if ($taskHasIssues) {
           Write-Host "##vso[task.complete result=SucceededWithIssues;]Get main project properties completed with warnings.";
         }
-    displayName: Get main project properties
+    displayName: ${{ parameters.displayName }}
+
+# Documentation
+# - Purpose:
+#   Read the main .NET project file and export its package name, version, and
+#   description for downstream build and release tasks.
+# - Inputs:
+#   - parameter displayName:
+#     task display name. Defaults to `Get main project properties`.
+# - Outputs:
+#   - `MainProject.PackageName`
+#   - `MainProject.Version`
+#   - `MainProject.Description`
+# - Important behavior:
+#   A missing version falls back to `0.1.0` and completes with warnings.

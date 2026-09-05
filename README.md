@@ -13,6 +13,8 @@ This repository contains a collection of reusable **Azure Pipelines YAML templat
   - [Release Version](docs/features/release-version.md)
   - [Cancellation Audit](docs/features/cancellation-audit.md)
   - [ACA Deploy Job](docs/features/aca-deploy-job.md)
+  - [Node Project Properties](docs/features/node-project-properties.md)
+  - [Conditioned Job and Stage Wrappers](docs/features/conditioned-templates.md)
 - Releases:
   - [Patch Notes](docs/patchnotes.md)
 
@@ -62,6 +64,10 @@ optional publish project:
 The helper only calculates variables. `UseDotNet` installs any pending SDKs;
 restore, build, test, and publish remain responsibilities of the consuming
 pipeline templates.
+
+The `scripts-templates/get-project-properties-node.yml` helper reads a Node
+`package.json`, validates its `Dockerfile`, logs the detected project
+properties, and exports `MainProject.*` and `NodeProject.*` variables.
 
 ## 📖 Official Documentation
 
