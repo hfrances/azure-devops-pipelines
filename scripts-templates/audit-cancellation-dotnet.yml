@@ -28,7 +28,7 @@ steps:
         $methodRegex = [regex]'(?ms)^\s*(?:\[[^\]]+\]\s*)*(?<mods>(?:(?:public|private|protected|internal|file|static|virtual|override|sealed|partial|new|extern|unsafe|async)\s+)+)(?:(?:readonly)\s+)?(?:global::)?(?:[\w\.]+\s+)?(?:Task|ValueTask)(?:\s*<[^;\r\n{}=>]+>)?\s+(?<name>[A-Za-z_]\w*)\s*\((?<params>.*?)\)\s*(?:where\s+[^\r\n{;=>]+\s*)*(?:\{|=>|;)'
 
         function Is-ExcludedFile([string]$path) {
-          return $path -match '\\obj\\|\\bin\\|\\examples\\|\.Test(\.|\\)|Tests?(\.|\\)|\\Test\\'
+          return $path -match '[\\/]obj[\\/]|[\\/]bin[\\/]|[\\/]examples[\\/]|\.Test([./\\]|$)|Tests?([./\\]|$)|[\\/]Test[\\/]'
         }
 
         function Is-AllowedException([string]$filePath, [string]$mods, [string]$methodName) {
