@@ -52,7 +52,14 @@ steps:
 
           if (-not [System.IO.Path]::IsPathRooted($pattern)) {
             $currentPath = [System.IO.Path]::GetFullPath((Get-Location).Path)
-            $candidatePath = [System.IO.Path]::GetRelativePath($currentPath, $candidatePath)
+            $base = ($currentPath -replace '\\', '/').TrimEnd('/')
+            $target = ($candidatePath -replace '\\', '/')
+            if ($target.StartsWith("$base/", [System.StringComparison]::OrdinalIgnoreCase)) {
+              $candidatePath = ($target.Substring($base.Length + 1)).Replace('/', '\')
+            }
+            else {
+              $candidatePath = $target.Replace('/', '\')
+            }
           }
 
           # Keep both interpretations of `**`: one or more directories and
