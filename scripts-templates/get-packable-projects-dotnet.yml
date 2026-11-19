@@ -165,12 +165,8 @@ steps:
           throw "No packable projects could be normalized relative to sourcesDirectory '$sourcesDirectory'."
         }
 
-        $packProjects = [string]::Join([Environment]::NewLine, $relativeProjects)
-        # Logging commands are line-oriented. Encode the newline so the
-        # resulting pipeline variable can still be consumed as a multiline
-        # DotNetCoreCLI projects input.
-        $encodedPackProjects = $packProjects.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
-        Write-Host "##vso[task.setvariable variable=BuildParameters.PackProjects]$encodedPackProjects"
+        $packProjects = ($relativeProjects | ForEach-Object { $_.Trim() }) -join ';'
+        Write-Host "##vso[task.setvariable variable=BuildParameters.PackProjects]$packProjects"
         Write-Host "##vso[task.setvariable variable=PackProjectsCount]$(@($relativeProjects).Count)"
 
 # Documentation
