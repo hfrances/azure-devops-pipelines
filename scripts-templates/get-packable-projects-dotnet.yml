@@ -146,14 +146,24 @@ steps:
           Write-Host "Inferred pack projects: $($resolvedProjects -join ', ')"
         }
 
+        function Get-RelativePath([string]$basePath, [string]$targetPath) {
+          $base = ($basePath -replace '\\', '/').TrimEnd('/')
+          $target = ($targetPath -replace '\\', '/')
+          if ($target.StartsWith("$base/", [System.StringComparison]::OrdinalIgnoreCase)) {
+            return $target.Substring($base.Length + 1)
+          }
+          return $target
+        }
+
         $relativeProjects = @($resolvedProjects | ForEach-Object {
-          if ([System.IO.Path]::IsPathRooted($_)) {
-            [System.IO.Path]::GetRelativePath($sourcesDirectory, $_).Replace('\', '/')
-          }
-          else {
-            $_.Replace('\', '/')
-          }
-        } | Sort-Object -Unique)
+          Get-RelativePath $sourcesDirectory $_
+        } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+
+        Write-Host "Normalized pack projects: $($relativeProjects -join ', ')"
+
+        if ($relativeProjects.Count -eq 0) {
+          throw "No packable projects could be normalized relative to sourcesDirectory '$sourcesDirectory'."
+        }
 
         $packProjects = [string]::Join([Environment]::NewLine, $relativeProjects)
         # Logging commands are line-oriented. Encode the newline so the
