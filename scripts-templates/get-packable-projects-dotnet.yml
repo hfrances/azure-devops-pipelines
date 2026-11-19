@@ -146,13 +146,22 @@ steps:
           Write-Host "Inferred pack projects: $($resolvedProjects -join ', ')"
         }
 
-        $packProjects = [string]::Join([Environment]::NewLine, @($resolvedProjects | Sort-Object -Unique))
+        $relativeProjects = @($resolvedProjects | ForEach-Object {
+          if ([System.IO.Path]::IsPathRooted($_)) {
+            [System.IO.Path]::GetRelativePath($sourcesDirectory, $_).Replace('\', '/')
+          }
+          else {
+            $_.Replace('\', '/')
+          }
+        } | Sort-Object -Unique)
+
+        $packProjects = [string]::Join([Environment]::NewLine, $relativeProjects)
         # Logging commands are line-oriented. Encode the newline so the
         # resulting pipeline variable can still be consumed as a multiline
         # DotNetCoreCLI projects input.
         $encodedPackProjects = $packProjects.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
         Write-Host "##vso[task.setvariable variable=BuildParameters.PackProjects]$encodedPackProjects"
-        Write-Host "##vso[task.setvariable variable=PackProjectsCount]$(@($resolvedProjects).Count)"
+        Write-Host "##vso[task.setvariable variable=PackProjectsCount]$(@($relativeProjects).Count)"
 
 # Documentation
 # - Purpose:
