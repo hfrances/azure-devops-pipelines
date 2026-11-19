@@ -146,13 +146,28 @@ steps:
           Write-Host "Inferred pack projects: $($resolvedProjects -join ', ')"
         }
 
-        $packProjects = [string]::Join([Environment]::NewLine, @($resolvedProjects | Sort-Object -Unique))
-        # Logging commands are line-oriented. Encode the newline so the
-        # resulting pipeline variable can still be consumed as a multiline
-        # DotNetCoreCLI projects input.
-        $encodedPackProjects = $packProjects.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
-        Write-Host "##vso[task.setvariable variable=BuildParameters.PackProjects]$encodedPackProjects"
-        Write-Host "##vso[task.setvariable variable=PackProjectsCount]$(@($resolvedProjects).Count)"
+        function Get-RelativePath([string]$basePath, [string]$targetPath) {
+          $base = ($basePath -replace '\\', '/').TrimEnd('/')
+          $target = ($targetPath -replace '\\', '/')
+          if ($target.StartsWith("$base/", [System.StringComparison]::OrdinalIgnoreCase)) {
+            return $target.Substring($base.Length + 1)
+          }
+          return $target
+        }
+
+        $relativeProjects = @($resolvedProjects | ForEach-Object {
+          Get-RelativePath $sourcesDirectory $_
+        } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+
+        Write-Host "Normalized pack projects: $($relativeProjects -join ', ')"
+
+        if ($relativeProjects.Count -eq 0) {
+          throw "No packable projects could be normalized relative to sourcesDirectory '$sourcesDirectory'."
+        }
+
+        $packProjects = ($relativeProjects | ForEach-Object { $_.Trim() }) -join ';'
+        Write-Host "##vso[task.setvariable variable=BuildParameters.PackProjects]$packProjects"
+        Write-Host "##vso[task.setvariable variable=PackProjectsCount]$(@($relativeProjects).Count)"
 
 # Documentation
 # - Purpose:

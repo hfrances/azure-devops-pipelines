@@ -87,7 +87,9 @@ steps:
           $normalizedPattern = $Pattern.Trim().Replace('\', '/')
           $normalizedPattern = $normalizedPattern -replace '^\./', ''
           $rootSafePattern = $normalizedPattern -replace '^\*\*/', ''
-          $relativePath = [System.IO.Path]::GetRelativePath($Root, $Project.FullName).Replace('\', '/')
+          $relRoot = ($Root -replace '\\', '/').TrimEnd('/')
+          $relTarget = ($Project.FullName -replace '\\', '/')
+          $relativePath = if ($relTarget.StartsWith("$relRoot/", [System.StringComparison]::OrdinalIgnoreCase)) { $relTarget.Substring($relRoot.Length + 1) } else { $relTarget }
           return ($Project.Name -like $normalizedPattern) -or
             ($Project.Name -like $rootSafePattern) -or
             ($relativePath -like $normalizedPattern) -or
@@ -122,7 +124,12 @@ steps:
           $included = @($includes | Where-Object { Matches-ProjectPattern -Project $project -Pattern $_ -Root $sourcesDirectory }).Count -gt 0
           if (-not $included) { continue }
           $excluded = @($excludes | Where-Object { Matches-ProjectPattern -Project $project -Pattern $_ -Root $sourcesDirectory }).Count -gt 0
-          if (-not $excluded) { $resolved += $project.FullName }
+          if (-not $excluded) {
+            $srcRoot = ($sourcesDirectory -replace '\\', '/').TrimEnd('/')
+            $projPath = ($project.FullName -replace '\\', '/')
+            $rel = if ($projPath.StartsWith("$srcRoot/", [System.StringComparison]::OrdinalIgnoreCase)) { $projPath.Substring($srcRoot.Length + 1) } else { $projPath }
+            $resolved += $rel
+          }
         }
 
         $resolved = @($resolved | Sort-Object -Unique)
